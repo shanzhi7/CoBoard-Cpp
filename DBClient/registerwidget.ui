@@ -1,0 +1,667 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>RegisterWidget</class>
+ <widget class="QWidget" name="RegisterWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1200</width>
+    <height>720</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1200</width>
+    <height>720</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1200</width>
+    <height>720</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="1">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>42</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>382</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="1">
+    <widget class="QWidget" name="widget" native="true">
+     <property name="minimumSize">
+      <size>
+       <width>400</width>
+       <height>600</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>400</width>
+       <height>600</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#widget{	
+	border: 1px solid #C8AA6E;      
+	font-family: 'Microsoft YaHei';
+	border-radius: 5px;
+}</string>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_7">
+      <property name="leftMargin">
+       <number>20</number>
+      </property>
+      <property name="rightMargin">
+       <number>20</number>
+      </property>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QLabel" name="title_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">	border: none;      
+   	color: #C8AA6E;
+	font-size: 40px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>用户注册</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="title_lbl_en">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>20</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">	border: none;      
+   	color: #8F8C7F;
+	font-size: 12px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>User Registation</string>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignHCenter|Qt::AlignTop</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="line">
+          <property name="styleSheet">
+           <string notr="true">/* 水平线 */
+QFrame[frameShape=&quot;4&quot;] {
+    border: none;
+    /* 最后那个数字 120 是透明度(0-255)，越小越淡，看起来越细 */
+    background-color: rgba(200, 170, 110, 120); 
+    max-height: 1px;     /* 物理占用依然是 1px */
+    min-height: 1px;
+}</string>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QLabel" name="nick_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">   	color: #C8AA6E;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>昵称 / NICKNAME</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="nick_edit">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QLineEdit {
+    background-color: rgba(255, 255, 255, 0.05); /* 极淡的白色透明背景 */
+    border: 1px solid #3d4f68;                   /* 蓝灰色边框 */
+    border-radius: 4px;                          /* 轻微圆角 */
+    padding: 8px 10px;                           /* 内部文字间距 */
+    color: #cccccc;                              /* 输入文字颜色：浅灰 */
+    font-family: &quot;Microsoft YaHei&quot;;
+    font-size: 14px;
+    selection-background-color: #d4b574;         /* 选中文字背景色：金色 */
+}
+
+/* 输入框获得焦点时 */
+QLineEdit:focus {
+    border: 1px solid #d4b574; /* 获得焦点变金色边框 */
+    background-color: rgba(255, 255, 255, 0.08);
+}</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <item>
+         <widget class="QLabel" name="email_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">   	color: #C8AA6E;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>邮箱 / EMAIL</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLineEdit" name="email_edit">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>40</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QLineEdit {
+    background-color: rgba(255, 255, 255, 0.05); /* 极淡的白色透明背景 */
+    border: 1px solid #3d4f68;                   /* 蓝灰色边框 */
+    border-radius: 4px;                          /* 轻微圆角 */
+    padding: 8px 10px;                           /* 内部文字间距 */
+    color: #cccccc;                              /* 输入文字颜色：浅灰 */
+    font-family: &quot;Microsoft YaHei&quot;;
+    font-size: 14px;
+    selection-background-color: #d4b574;         /* 选中文字背景色：金色 */
+}
+
+/* 输入框获得焦点时 */
+QLineEdit:focus {
+    border: 1px solid #d4b574; /* 获得焦点变金色边框 */
+    background-color: rgba(255, 255, 255, 0.08);
+}</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <item>
+         <widget class="QLabel" name="passworld_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">   	color: #C8AA6E;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>密码 / PASSWORD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QLineEdit" name="password_edit">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLineEdit {
+    background-color: rgba(255, 255, 255, 0.05); /* 极淡的白色透明背景 */
+    border: 1px solid #3d4f68;                   /* 蓝灰色边框 */
+    border-radius: 4px;                          /* 轻微圆角 */
+    padding: 8px 10px;                           /* 内部文字间距 */
+    color: #cccccc;                              /* 输入文字颜色：浅灰 */
+    font-family: &quot;Microsoft YaHei&quot;;
+    font-size: 14px;
+    selection-background-color: #d4b574;         /* 选中文字背景色：金色 */
+}
+
+/* 输入框获得焦点时 */
+QLineEdit:focus {
+    border: 1px solid #d4b574; /* 获得焦点变金色边框 */
+    background-color: rgba(255, 255, 255, 0.08);
+}</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="passworld_tool">
+            <property name="styleSheet">
+             <string notr="true">QToolButton { 
+	border: none; background: transparent;
+}</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_5">
+        <item>
+         <widget class="QLabel" name="confirm_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">   	color: #C8AA6E;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>确认密码 / CONFIRM PASSWORD</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
+          <item>
+           <widget class="QLineEdit" name="confirm_edit">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLineEdit {
+    background-color: rgba(255, 255, 255, 0.05); /* 极淡的白色透明背景 */
+    border: 1px solid #3d4f68;                   /* 蓝灰色边框 */
+    border-radius: 4px;                          /* 轻微圆角 */
+    padding: 8px 10px;                           /* 内部文字间距 */
+    color: #cccccc;                              /* 输入文字颜色：浅灰 */
+    font-family: &quot;Microsoft YaHei&quot;;
+    font-size: 14px;
+    selection-background-color: #d4b574;         /* 选中文字背景色：金色 */
+}
+
+/* 输入框获得焦点时 */
+QLineEdit:focus {
+    border: 1px solid #d4b574; /* 获得焦点变金色边框 */
+    background-color: rgba(255, 255, 255, 0.08);
+}</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QToolButton" name="confirm_tool">
+            <property name="styleSheet">
+             <string notr="true">QToolButton { 
+	border: none; background: transparent;
+}</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="verticalLayout_6">
+        <item>
+         <widget class="QLabel" name="verifycode_lbl">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>15</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">   	color: #C8AA6E;
+	font-size: 14px;
+	font-weight: bold;
+	font-family: 'Microsoft YaHei';</string>
+          </property>
+          <property name="text">
+           <string>验证码 / VERIFYICATION CODE</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QLineEdit" name="verifycode_edit">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QLineEdit {
+    background-color: rgba(255, 255, 255, 0.05); /* 极淡的白色透明背景 */
+    border: 1px solid #3d4f68;                   /* 蓝灰色边框 */
+    border-radius: 4px;                          /* 轻微圆角 */
+    padding: 8px 10px;                           /* 内部文字间距 */
+    color: #cccccc;                              /* 输入文字颜色：浅灰 */
+    font-family: &quot;Microsoft YaHei&quot;;
+    font-size: 14px;
+    selection-background-color: #d4b574;         /* 选中文字背景色：金色 */
+}
+
+/* 输入框获得焦点时 */
+QLineEdit:focus {
+    border: 1px solid #d4b574; /* 获得焦点变金色边框 */
+    background-color: rgba(255, 255, 255, 0.08);
+}</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="get_verify_btn">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">QPushButton#get_verify_btn {
+    border: 1px solid #d4b574;  /* 金色边框 */
+    color: #d4b574;             /* 金色文字 */
+	font-weight: bold;
+}
+
+QPushButton#get_verify_btn:hover {
+    background-color: rgba(212, 181, 116, 0.1); /* 悬停时微亮 */
+    border: 1px solid #ead095;
+	font-weight: bold;
+}
+
+QPushButton#get_verify_btn:pressed {
+    background-color: rgba(212, 181, 116, 0.2); /* 按下效果 */
+    padding-top: 1px; /* 模拟按压位移 */
+    padding-left: 1px;
+	font-weight: bold;
+}</string>
+            </property>
+            <property name="text">
+             <string>获取验证码</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="register_btn">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton#register_btn {
+    border: 1px solid #d4b574;  /* 金色边框 */
+    color: #d4b574;             /* 金色文字 */
+	font-weight: bold;
+}
+
+QPushButton#register_btn:hover {
+    background-color: rgba(212, 181, 116, 0.1); /* 悬停时微亮 */
+    border: 1px solid #ead095;
+	font-weight: bold;
+}
+
+QPushButton#register_btn:pressed {
+    background-color: rgba(212, 181, 116, 0.2); /* 按下效果 */
+    padding-top: 1px; /* 模拟按压位移 */
+    padding-left: 1px;
+	font-weight: bold;
+}</string>
+          </property>
+          <property name="text">
+           <string>立即注册</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="cannel_btn">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>50</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton#cannel_btn {
+    border: 1px solid #1abc9c;  /* 青色边框 */
+    color: #1abc9c;             /* 青色文字 */
+	font-weight: bold;
+}
+
+QPushButton#cannel_btn:hover {
+    background-color: rgba(26, 188, 156, 0.1); /* 悬停微亮 */
+    border: 1px solid #3de3c2;
+	font-weight: bold;
+}
+
+QPushButton#cannel_btn:pressed {
+    background-color: rgba(26, 188, 156, 0.2);
+    padding-top: 1px;
+    padding-left: 1px;
+	font-weight: bold;
+}</string>
+          </property>
+          <property name="text">
+           <string>返回登录</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <spacer name="horizontalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>382</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="2" column="1">
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>42</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>res/offline.png</file>
+        <file>res/shared.png</file>
+        <file>res/unvisible.png</file>
+        <file>res/visible.png</file>
+    </qresource>
+</RCC>

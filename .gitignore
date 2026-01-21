@@ -1,0 +1,76 @@
+# --- 操作系统与全局 ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- IDE 与编辑器 ---
+# Visual Studio
+.vs/
+*.sln
+*.suo
+*.user
+*.userosscache
+*.slnx.sqlite
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+# Qt Creator
+CMakeLists.txt.user
+*.pro.user
+*.pro.user.*
+
+# --- C++ / Qt / CMake 编译文件 ---
+# 标准构建目录
+build/
+out/
+bin/
+debug/
+release/
+x64/
+x86/
+
+# CMake 生成的文件
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+!QtDeploySupport.cmake
+!DBClient-plugins.cmake
+
+# Qt 生成的文件（建议使用影子构建，但这里也包含了源内构建的清理）
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+Makefile*
+*.qrc.depends
+
+# 目标文件与库文件
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+*.exe
+*.pdb
+*.ilk
+*.exp
+*.idb
+
+# --- Node.js (VerifyServer) ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- 项目特定的忽略目录 ---
+# 根据您的项目结构
+DBClient/build/
+GateServer/out/
+VerifyServer/.VSCodeCounter/
