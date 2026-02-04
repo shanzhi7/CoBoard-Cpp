@@ -20,9 +20,11 @@ public:
 
     std::shared_ptr<UserInfo> getMyInfo();
     QString getToken();
+    int getUid();
 
     void setToken(QString& token);
     void setMyInfo(std::shared_ptr<UserInfo> userInfo);
+    void setAvatar(QString avatar);
 
 private:
     std::shared_ptr<UserInfo> _my_info;         //当前客户端用户信息

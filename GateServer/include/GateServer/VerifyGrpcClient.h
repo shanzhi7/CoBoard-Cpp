@@ -67,6 +67,8 @@ public:
 		}
 	}
 
+	//UpdateAvatarRsp 
+
 private:
 	VerifyGrpcClient();
 	std::unique_ptr<RPConPool> _pool;

@@ -25,3 +25,8 @@ bool MysqlMgr::CheckPassword(const std::string& email, const std::string& pwd, U
 {
     return _dao.CheckPassword(email, pwd, userInfo);
 }
+
+bool MysqlMgr::UpdateAvatar(const int& uid, const std::string& avatar)
+{
+    return _dao.UpdateAvatar(uid, avatar);
+}

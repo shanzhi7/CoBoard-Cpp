@@ -4,20 +4,44 @@ package message;
 
 //公共错误码定义(与 C++ 里的 enum 保持一致)
 enum ErrorCodes {
-	SUCCESS = 0;
-	Error_Json = 1001;        // Json解析错误
-	RPCFailed = 1002;         // RPC请求错误
-	VarifyExpired = 1003;     // 验证码过期
-	VarifyCodeErr = 1004;     // 验证码错误
-	UserExist = 1005;         // 用户已经存在
-	PasswdErr = 1006;         // 密码错误
-	EmailNotMatch = 1007;     // 邮箱不匹配
-	PasswdUpFailed = 1008;    // 更新密码失败
-	PasswdInvalid = 1009;     // 密码格式无效
-	TokenInvalid = 1010;      // Token无效
-	UidInvalid = 1011;        // UID无效
-	UserNotExist = 1012;      // 用户不存在
-	LoginErr = 1013;          // 登录失败(泛指)
+    SUCCESS = 0;
+
+    // --- 基础/系统错误 (1001 - 1019) ---
+    Error_Json = 1001;        // Json解析错误
+    RPCFailed = 1002;         // RPC请求错误 (网络或服务不可达)
+    VarifyExpired = 1003;     // 验证码过期
+    VarifyCodeErr = 1004;     // 验证码错误
+    PasswdErr = 1006;         // 密码错误
+    EmailNotMatch = 1007;     // 邮箱不匹配
+    PasswdUpFailed = 1008;    // 更新密码失败
+    PasswdInvalid = 1009;     // 密码格式无效
+    TokenInvalid = 1010;      // Token无效 (过期或伪造)
+    UidInvalid = 1011;        // UID无效
+    LoginErr = 1013;          // 登录失败 (泛指)
+    
+    ServerInternalErr = 1014; // 服务器内部错误 (未知异常)
+    RedisErr = 1015;          // Redis 操作失败 (连接断开或写入失败)
+    MysqlErr = 1016;          // Mysql 操作失败
+
+    // --- 用户/关系相关 (1020 - 1039) ---
+    UserExist = 1005;         // 用户已经存在 (注册时)
+    UserNotExist = 1012;      // 用户不存在
+    AlreadyFriend = 1020;     // 已经是好友
+    FriendOffline = 1021;     // 好友不在线
+    TargetUserBusy = 1022;    // 对方忙碌
+    
+    // --- 房间/画板相关 (1040 - 1059) ---
+    RoomCreateFailed = 1040;  // 创建房间失败 (写入Redis失败等)
+    RoomNotExist = 1041;      // 房间不存在 (房间号错误或已销毁)
+    RoomAlreadyExist = 1042;  // 房间已存在 (ID冲突)
+    RoomFull = 1043;          // 房间人数已满
+    RoomJoinFailed = 1044;    // 加入房间失败 (泛指)
+    NotInRoom = 1045;         // 用户不在房间内 (非法操作)
+    NotOwner = 1046;          // 权限不足 (非房主操作)
+    
+    // --- 重定向协议 (3000+) ---
+    // 这个不算错误，但通常作为 status 返回
+    NeedRedirect = 3001;      // 需要重定向到其他 Server
 }
 
 // 消息ID (用于 TCP 长连接区分包类型)
@@ -51,6 +75,9 @@ service LogicService
 
     // [预留] 验证 Token (供 CanvasServer 内部调用，客户端不调这个)
     rpc VerifyToken (VerifyTokenReq) returns (VerifyTokenRsp) {}
+
+    // 更新头像接口
+    rpc UpdateAvatar (UpdateAvatarReq) returns (UpdateAvatarRsp);
 }
 
 message GetVarifyReq
@@ -122,5 +149,38 @@ message VerifyTokenReq {
 // --- Token 验证 (Server 内部交互用) ---
 message VerifyTokenRsp {
     int32 error = 1; 
+    int32 uid = 2;
+}
+
+// 加入房间请求
+message JoinRoomReq {
+    int32 uid = 1;          // 谁要进？
+    string room_id = 2;     // 房间号 (例如 "604640")
+}
+
+// 加入房间响应
+message JoinRoomRsp {
+    int32 error = 1;        // 结果
+    string room_id = 2;     // 房间号
+    string room_name = 3;   // 房间名
+    int32 owner_uid = 4;    // 房主ID
+    
+    // 画布尺寸，确保所有人坐标系一致
+    int32 canvas_width = 5; 
+    int32 canvas_height = 6;
+
+    string redirect_host = 7; // 目标服务器 IP
+    int32 redirect_port = 8;  // 目标服务器 Port
+}
+
+// 更新头像请求
+message UpdateAvatarReq {
+    int32 uid = 1;
+    string avatar_url = 2;
+}
+
+// 更新头像回包
+message UpdateAvatarRsp {
+    int32 error = 1;
     int32 uid = 2;
 }

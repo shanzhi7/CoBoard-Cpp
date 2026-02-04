@@ -1,0 +1,14 @@
+[GateServer]
+Port = 8080
+[VarifyServer]
+Host=127.0.0.1
+Port=50057
+[LogicServer]
+Host=127.0.0.1
+Port=50058
+[AliyunOSS]
+AccessKeyId=YOUR_ACCESS_KEY_ID_HERE
+AccessKeySecret=YOUR_ACCESS_KEY_SECRET_HERE
+BucketName=YOUR_BUCKETNAME
+Endpoint=YOUR_ENDPOINT
+Host=YOUR_HOST

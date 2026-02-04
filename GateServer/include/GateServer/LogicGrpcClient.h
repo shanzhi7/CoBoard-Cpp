@@ -18,6 +18,8 @@ using message::ResetPasswordReq;
 using message::ResetPasswordRsp;
 using message::LoginReq;
 using message::LoginRsp;
+using message::UpdateAvatarReq;
+using message::UpdateAvatarRsp;
 
 class LogicGrpcClient : public Singleton<LogicGrpcClient>
 {
@@ -28,6 +30,7 @@ public:
     RegisterRsp RegisterUser(RegisterReq req);              //注册用户
     ResetPasswordRsp ResetPassword(ResetPasswordReq req);   //重置密码
     LoginRsp Login(LoginReq req);                           //登录
+    UpdateAvatarRsp UpdateAvatar(UpdateAvatarReq req);      //更新头像
 
 private:
     LogicGrpcClient();           //私有化构造函数

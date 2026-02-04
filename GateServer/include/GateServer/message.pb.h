@@ -59,6 +59,12 @@ extern GetVarifyReqDefaultTypeInternal _GetVarifyReq_default_instance_;
 class GetVarifyRsp;
 struct GetVarifyRspDefaultTypeInternal;
 extern GetVarifyRspDefaultTypeInternal _GetVarifyRsp_default_instance_;
+class JoinRoomReq;
+struct JoinRoomReqDefaultTypeInternal;
+extern JoinRoomReqDefaultTypeInternal _JoinRoomReq_default_instance_;
+class JoinRoomRsp;
+struct JoinRoomRspDefaultTypeInternal;
+extern JoinRoomRspDefaultTypeInternal _JoinRoomRsp_default_instance_;
 class LoginReq;
 struct LoginReqDefaultTypeInternal;
 extern LoginReqDefaultTypeInternal _LoginReq_default_instance_;
@@ -77,6 +83,12 @@ extern ResetPasswordReqDefaultTypeInternal _ResetPasswordReq_default_instance_;
 class ResetPasswordRsp;
 struct ResetPasswordRspDefaultTypeInternal;
 extern ResetPasswordRspDefaultTypeInternal _ResetPasswordRsp_default_instance_;
+class UpdateAvatarReq;
+struct UpdateAvatarReqDefaultTypeInternal;
+extern UpdateAvatarReqDefaultTypeInternal _UpdateAvatarReq_default_instance_;
+class UpdateAvatarRsp;
+struct UpdateAvatarRspDefaultTypeInternal;
+extern UpdateAvatarRspDefaultTypeInternal _UpdateAvatarRsp_default_instance_;
 class VerifyTokenReq;
 struct VerifyTokenReqDefaultTypeInternal;
 extern VerifyTokenReqDefaultTypeInternal _VerifyTokenReq_default_instance_;
@@ -96,15 +108,29 @@ enum ErrorCodes : int {
   RPCFailed = 1002,
   VarifyExpired = 1003,
   VarifyCodeErr = 1004,
-  UserExist = 1005,
   PasswdErr = 1006,
   EmailNotMatch = 1007,
   PasswdUpFailed = 1008,
   PasswdInvalid = 1009,
   TokenInvalid = 1010,
   UidInvalid = 1011,
-  UserNotExist = 1012,
   LoginErr = 1013,
+  ServerInternalErr = 1014,
+  RedisErr = 1015,
+  MysqlErr = 1016,
+  UserExist = 1005,
+  UserNotExist = 1012,
+  AlreadyFriend = 1020,
+  FriendOffline = 1021,
+  TargetUserBusy = 1022,
+  RoomCreateFailed = 1040,
+  RoomNotExist = 1041,
+  RoomAlreadyExist = 1042,
+  RoomFull = 1043,
+  RoomJoinFailed = 1044,
+  NotInRoom = 1045,
+  NotOwner = 1046,
+  NeedRedirect = 3001,
   ErrorCodes_INT_MIN_SENTINEL_DO_NOT_USE_ =
       std::numeric_limits<::int32_t>::min(),
   ErrorCodes_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -114,8 +140,8 @@ enum ErrorCodes : int {
 bool ErrorCodes_IsValid(int value);
 extern const uint32_t ErrorCodes_internal_data_[];
 constexpr ErrorCodes ErrorCodes_MIN = static_cast<ErrorCodes>(0);
-constexpr ErrorCodes ErrorCodes_MAX = static_cast<ErrorCodes>(1013);
-constexpr int ErrorCodes_ARRAYSIZE = 1013 + 1;
+constexpr ErrorCodes ErrorCodes_MAX = static_cast<ErrorCodes>(3001);
+constexpr int ErrorCodes_ARRAYSIZE = 3001 + 1;
 const ::google::protobuf::EnumDescriptor*
 ErrorCodes_descriptor();
 template <typename T>
@@ -568,6 +594,416 @@ class VerifyTokenReq final : public ::google::protobuf::Message
                           ::google::protobuf::Arena* arena, const Impl_& from,
                           const VerifyTokenReq& from_msg);
     ::google::protobuf::internal::ArenaStringPtr token_;
+    ::int32_t uid_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class UpdateAvatarRsp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.UpdateAvatarRsp) */ {
+ public:
+  inline UpdateAvatarRsp() : UpdateAvatarRsp(nullptr) {}
+  ~UpdateAvatarRsp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpdateAvatarRsp* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpdateAvatarRsp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpdateAvatarRsp(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline UpdateAvatarRsp(const UpdateAvatarRsp& from) : UpdateAvatarRsp(nullptr, from) {}
+  inline UpdateAvatarRsp(UpdateAvatarRsp&& from) noexcept
+      : UpdateAvatarRsp(nullptr, std::move(from)) {}
+  inline UpdateAvatarRsp& operator=(const UpdateAvatarRsp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpdateAvatarRsp& operator=(UpdateAvatarRsp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpdateAvatarRsp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const UpdateAvatarRsp* internal_default_instance() {
+    return reinterpret_cast<const UpdateAvatarRsp*>(
+        &_UpdateAvatarRsp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 13;
+  friend void swap(UpdateAvatarRsp& a, UpdateAvatarRsp& b) { a.Swap(&b); }
+  inline void Swap(UpdateAvatarRsp* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpdateAvatarRsp* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpdateAvatarRsp* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpdateAvatarRsp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpdateAvatarRsp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpdateAvatarRsp& from) { UpdateAvatarRsp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpdateAvatarRsp* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.UpdateAvatarRsp"; }
+
+ protected:
+  explicit UpdateAvatarRsp(::google::protobuf::Arena* arena);
+  UpdateAvatarRsp(::google::protobuf::Arena* arena, const UpdateAvatarRsp& from);
+  UpdateAvatarRsp(::google::protobuf::Arena* arena, UpdateAvatarRsp&& from) noexcept
+      : UpdateAvatarRsp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kErrorFieldNumber = 1,
+    kUidFieldNumber = 2,
+  };
+  // int32 error = 1;
+  void clear_error() ;
+  ::int32_t error() const;
+  void set_error(::int32_t value);
+
+  private:
+  ::int32_t _internal_error() const;
+  void _internal_set_error(::int32_t value);
+
+  public:
+  // int32 uid = 2;
+  void clear_uid() ;
+  ::int32_t uid() const;
+  void set_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_uid() const;
+  void _internal_set_uid(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.UpdateAvatarRsp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      1, 2, 0,
+      0, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const UpdateAvatarRsp& from_msg);
+    ::int32_t error_;
+    ::int32_t uid_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class UpdateAvatarReq final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.UpdateAvatarReq) */ {
+ public:
+  inline UpdateAvatarReq() : UpdateAvatarReq(nullptr) {}
+  ~UpdateAvatarReq() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(UpdateAvatarReq* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(UpdateAvatarReq));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR UpdateAvatarReq(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline UpdateAvatarReq(const UpdateAvatarReq& from) : UpdateAvatarReq(nullptr, from) {}
+  inline UpdateAvatarReq(UpdateAvatarReq&& from) noexcept
+      : UpdateAvatarReq(nullptr, std::move(from)) {}
+  inline UpdateAvatarReq& operator=(const UpdateAvatarReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline UpdateAvatarReq& operator=(UpdateAvatarReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const UpdateAvatarReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const UpdateAvatarReq* internal_default_instance() {
+    return reinterpret_cast<const UpdateAvatarReq*>(
+        &_UpdateAvatarReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 12;
+  friend void swap(UpdateAvatarReq& a, UpdateAvatarReq& b) { a.Swap(&b); }
+  inline void Swap(UpdateAvatarReq* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(UpdateAvatarReq* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  UpdateAvatarReq* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<UpdateAvatarReq>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const UpdateAvatarReq& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const UpdateAvatarReq& from) { UpdateAvatarReq::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(UpdateAvatarReq* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.UpdateAvatarReq"; }
+
+ protected:
+  explicit UpdateAvatarReq(::google::protobuf::Arena* arena);
+  UpdateAvatarReq(::google::protobuf::Arena* arena, const UpdateAvatarReq& from);
+  UpdateAvatarReq(::google::protobuf::Arena* arena, UpdateAvatarReq&& from) noexcept
+      : UpdateAvatarReq(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kAvatarUrlFieldNumber = 2,
+    kUidFieldNumber = 1,
+  };
+  // string avatar_url = 2;
+  void clear_avatar_url() ;
+  const std::string& avatar_url() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_avatar_url(Arg_&& arg, Args_... args);
+  std::string* mutable_avatar_url();
+  PROTOBUF_NODISCARD std::string* release_avatar_url();
+  void set_allocated_avatar_url(std::string* value);
+
+  private:
+  const std::string& _internal_avatar_url() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_avatar_url(
+      const std::string& value);
+  std::string* _internal_mutable_avatar_url();
+
+  public:
+  // int32 uid = 1;
+  void clear_uid() ;
+  ::int32_t uid() const;
+  void set_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_uid() const;
+  void _internal_set_uid(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.UpdateAvatarReq)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      1, 2, 0,
+      42, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const UpdateAvatarReq& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr avatar_url_;
     ::int32_t uid_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
@@ -1985,6 +2421,506 @@ class LoginReq final : public ::google::protobuf::Message
                           const LoginReq& from_msg);
     ::google::protobuf::internal::ArenaStringPtr email_;
     ::google::protobuf::internal::ArenaStringPtr passwd_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class JoinRoomRsp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.JoinRoomRsp) */ {
+ public:
+  inline JoinRoomRsp() : JoinRoomRsp(nullptr) {}
+  ~JoinRoomRsp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(JoinRoomRsp* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(JoinRoomRsp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR JoinRoomRsp(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline JoinRoomRsp(const JoinRoomRsp& from) : JoinRoomRsp(nullptr, from) {}
+  inline JoinRoomRsp(JoinRoomRsp&& from) noexcept
+      : JoinRoomRsp(nullptr, std::move(from)) {}
+  inline JoinRoomRsp& operator=(const JoinRoomRsp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline JoinRoomRsp& operator=(JoinRoomRsp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const JoinRoomRsp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const JoinRoomRsp* internal_default_instance() {
+    return reinterpret_cast<const JoinRoomRsp*>(
+        &_JoinRoomRsp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 11;
+  friend void swap(JoinRoomRsp& a, JoinRoomRsp& b) { a.Swap(&b); }
+  inline void Swap(JoinRoomRsp* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(JoinRoomRsp* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  JoinRoomRsp* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<JoinRoomRsp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const JoinRoomRsp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const JoinRoomRsp& from) { JoinRoomRsp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(JoinRoomRsp* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.JoinRoomRsp"; }
+
+ protected:
+  explicit JoinRoomRsp(::google::protobuf::Arena* arena);
+  JoinRoomRsp(::google::protobuf::Arena* arena, const JoinRoomRsp& from);
+  JoinRoomRsp(::google::protobuf::Arena* arena, JoinRoomRsp&& from) noexcept
+      : JoinRoomRsp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRoomIdFieldNumber = 2,
+    kRoomNameFieldNumber = 3,
+    kRedirectHostFieldNumber = 7,
+    kErrorFieldNumber = 1,
+    kOwnerUidFieldNumber = 4,
+    kCanvasWidthFieldNumber = 5,
+    kCanvasHeightFieldNumber = 6,
+    kRedirectPortFieldNumber = 8,
+  };
+  // string room_id = 2;
+  void clear_room_id() ;
+  const std::string& room_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_id(Arg_&& arg, Args_... args);
+  std::string* mutable_room_id();
+  PROTOBUF_NODISCARD std::string* release_room_id();
+  void set_allocated_room_id(std::string* value);
+
+  private:
+  const std::string& _internal_room_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_id(
+      const std::string& value);
+  std::string* _internal_mutable_room_id();
+
+  public:
+  // string room_name = 3;
+  void clear_room_name() ;
+  const std::string& room_name() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_name(Arg_&& arg, Args_... args);
+  std::string* mutable_room_name();
+  PROTOBUF_NODISCARD std::string* release_room_name();
+  void set_allocated_room_name(std::string* value);
+
+  private:
+  const std::string& _internal_room_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_name(
+      const std::string& value);
+  std::string* _internal_mutable_room_name();
+
+  public:
+  // string redirect_host = 7;
+  void clear_redirect_host() ;
+  const std::string& redirect_host() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_redirect_host(Arg_&& arg, Args_... args);
+  std::string* mutable_redirect_host();
+  PROTOBUF_NODISCARD std::string* release_redirect_host();
+  void set_allocated_redirect_host(std::string* value);
+
+  private:
+  const std::string& _internal_redirect_host() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_redirect_host(
+      const std::string& value);
+  std::string* _internal_mutable_redirect_host();
+
+  public:
+  // int32 error = 1;
+  void clear_error() ;
+  ::int32_t error() const;
+  void set_error(::int32_t value);
+
+  private:
+  ::int32_t _internal_error() const;
+  void _internal_set_error(::int32_t value);
+
+  public:
+  // int32 owner_uid = 4;
+  void clear_owner_uid() ;
+  ::int32_t owner_uid() const;
+  void set_owner_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_owner_uid() const;
+  void _internal_set_owner_uid(::int32_t value);
+
+  public:
+  // int32 canvas_width = 5;
+  void clear_canvas_width() ;
+  ::int32_t canvas_width() const;
+  void set_canvas_width(::int32_t value);
+
+  private:
+  ::int32_t _internal_canvas_width() const;
+  void _internal_set_canvas_width(::int32_t value);
+
+  public:
+  // int32 canvas_height = 6;
+  void clear_canvas_height() ;
+  ::int32_t canvas_height() const;
+  void set_canvas_height(::int32_t value);
+
+  private:
+  ::int32_t _internal_canvas_height() const;
+  void _internal_set_canvas_height(::int32_t value);
+
+  public:
+  // int32 redirect_port = 8;
+  void clear_redirect_port() ;
+  ::int32_t redirect_port() const;
+  void set_redirect_port(::int32_t value);
+
+  private:
+  ::int32_t _internal_redirect_port() const;
+  void _internal_set_redirect_port(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.JoinRoomRsp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      3, 8, 0,
+      65, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const JoinRoomRsp& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr room_id_;
+    ::google::protobuf::internal::ArenaStringPtr room_name_;
+    ::google::protobuf::internal::ArenaStringPtr redirect_host_;
+    ::int32_t error_;
+    ::int32_t owner_uid_;
+    ::int32_t canvas_width_;
+    ::int32_t canvas_height_;
+    ::int32_t redirect_port_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class JoinRoomReq final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.JoinRoomReq) */ {
+ public:
+  inline JoinRoomReq() : JoinRoomReq(nullptr) {}
+  ~JoinRoomReq() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(JoinRoomReq* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(JoinRoomReq));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR JoinRoomReq(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline JoinRoomReq(const JoinRoomReq& from) : JoinRoomReq(nullptr, from) {}
+  inline JoinRoomReq(JoinRoomReq&& from) noexcept
+      : JoinRoomReq(nullptr, std::move(from)) {}
+  inline JoinRoomReq& operator=(const JoinRoomReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline JoinRoomReq& operator=(JoinRoomReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const JoinRoomReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const JoinRoomReq* internal_default_instance() {
+    return reinterpret_cast<const JoinRoomReq*>(
+        &_JoinRoomReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 10;
+  friend void swap(JoinRoomReq& a, JoinRoomReq& b) { a.Swap(&b); }
+  inline void Swap(JoinRoomReq* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(JoinRoomReq* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  JoinRoomReq* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<JoinRoomReq>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const JoinRoomReq& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const JoinRoomReq& from) { JoinRoomReq::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(JoinRoomReq* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.JoinRoomReq"; }
+
+ protected:
+  explicit JoinRoomReq(::google::protobuf::Arena* arena);
+  JoinRoomReq(::google::protobuf::Arena* arena, const JoinRoomReq& from);
+  JoinRoomReq(::google::protobuf::Arena* arena, JoinRoomReq&& from) noexcept
+      : JoinRoomReq(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRoomIdFieldNumber = 2,
+    kUidFieldNumber = 1,
+  };
+  // string room_id = 2;
+  void clear_room_id() ;
+  const std::string& room_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_id(Arg_&& arg, Args_... args);
+  std::string* mutable_room_id();
+  PROTOBUF_NODISCARD std::string* release_room_id();
+  void set_allocated_room_id(std::string* value);
+
+  private:
+  const std::string& _internal_room_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_id(
+      const std::string& value);
+  std::string* _internal_mutable_room_id();
+
+  public:
+  // int32 uid = 1;
+  void clear_uid() ;
+  ::int32_t uid() const;
+  void set_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_uid() const;
+  void _internal_set_uid(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.JoinRoomReq)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      1, 2, 0,
+      35, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const JoinRoomReq& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr room_id_;
+    ::int32_t uid_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -3620,6 +4556,460 @@ inline ::int32_t VerifyTokenRsp::_internal_uid() const {
   return _impl_.uid_;
 }
 inline void VerifyTokenRsp::_internal_set_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// JoinRoomReq
+
+// int32 uid = 1;
+inline void JoinRoomReq::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = 0;
+}
+inline ::int32_t JoinRoomReq::uid() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomReq.uid)
+  return _internal_uid();
+}
+inline void JoinRoomReq::set_uid(::int32_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomReq.uid)
+}
+inline ::int32_t JoinRoomReq::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void JoinRoomReq::_internal_set_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string room_id = 2;
+inline void JoinRoomReq::clear_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.ClearToEmpty();
+}
+inline const std::string& JoinRoomReq::room_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.JoinRoomReq.room_id)
+  return _internal_room_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void JoinRoomReq::set_room_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.JoinRoomReq.room_id)
+}
+inline std::string* JoinRoomReq::mutable_room_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_id();
+  // @@protoc_insertion_point(field_mutable:message.JoinRoomReq.room_id)
+  return _s;
+}
+inline const std::string& JoinRoomReq::_internal_room_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_id_.Get();
+}
+inline void JoinRoomReq::_internal_set_room_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(value, GetArena());
+}
+inline std::string* JoinRoomReq::_internal_mutable_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_id_.Mutable( GetArena());
+}
+inline std::string* JoinRoomReq::release_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.JoinRoomReq.room_id)
+  return _impl_.room_id_.Release();
+}
+inline void JoinRoomReq::set_allocated_room_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_id_.IsDefault()) {
+    _impl_.room_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.JoinRoomReq.room_id)
+}
+
+// -------------------------------------------------------------------
+
+// JoinRoomRsp
+
+// int32 error = 1;
+inline void JoinRoomRsp::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = 0;
+}
+inline ::int32_t JoinRoomRsp::error() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.error)
+  return _internal_error();
+}
+inline void JoinRoomRsp::set_error(::int32_t value) {
+  _internal_set_error(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.error)
+}
+inline ::int32_t JoinRoomRsp::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_;
+}
+inline void JoinRoomRsp::_internal_set_error(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = value;
+}
+
+// string room_id = 2;
+inline void JoinRoomRsp::clear_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.ClearToEmpty();
+}
+inline const std::string& JoinRoomRsp::room_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.room_id)
+  return _internal_room_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void JoinRoomRsp::set_room_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.room_id)
+}
+inline std::string* JoinRoomRsp::mutable_room_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_id();
+  // @@protoc_insertion_point(field_mutable:message.JoinRoomRsp.room_id)
+  return _s;
+}
+inline const std::string& JoinRoomRsp::_internal_room_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_id_.Get();
+}
+inline void JoinRoomRsp::_internal_set_room_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(value, GetArena());
+}
+inline std::string* JoinRoomRsp::_internal_mutable_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_id_.Mutable( GetArena());
+}
+inline std::string* JoinRoomRsp::release_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.JoinRoomRsp.room_id)
+  return _impl_.room_id_.Release();
+}
+inline void JoinRoomRsp::set_allocated_room_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_id_.IsDefault()) {
+    _impl_.room_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.JoinRoomRsp.room_id)
+}
+
+// string room_name = 3;
+inline void JoinRoomRsp::clear_room_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_name_.ClearToEmpty();
+}
+inline const std::string& JoinRoomRsp::room_name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.room_name)
+  return _internal_room_name();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void JoinRoomRsp::set_room_name(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.room_name)
+}
+inline std::string* JoinRoomRsp::mutable_room_name() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_name();
+  // @@protoc_insertion_point(field_mutable:message.JoinRoomRsp.room_name)
+  return _s;
+}
+inline const std::string& JoinRoomRsp::_internal_room_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_name_.Get();
+}
+inline void JoinRoomRsp::_internal_set_room_name(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_name_.Set(value, GetArena());
+}
+inline std::string* JoinRoomRsp::_internal_mutable_room_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_name_.Mutable( GetArena());
+}
+inline std::string* JoinRoomRsp::release_room_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.JoinRoomRsp.room_name)
+  return _impl_.room_name_.Release();
+}
+inline void JoinRoomRsp::set_allocated_room_name(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_name_.IsDefault()) {
+    _impl_.room_name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.JoinRoomRsp.room_name)
+}
+
+// int32 owner_uid = 4;
+inline void JoinRoomRsp::clear_owner_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.owner_uid_ = 0;
+}
+inline ::int32_t JoinRoomRsp::owner_uid() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.owner_uid)
+  return _internal_owner_uid();
+}
+inline void JoinRoomRsp::set_owner_uid(::int32_t value) {
+  _internal_set_owner_uid(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.owner_uid)
+}
+inline ::int32_t JoinRoomRsp::_internal_owner_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.owner_uid_;
+}
+inline void JoinRoomRsp::_internal_set_owner_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.owner_uid_ = value;
+}
+
+// int32 canvas_width = 5;
+inline void JoinRoomRsp::clear_canvas_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canvas_width_ = 0;
+}
+inline ::int32_t JoinRoomRsp::canvas_width() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.canvas_width)
+  return _internal_canvas_width();
+}
+inline void JoinRoomRsp::set_canvas_width(::int32_t value) {
+  _internal_set_canvas_width(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.canvas_width)
+}
+inline ::int32_t JoinRoomRsp::_internal_canvas_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.canvas_width_;
+}
+inline void JoinRoomRsp::_internal_set_canvas_width(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canvas_width_ = value;
+}
+
+// int32 canvas_height = 6;
+inline void JoinRoomRsp::clear_canvas_height() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canvas_height_ = 0;
+}
+inline ::int32_t JoinRoomRsp::canvas_height() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.canvas_height)
+  return _internal_canvas_height();
+}
+inline void JoinRoomRsp::set_canvas_height(::int32_t value) {
+  _internal_set_canvas_height(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.canvas_height)
+}
+inline ::int32_t JoinRoomRsp::_internal_canvas_height() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.canvas_height_;
+}
+inline void JoinRoomRsp::_internal_set_canvas_height(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.canvas_height_ = value;
+}
+
+// string redirect_host = 7;
+inline void JoinRoomRsp::clear_redirect_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_host_.ClearToEmpty();
+}
+inline const std::string& JoinRoomRsp::redirect_host() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.redirect_host)
+  return _internal_redirect_host();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void JoinRoomRsp::set_redirect_host(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_host_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.redirect_host)
+}
+inline std::string* JoinRoomRsp::mutable_redirect_host() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_redirect_host();
+  // @@protoc_insertion_point(field_mutable:message.JoinRoomRsp.redirect_host)
+  return _s;
+}
+inline const std::string& JoinRoomRsp::_internal_redirect_host() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.redirect_host_.Get();
+}
+inline void JoinRoomRsp::_internal_set_redirect_host(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_host_.Set(value, GetArena());
+}
+inline std::string* JoinRoomRsp::_internal_mutable_redirect_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.redirect_host_.Mutable( GetArena());
+}
+inline std::string* JoinRoomRsp::release_redirect_host() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.JoinRoomRsp.redirect_host)
+  return _impl_.redirect_host_.Release();
+}
+inline void JoinRoomRsp::set_allocated_redirect_host(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_host_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.redirect_host_.IsDefault()) {
+    _impl_.redirect_host_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.JoinRoomRsp.redirect_host)
+}
+
+// int32 redirect_port = 8;
+inline void JoinRoomRsp::clear_redirect_port() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_port_ = 0;
+}
+inline ::int32_t JoinRoomRsp::redirect_port() const {
+  // @@protoc_insertion_point(field_get:message.JoinRoomRsp.redirect_port)
+  return _internal_redirect_port();
+}
+inline void JoinRoomRsp::set_redirect_port(::int32_t value) {
+  _internal_set_redirect_port(value);
+  // @@protoc_insertion_point(field_set:message.JoinRoomRsp.redirect_port)
+}
+inline ::int32_t JoinRoomRsp::_internal_redirect_port() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.redirect_port_;
+}
+inline void JoinRoomRsp::_internal_set_redirect_port(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.redirect_port_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// UpdateAvatarReq
+
+// int32 uid = 1;
+inline void UpdateAvatarReq::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = 0;
+}
+inline ::int32_t UpdateAvatarReq::uid() const {
+  // @@protoc_insertion_point(field_get:message.UpdateAvatarReq.uid)
+  return _internal_uid();
+}
+inline void UpdateAvatarReq::set_uid(::int32_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.UpdateAvatarReq.uid)
+}
+inline ::int32_t UpdateAvatarReq::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void UpdateAvatarReq::_internal_set_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string avatar_url = 2;
+inline void UpdateAvatarReq::clear_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.ClearToEmpty();
+}
+inline const std::string& UpdateAvatarReq::avatar_url() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.UpdateAvatarReq.avatar_url)
+  return _internal_avatar_url();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void UpdateAvatarReq::set_avatar_url(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.UpdateAvatarReq.avatar_url)
+}
+inline std::string* UpdateAvatarReq::mutable_avatar_url() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_avatar_url();
+  // @@protoc_insertion_point(field_mutable:message.UpdateAvatarReq.avatar_url)
+  return _s;
+}
+inline const std::string& UpdateAvatarReq::_internal_avatar_url() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.avatar_url_.Get();
+}
+inline void UpdateAvatarReq::_internal_set_avatar_url(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.Set(value, GetArena());
+}
+inline std::string* UpdateAvatarReq::_internal_mutable_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.avatar_url_.Mutable( GetArena());
+}
+inline std::string* UpdateAvatarReq::release_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.UpdateAvatarReq.avatar_url)
+  return _impl_.avatar_url_.Release();
+}
+inline void UpdateAvatarReq::set_allocated_avatar_url(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.avatar_url_.IsDefault()) {
+    _impl_.avatar_url_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.UpdateAvatarReq.avatar_url)
+}
+
+// -------------------------------------------------------------------
+
+// UpdateAvatarRsp
+
+// int32 error = 1;
+inline void UpdateAvatarRsp::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = 0;
+}
+inline ::int32_t UpdateAvatarRsp::error() const {
+  // @@protoc_insertion_point(field_get:message.UpdateAvatarRsp.error)
+  return _internal_error();
+}
+inline void UpdateAvatarRsp::set_error(::int32_t value) {
+  _internal_set_error(value);
+  // @@protoc_insertion_point(field_set:message.UpdateAvatarRsp.error)
+}
+inline ::int32_t UpdateAvatarRsp::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_;
+}
+inline void UpdateAvatarRsp::_internal_set_error(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = value;
+}
+
+// int32 uid = 2;
+inline void UpdateAvatarRsp::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = 0;
+}
+inline ::int32_t UpdateAvatarRsp::uid() const {
+  // @@protoc_insertion_point(field_get:message.UpdateAvatarRsp.uid)
+  return _internal_uid();
+}
+inline void UpdateAvatarRsp::set_uid(::int32_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.UpdateAvatarRsp.uid)
+}
+inline ::int32_t UpdateAvatarRsp::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void UpdateAvatarRsp::_internal_set_uid(::int32_t value) {
   ::google::protobuf::internal::TSanWrite(&_impl_);
   _impl_.uid_ = value;
 }

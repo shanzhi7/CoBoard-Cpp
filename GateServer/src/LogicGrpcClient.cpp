@@ -84,3 +84,25 @@ LoginRsp LogicGrpcClient::Login(LoginReq req)
         return reply;
     }
 }
+
+UpdateAvatarRsp LogicGrpcClient::UpdateAvatar(UpdateAvatarReq req)
+{
+    ClientContext context;
+    UpdateAvatarRsp rsp;
+    Status status = _stub->UpdateAvatar(&context, req, &rsp);
+
+    if (status.ok())
+    {
+        // RPC 调用成功，直接返回 LogicServer 给出的结果
+        return rsp;
+    }
+    else
+    {
+        // RPC 调用失败（网络问题、服务器挂了等）
+        // 创建一个错误码，告诉上层是 RPC 这一层出问题了
+        rsp.set_error(message::ErrorCodes::RPCFailed);
+        std::cout << "[GateServer] Call LogicServer UpdateAvatar Failed. Error: "
+            << status.error_code() << ": " << status.error_message() << std::endl;
+        return rsp;
+    }
+}

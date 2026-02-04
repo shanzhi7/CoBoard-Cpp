@@ -49,7 +49,7 @@ find_package(zstd CONFIG REQUIRED)
 add_executable (CanvasServer "src/CanvasServer.cpp"
 "include/CanvasServer/CanvasServer.h"
 "include/CanvasServer/message.grpc.pb.h" 
-"include/CanvasServer/message.pb.h" 
+ 
 "src/message.pb.cc"
 "src/message.grpc.pb.cc"
  

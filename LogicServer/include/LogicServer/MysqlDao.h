@@ -18,6 +18,9 @@ public:
 	//校验密码
 	bool CheckPassword(const std::string& email, const std::string& pwd, UserInfo& userInfo);
 
+	//更新头像
+	int UpdateAvatar(const int& uid, const std::string& avatar);
+
 
 
 private:

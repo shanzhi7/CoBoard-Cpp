@@ -222,3 +222,23 @@ Status LogicServiceImpl::Login(ServerContext* context, const LoginReq* request, 
 
     return Status::OK;
 }
+
+Status LogicServiceImpl::UpdateAvatar(ServerContext* context, const UpdateAvatarReq* request, UpdateAvatarRsp* reply)
+{
+    if (request->uid() == 0 || request->avatar_url().empty())  // 参数校验
+    {
+        reply->set_error(message::ErrorCodes::RPCFailed);
+        return Status::OK;
+    }
+    int err_code = MysqlMgr::getInstance()->UpdateAvatar(request->uid(), request->avatar_url());
+
+    if (err_code != message::ErrorCodes::SUCCESS) // 更新数据库失败
+    {
+        reply->set_error(err_code);
+        return Status::OK;
+    }
+
+    reply->set_error(message::ErrorCodes::SUCCESS);
+    reply->set_uid(request->uid());
+    return Status::OK;
+}

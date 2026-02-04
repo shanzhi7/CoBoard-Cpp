@@ -75,6 +75,9 @@ service LogicService
 
     // [预留] 验证 Token (供 CanvasServer 内部调用，客户端不调这个)
     rpc VerifyToken (VerifyTokenReq) returns (VerifyTokenRsp) {}
+
+    // 更新头像接口
+    rpc UpdateAvatar (UpdateAvatarReq) returns (UpdateAvatarRsp);
 }
 
 message GetVarifyReq
@@ -168,4 +171,16 @@ message JoinRoomRsp {
 
     string redirect_host = 7; // 目标服务器 IP
     int32 redirect_port = 8;  // 目标服务器 Port
+}
+
+// 更新头像请求
+message UpdateAvatarReq {
+    int32 uid = 1;
+    string avatar_url = 2;
+}
+
+// 更新头像回包
+message UpdateAvatarRsp {
+    int32 error = 1;
+    int32 uid = 2;
 }

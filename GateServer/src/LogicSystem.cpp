@@ -5,6 +5,37 @@
 #include "GateServer/LogicGrpcClient.h"
 #include "GateServer//message.pb.h"
 #include "GateServer//message.grpc.pb.h"
+#include <openssl/hmac.h>
+#include <openssl/sha.h>
+#include <boost/beast/core/detail/base64.hpp>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include "GateServer/ConfigMgr.h" // 确保包含你的配置管理器
+
+// HMAC-SHA1 加密
+std::string HmacSha1(const std::string& key, const std::string& data)
+{
+	unsigned char* result;
+	unsigned int len = 20;
+	unsigned char hash[20];
+
+	// OpenSSL 的 HMAC 函数
+	result = HMAC(EVP_sha1(), key.c_str(), key.length(),
+		(unsigned char*)data.c_str(), data.length(), hash, &len);
+
+	return std::string((char*)hash, len);
+}
+
+// Base64 编码 (利用 Boost.Beast)
+std::string Base64Encode(const std::string& input)
+{
+	std::string output;
+	output.resize(boost::beast::detail::base64::encoded_size(input.size()));
+	auto result = boost::beast::detail::base64::encode(&output[0], input.data(), input.size());
+	output.resize(result);
+	return output;
+}
 
 LogicSystem::LogicSystem()	//构造函数
 {
@@ -264,6 +295,140 @@ LogicSystem::LogicSystem()	//构造函数
 		boost::beast::ostream(connection->_response.body()) << jsonstr;
 		return true;
 		});
+
+	// 注册获取 OSS 上传签名的接口
+	RegPost("/get_oss_token", [](std::shared_ptr<HttpConnection> connection) {
+		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
+
+		//读取配置文件 (使用你的 ConfigMgr)
+		auto& cfg = ConfigMgr::Inst();
+		std::string access_id = cfg["AliyunOSS"]["AccessKeyId"];
+		std::string access_secret = cfg["AliyunOSS"]["AccessKeySecret"];
+		std::string bucket = cfg["AliyunOSS"]["BucketName"];
+		std::string host = cfg["AliyunOSS"]["Host"]; // http://bucket.endpoint
+
+		//解析客户端请求
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+		Json::Value root;
+		Json::Reader reader;
+		Json::Value src_root;
+		if (!reader.parse(body_str, src_root))
+		{
+			root["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		//准备文件名和过期时间
+		std::string uid = src_root.get("uid", "0").asString();
+		std::string suffix = src_root.get("suffix", "jpg").asString();
+		// 必须和 Qt 客户端上传时设置的 Header 一模一样！
+		std::string content_type = "image/jpeg";
+		if (suffix == "png")
+		{
+			content_type = "image/png";
+		}
+		std::time_t now = std::time(nullptr);
+		std::time_t expire_time = now + 600; // 10分钟后过期
+
+		//生成文件名：avatars/uid_时间戳.jpg
+		std::string object_name = "avatars/" + uid + "_" + std::to_string(now) + "." + suffix;
+
+		//构造待签名字符串 (String To Sign)
+		// 格式：PUT + \n + Content-MD5(空) + \n + Content-Type + \n + Expires + \n + CanonicalizedResource
+		std::string string_to_sign = "PUT\n\n" + content_type + "\n" + std::to_string(expire_time) + "\n" + "/" + bucket + "/" + object_name;
+		std::cout << "[OSS Debug] StringToSign:\n" << string_to_sign << std::endl;
+
+		//计算签名 (HMAC-SHA1 -> Base64 -> UrlEncode)
+		std::string signature = Base64Encode(HmacSha1(access_secret, string_to_sign));
+		std::string encoded_signature = UrlEncode(signature); // 使用你现有的 UrlEncode
+
+		//拼接最终 URL
+		std::stringstream ss;
+		ss << host << "/" << object_name
+			<< "?OSSAccessKeyId=" << access_id
+			<< "&Expires=" << expire_time
+			<< "&Signature=" << encoded_signature;
+
+		std::string public_url = host + "/" + object_name;		//公共链接
+
+		//返回给 Qt
+		root["error"] = message::ErrorCodes::SUCCESS;
+		root["url"] = ss.str();				// 上传用的 URL
+		root["public_url"] = public_url;	// 公开链接
+		root["oss_key"] = object_name;		// 文件路径 key
+
+		//打印日志方便调试
+		std::cout << "[OSS] Generated URL for uid " << uid << std::endl;
+
+		boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+		return true;
+		});
+
+	RegPost("/save_avator", [](std::shared_ptr<HttpConnection> connection) {
+		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
+
+		// 【调试日志 1】确认 GateServer 是否真正收到了请求
+		std::cout << "------------------------------------------------" << std::endl;
+		std::cout << "[GateServer] Receive HTTP Post: /save_avator" << std::endl;
+		std::cout << "[GateServer] Body: " << body_str << std::endl;
+
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+		Json::Value root;
+		Json::Reader reader;
+		Json::Value src_root;
+
+		//解析参数
+		if (!reader.parse(body_str, src_root))
+		{
+			// 【调试日志 2】JSON 解析失败
+			std::cout << "[GateServer] Error: Failed to parse JSON!" << std::endl;
+			root["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		//必须要有 uid，不然不知道给谁存
+		if (!src_root.isMember("uid") || !src_root.isMember("public_url"))
+		{
+			// 【调试日志 3】字段缺失
+			std::cout << "[GateServer] Error: Missing 'uid' or 'public_url' field!" << std::endl;
+			root["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		int uid = src_root["uid"].asInt();
+		std::string public_url = src_root["public_url"].asString();
+
+		// 【调试日志 4】确认解析出的数据是否正确
+		std::cout << "[GateServer] Parsed UID: " << uid << std::endl;
+		std::cout << "[GateServer] Parsed URL: " << public_url << std::endl;
+
+		//构造 gRPC 请求
+		message::UpdateAvatarReq req;
+		req.set_uid(uid);
+		req.set_avatar_url(public_url);
+
+		//呼叫 LogicServer
+		message::UpdateAvatarRsp rsp = LogicGrpcClient::getInstance()->UpdateAvatar(req);
+
+		// 【调试日志 5】gRPC 调用返回
+		std::cout << "[GateServer] LogicServer Response ErrorCode: " << rsp.error() << std::endl;
+
+		//返回结果给 Qt
+		root["error"] = rsp.error();
+		root["uid"] = rsp.uid();
+		if (rsp.error() == message::ErrorCodes::SUCCESS)	//// 只有 rsp.error() == 0 时，客户端才敢用这个地址刷新 UI
+		{
+			root["public_url"] = public_url;
+		}
+
+		std::string jsonstr = root.toStyledString();
+		boost::beast::ostream(connection->_response.body()) << jsonstr;
+		return true;
+		});
+
 }
 
 void LogicSystem::RegGet(std::string url, HttpHandler handler)

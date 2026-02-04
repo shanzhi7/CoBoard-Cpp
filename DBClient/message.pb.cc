@@ -80,6 +80,60 @@ struct VerifyTokenReqDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 VerifyTokenReqDefaultTypeInternal _VerifyTokenReq_default_instance_;
 
+inline constexpr UpdateAvatarRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : error_{0},
+        uid_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpdateAvatarRsp::UpdateAvatarRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpdateAvatarRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpdateAvatarRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpdateAvatarRspDefaultTypeInternal() {}
+  union {
+    UpdateAvatarRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpdateAvatarRspDefaultTypeInternal _UpdateAvatarRsp_default_instance_;
+
+inline constexpr UpdateAvatarReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : avatar_url_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR UpdateAvatarReq::UpdateAvatarReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct UpdateAvatarReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR UpdateAvatarReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~UpdateAvatarReqDefaultTypeInternal() {}
+  union {
+    UpdateAvatarReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 UpdateAvatarReqDefaultTypeInternal _UpdateAvatarReq_default_instance_;
+
 inline constexpr ResetPasswordRsp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : error_{0},
@@ -542,6 +596,26 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::message::JoinRoomRsp, _impl_.canvas_height_),
         PROTOBUF_FIELD_OFFSET(::message::JoinRoomRsp, _impl_.redirect_host_),
         PROTOBUF_FIELD_OFFSET(::message::JoinRoomRsp, _impl_.redirect_port_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarReq, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarReq, _impl_.avatar_url_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarRsp, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarRsp, _impl_.uid_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -558,6 +632,8 @@ static const ::_pbi::MigrationSchema
         {99, -1, -1, sizeof(::message::VerifyTokenRsp)},
         {109, -1, -1, sizeof(::message::JoinRoomReq)},
         {119, -1, -1, sizeof(::message::JoinRoomRsp)},
+        {135, -1, -1, sizeof(::message::UpdateAvatarReq)},
+        {145, -1, -1, sizeof(::message::UpdateAvatarRsp)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_GetVarifyReq_default_instance_._instance,
@@ -572,6 +648,8 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::message::_VerifyTokenRsp_default_instance_._instance,
     &::message::_JoinRoomReq_default_instance_._instance,
     &::message::_JoinRoomRsp_default_instance_._instance,
+    &::message::_UpdateAvatarReq_default_instance_._instance,
+    &::message::_UpdateAvatarRsp_default_instance_._instance,
 };
 const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -596,44 +674,49 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "d\030\002 \001(\t\022\021\n\troom_name\030\003 \001(\t\022\021\n\towner_uid\030"
     "\004 \001(\005\022\024\n\014canvas_width\030\005 \001(\005\022\025\n\rcanvas_he"
     "ight\030\006 \001(\005\022\025\n\rredirect_host\030\007 \001(\t\022\025\n\rred"
-    "irect_port\030\010 \001(\005*\217\004\n\nErrorCodes\022\013\n\007SUCCE"
-    "SS\020\000\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n"
-    "\rVarifyExpired\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n"
-    "\tPasswdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016Pas"
-    "swdUpFailed\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021\n\014To"
-    "kenInvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010LoginE"
-    "rr\020\365\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010RedisEr"
-    "r\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014U"
-    "serNotExist\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022\n\rFr"
-    "iendOffline\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022\025\n\020R"
-    "oomCreateFailed\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n"
-    "\020RoomAlreadyExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\023\n\016R"
-    "oomJoinFailed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\r\n\010NotO"
-    "wner\020\226\010\022\021\n\014NeedRedirect\020\271\027*\207\001\n\005MsgID\022\016\n\n"
-    "ID_UNKNOWN\020\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LO"
-    "GIN_RSP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_"
-    "RSP\020\354\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RS"
-    "P\020\356\0072P\n\rVarifyService\022\?\n\rGetVarifyCode\022\025"
-    ".message.GetVarifyReq\032\025.message.GetVarif"
-    "yRsp\"\0002\207\002\n\014LogicService\022<\n\014RegisterUser\022"
-    "\024.message.RegisterReq\032\024.message.Register"
-    "Rsp\"\000\022G\n\rResetPassword\022\031.message.ResetPa"
-    "sswordReq\032\031.message.ResetPasswordRsp\"\000\022-"
-    "\n\005Login\022\021.message.LoginReq\032\021.message.Log"
-    "inRsp\022A\n\013VerifyToken\022\027.message.VerifyTok"
-    "enReq\032\027.message.VerifyTokenRsp\"\000b\006proto3"
+    "irect_port\030\010 \001(\005\"2\n\017UpdateAvatarReq\022\013\n\003u"
+    "id\030\001 \001(\005\022\022\n\navatar_url\030\002 \001(\t\"-\n\017UpdateAv"
+    "atarRsp\022\r\n\005error\030\001 \001(\005\022\013\n\003uid\030\002 \001(\005*\217\004\n\n"
+    "ErrorCodes\022\013\n\007SUCCESS\020\000\022\017\n\nError_Json\020\351\007"
+    "\022\016\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpired\020\353\007\022\022\n\r"
+    "VarifyCodeErr\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rEmai"
+    "lNotMatch\020\357\007\022\023\n\016PasswdUpFailed\020\360\007\022\022\n\rPas"
+    "swdInvalid\020\361\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\nUidI"
+    "nvalid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021ServerIntern"
+    "alErr\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016"
+    "\n\tUserExist\020\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n\rAlr"
+    "eadyFriend\020\374\007\022\022\n\rFriendOffline\020\375\007\022\023\n\016Tar"
+    "getUserBusy\020\376\007\022\025\n\020RoomCreateFailed\020\220\010\022\021\n"
+    "\014RoomNotExist\020\221\010\022\025\n\020RoomAlreadyExist\020\222\010\022"
+    "\r\n\010RoomFull\020\223\010\022\023\n\016RoomJoinFailed\020\224\010\022\016\n\tN"
+    "otInRoom\020\225\010\022\r\n\010NotOwner\020\226\010\022\021\n\014NeedRedire"
+    "ct\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UNKNOWN\020\000\022\021\n\014ID_LO"
+    "GIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW"
+    "_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014ID_CLEAR_RE"
+    "Q\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\0072P\n\rVarifyService"
+    "\022\?\n\rGetVarifyCode\022\025.message.GetVarifyReq"
+    "\032\025.message.GetVarifyRsp\"\0002\313\002\n\014LogicServi"
+    "ce\022<\n\014RegisterUser\022\024.message.RegisterReq"
+    "\032\024.message.RegisterRsp\"\000\022G\n\rResetPasswor"
+    "d\022\031.message.ResetPasswordReq\032\031.message.R"
+    "esetPasswordRsp\"\000\022-\n\005Login\022\021.message.Log"
+    "inReq\032\021.message.LoginRsp\022A\n\013VerifyToken\022"
+    "\027.message.VerifyTokenReq\032\027.message.Verif"
+    "yTokenRsp\"\000\022B\n\014UpdateAvatar\022\030.message.Up"
+    "dateAvatarReq\032\030.message.UpdateAvatarRspb"
+    "\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    1880,
+    2047,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
     nullptr,
     0,
-    12,
+    14,
     schemas,
     file_default_instances,
     TableStruct_message_2eproto::offsets,
@@ -4124,6 +4207,504 @@ void JoinRoomRsp::InternalSwap(JoinRoomRsp* PROTOBUF_RESTRICT other) {
 }
 
 ::google::protobuf::Metadata JoinRoomRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpdateAvatarReq::_Internal {
+ public:
+};
+
+UpdateAvatarReq::UpdateAvatarReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.UpdateAvatarReq)
+}
+inline PROTOBUF_NDEBUG_INLINE UpdateAvatarReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::UpdateAvatarReq& from_msg)
+      : avatar_url_(arena, from.avatar_url_),
+        _cached_size_{0} {}
+
+UpdateAvatarReq::UpdateAvatarReq(
+    ::google::protobuf::Arena* arena,
+    const UpdateAvatarReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  UpdateAvatarReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.uid_ = from._impl_.uid_;
+
+  // @@protoc_insertion_point(copy_constructor:message.UpdateAvatarReq)
+}
+inline PROTOBUF_NDEBUG_INLINE UpdateAvatarReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : avatar_url_(arena),
+        _cached_size_{0} {}
+
+inline void UpdateAvatarReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.uid_ = {};
+}
+UpdateAvatarReq::~UpdateAvatarReq() {
+  // @@protoc_insertion_point(destructor:message.UpdateAvatarReq)
+  SharedDtor(*this);
+}
+inline void UpdateAvatarReq::SharedDtor(MessageLite& self) {
+  UpdateAvatarReq& this_ = static_cast<UpdateAvatarReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.avatar_url_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* UpdateAvatarReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) UpdateAvatarReq(arena);
+}
+constexpr auto UpdateAvatarReq::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(UpdateAvatarReq),
+                                            alignof(UpdateAvatarReq));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull UpdateAvatarReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_UpdateAvatarReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &UpdateAvatarReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<UpdateAvatarReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &UpdateAvatarReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<UpdateAvatarReq>(), &UpdateAvatarReq::ByteSizeLong,
+            &UpdateAvatarReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(UpdateAvatarReq, _impl_._cached_size_),
+        false,
+    },
+    &UpdateAvatarReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* UpdateAvatarReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 42, 2> UpdateAvatarReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::UpdateAvatarReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string avatar_url = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(UpdateAvatarReq, _impl_.avatar_url_)}},
+    // int32 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(UpdateAvatarReq, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(UpdateAvatarReq, _impl_.uid_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(UpdateAvatarReq, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string avatar_url = 2;
+    {PROTOBUF_FIELD_OFFSET(UpdateAvatarReq, _impl_.avatar_url_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\27\0\12\0\0\0\0\0"
+    "message.UpdateAvatarReq"
+    "avatar_url"
+  }},
+};
+
+PROTOBUF_NOINLINE void UpdateAvatarReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.UpdateAvatarReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.avatar_url_.ClearToEmpty();
+  _impl_.uid_ = 0;
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* UpdateAvatarReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const UpdateAvatarReq& this_ = static_cast<const UpdateAvatarReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* UpdateAvatarReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const UpdateAvatarReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.UpdateAvatarReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          // string avatar_url = 2;
+          if (!this_._internal_avatar_url().empty()) {
+            const std::string& _s = this_._internal_avatar_url();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.UpdateAvatarReq.avatar_url");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.UpdateAvatarReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t UpdateAvatarReq::ByteSizeLong(const MessageLite& base) {
+          const UpdateAvatarReq& this_ = static_cast<const UpdateAvatarReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t UpdateAvatarReq::ByteSizeLong() const {
+          const UpdateAvatarReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.UpdateAvatarReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string avatar_url = 2;
+            if (!this_._internal_avatar_url().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_avatar_url());
+            }
+            // int32 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void UpdateAvatarReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<UpdateAvatarReq*>(&to_msg);
+  auto& from = static_cast<const UpdateAvatarReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.UpdateAvatarReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_avatar_url().empty()) {
+    _this->_internal_set_avatar_url(from._internal_avatar_url());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void UpdateAvatarReq::CopyFrom(const UpdateAvatarReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.UpdateAvatarReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpdateAvatarReq::InternalSwap(UpdateAvatarReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.avatar_url_, &other->_impl_.avatar_url_, arena);
+        swap(_impl_.uid_, other->_impl_.uid_);
+}
+
+::google::protobuf::Metadata UpdateAvatarReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class UpdateAvatarRsp::_Internal {
+ public:
+};
+
+UpdateAvatarRsp::UpdateAvatarRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.UpdateAvatarRsp)
+}
+UpdateAvatarRsp::UpdateAvatarRsp(
+    ::google::protobuf::Arena* arena, const UpdateAvatarRsp& from)
+    : UpdateAvatarRsp(arena) {
+  MergeFrom(from);
+}
+inline PROTOBUF_NDEBUG_INLINE UpdateAvatarRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0} {}
+
+inline void UpdateAvatarRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, error_),
+           0,
+           offsetof(Impl_, uid_) -
+               offsetof(Impl_, error_) +
+               sizeof(Impl_::uid_));
+}
+UpdateAvatarRsp::~UpdateAvatarRsp() {
+  // @@protoc_insertion_point(destructor:message.UpdateAvatarRsp)
+  SharedDtor(*this);
+}
+inline void UpdateAvatarRsp::SharedDtor(MessageLite& self) {
+  UpdateAvatarRsp& this_ = static_cast<UpdateAvatarRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* UpdateAvatarRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) UpdateAvatarRsp(arena);
+}
+constexpr auto UpdateAvatarRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(UpdateAvatarRsp),
+                                            alignof(UpdateAvatarRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull UpdateAvatarRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_UpdateAvatarRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &UpdateAvatarRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<UpdateAvatarRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &UpdateAvatarRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<UpdateAvatarRsp>(), &UpdateAvatarRsp::ByteSizeLong,
+            &UpdateAvatarRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_._cached_size_),
+        false,
+    },
+    &UpdateAvatarRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* UpdateAvatarRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 0, 2> UpdateAvatarRsp::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::UpdateAvatarRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // int32 uid = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(UpdateAvatarRsp, _impl_.uid_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.uid_)}},
+    // int32 error = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(UpdateAvatarRsp, _impl_.error_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.error_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 error = 1;
+    {PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.error_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 uid = 2;
+    {PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+
+PROTOBUF_NOINLINE void UpdateAvatarRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.UpdateAvatarRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.error_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.uid_) -
+      reinterpret_cast<char*>(&_impl_.error_)) + sizeof(_impl_.uid_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* UpdateAvatarRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const UpdateAvatarRsp& this_ = static_cast<const UpdateAvatarRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* UpdateAvatarRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const UpdateAvatarRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.UpdateAvatarRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 error = 1;
+          if (this_._internal_error() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_error(), target);
+          }
+
+          // int32 uid = 2;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<2>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.UpdateAvatarRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t UpdateAvatarRsp::ByteSizeLong(const MessageLite& base) {
+          const UpdateAvatarRsp& this_ = static_cast<const UpdateAvatarRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t UpdateAvatarRsp::ByteSizeLong() const {
+          const UpdateAvatarRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.UpdateAvatarRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // int32 error = 1;
+            if (this_._internal_error() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_error());
+            }
+            // int32 uid = 2;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void UpdateAvatarRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<UpdateAvatarRsp*>(&to_msg);
+  auto& from = static_cast<const UpdateAvatarRsp&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.UpdateAvatarRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (from._internal_error() != 0) {
+    _this->_impl_.error_ = from._impl_.error_;
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void UpdateAvatarRsp::CopyFrom(const UpdateAvatarRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.UpdateAvatarRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void UpdateAvatarRsp::InternalSwap(UpdateAvatarRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.uid_)
+      + sizeof(UpdateAvatarRsp::_impl_.uid_)
+      - PROTOBUF_FIELD_OFFSET(UpdateAvatarRsp, _impl_.error_)>(
+          reinterpret_cast<char*>(&_impl_.error_),
+          reinterpret_cast<char*>(&other->_impl_.error_));
+}
+
+::google::protobuf::Metadata UpdateAvatarRsp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

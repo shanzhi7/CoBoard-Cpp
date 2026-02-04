@@ -30,6 +30,8 @@ public:
     ~HttpMgr();
 
     void postHttpRequest(QUrl url,QJsonObject json,ReqId reqid,Modules mod); //post请求
+    // 上传文件专用接口 (PUT 方法直传 OSS)
+    void uploadFile(QUrl url, QString filePath, ReqId reqid, Modules mod);
 
 private:
     explicit HttpMgr();    //私有构造函数
@@ -41,6 +43,7 @@ signals:
     void sig_reg_mod_finish(ReqId,QString,ErrorCodes);          //通知注册模块
     void sig_reset_mod_finish(ReqId,QString,ErrorCodes);        //通知重置密码模块
     void sig_login_mod_finish(ReqId,QString,ErrorCodes);        //通知登录模块
+    void sig_lobby_mod_finish(ReqId,QString,ErrorCodes);        //通知大厅模块
 
 private slots:
     void slot_http_finished(ReqId reqid, QString res, ErrorCodes err, Modules mod);              //http请求完成信号

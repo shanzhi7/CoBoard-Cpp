@@ -181,3 +181,51 @@ bool MysqlDao::CheckPassword(const std::string& email, const std::string& pwd, U
 		return false;
 	}
 }
+int MysqlDao::UpdateAvatar(const int& uid, const std::string& avatar)
+{
+	try
+	{
+		auto con = _mysqlPool->getConnection();
+		if (!con)
+		{
+			std::cout << "[MysqlDao] UpdateAvatar Error: 获取连接失败" << std::endl;
+			return message::ErrorCodes::RPCFailed;
+		}
+		// RAII: 无论后续发生什么，确保连接被归还到连接池
+		Defer defer([&]() {		//回收
+			_mysqlPool->returnConnection(std::move(con));
+			});
+
+		//准备update语句
+		std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(
+			"UPDATE user SET avatar = ? WHERE id = ?"
+		));
+
+		// 绑定参数
+		pstmt->setString(1, avatar);
+		pstmt->setInt(2, uid);
+
+		int rows = pstmt->executeUpdate();	//更新行数
+
+		if (rows == 0)
+		{
+			// 如果影响行数为 0，说明要么邮箱不存在，要么新密码和老密码完全一样
+			std::cout << "[MysqlDao] UpdateAvatar Error:  " << avatar << std::endl;
+			return message::ErrorCodes::UserNotExist;
+		}
+		std::cout << "[MysqlDao] UpdateAvatar 成功 " << avatar << std::endl;
+		return message::ErrorCodes::SUCCESS;	//成功
+	}
+	catch (sql::SQLException& e)
+	{
+		std::cerr << "UpdateAvatar SQLException: " << e.what()
+			<< " (MySQL error code: " << e.getErrorCode()
+			<< ", SQLState: " << e.getSQLState() << ")" << std::endl;
+		return message::ErrorCodes::PasswdUpFailed; // 对应 ErrorCodes::PasswdUpFailed
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << "UpdateAvatar std::exception: " << e.what() << std::endl;
+		return message::ErrorCodes::PasswdUpFailed; // 对应 ErrorCodes::PasswdUpFailed
+	}
+}

@@ -15,6 +15,9 @@ public:
 
 	//校验密码
 	bool CheckPassword(const std::string& email, const std::string& pwd, UserInfo& userInfo);
+
+	//更新头像
+	bool UpdateAvatar(const int& uid, const std::string& avatar);
 private:
 	MysqlMgr();			//私有构造函数
 	MysqlDao _dao;		//数据访问对象

@@ -87,6 +87,7 @@ static const char* LogicService_method_names[] = {
   "/message.LogicService/ResetPassword",
   "/message.LogicService/Login",
   "/message.LogicService/VerifyToken",
+  "/message.LogicService/UpdateAvatar",
 };
 
 std::unique_ptr< LogicService::Stub> LogicService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -100,6 +101,7 @@ LogicService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& chann
   , rpcmethod_ResetPassword_(LogicService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_Login_(LogicService_method_names[2], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   , rpcmethod_VerifyToken_(LogicService_method_names[3], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_UpdateAvatar_(LogicService_method_names[4], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status LogicService::Stub::RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::message::RegisterRsp* response) {
@@ -194,6 +196,29 @@ void LogicService::Stub::async::VerifyToken(::grpc::ClientContext* context, cons
   return result;
 }
 
+::grpc::Status LogicService::Stub::UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::message::UpdateAvatarRsp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_UpdateAvatar_, context, request, response);
+}
+
+void LogicService::Stub::async::UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateAvatar_, context, request, response, std::move(f));
+}
+
+void LogicService::Stub::async::UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_UpdateAvatar_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>* LogicService::Stub::PrepareAsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::message::UpdateAvatarRsp, ::message::UpdateAvatarReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_UpdateAvatar_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>* LogicService::Stub::AsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncUpdateAvatarRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 LogicService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       LogicService_method_names[0],
@@ -235,6 +260,16 @@ LogicService::Service::Service() {
              ::message::VerifyTokenRsp* resp) {
                return service->VerifyToken(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      LogicService_method_names[4],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< LogicService::Service, ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](LogicService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::message::UpdateAvatarReq* req,
+             ::message::UpdateAvatarRsp* resp) {
+               return service->UpdateAvatar(ctx, req, resp);
+             }, this)));
 }
 
 LogicService::Service::~Service() {
@@ -262,6 +297,13 @@ LogicService::Service::~Service() {
 }
 
 ::grpc::Status LogicService::Service::VerifyToken(::grpc::ServerContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status LogicService::Service::UpdateAvatar(::grpc::ServerContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response) {
   (void) context;
   (void) request;
   (void) response;

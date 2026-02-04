@@ -277,6 +277,14 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>> PrepareAsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>>(PrepareAsyncVerifyTokenRaw(context, request, cq));
     }
+    // 更新头像接口
+    virtual ::grpc::Status UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::message::UpdateAvatarRsp* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>> AsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>>(AsyncUpdateAvatarRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>> PrepareAsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>>(PrepareAsyncUpdateAvatarRaw(context, request, cq));
+    }
     class async_interface {
      public:
       virtual ~async_interface() {}
@@ -292,6 +300,9 @@ class LogicService final {
       // [预留] 验证 Token (供 CanvasServer 内部调用，客户端不调这个)
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      // 更新头像接口
+      virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
     typedef class async_interface experimental_async_interface;
     virtual class async_interface* async() { return nullptr; }
@@ -305,6 +316,8 @@ class LogicService final {
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>* PrepareAsyncLoginRaw(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>* AsyncVerifyTokenRaw(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>* PrepareAsyncVerifyTokenRaw(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>* AsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>* PrepareAsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
@@ -337,6 +350,13 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::VerifyTokenRsp>> PrepareAsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::VerifyTokenRsp>>(PrepareAsyncVerifyTokenRaw(context, request, cq));
     }
+    ::grpc::Status UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::message::UpdateAvatarRsp* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>> AsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>>(AsyncUpdateAvatarRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>> PrepareAsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>>(PrepareAsyncUpdateAvatarRaw(context, request, cq));
+    }
     class async final :
       public StubInterface::async_interface {
      public:
@@ -348,6 +368,8 @@ class LogicService final {
       void Login(::grpc::ClientContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response, ::grpc::ClientUnaryReactor* reactor) override;
       void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, std::function<void(::grpc::Status)>) override;
       void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, std::function<void(::grpc::Status)>) override;
+      void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, ::grpc::ClientUnaryReactor* reactor) override;
      private:
       friend class Stub;
       explicit async(Stub* stub): stub_(stub) { }
@@ -367,10 +389,13 @@ class LogicService final {
     ::grpc::ClientAsyncResponseReader< ::message::LoginRsp>* PrepareAsyncLoginRaw(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::message::VerifyTokenRsp>* AsyncVerifyTokenRaw(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::message::VerifyTokenRsp>* PrepareAsyncVerifyTokenRaw(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>* AsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::message::UpdateAvatarRsp>* PrepareAsyncUpdateAvatarRaw(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) override;
     const ::grpc::internal::RpcMethod rpcmethod_RegisterUser_;
     const ::grpc::internal::RpcMethod rpcmethod_ResetPassword_;
     const ::grpc::internal::RpcMethod rpcmethod_Login_;
     const ::grpc::internal::RpcMethod rpcmethod_VerifyToken_;
+    const ::grpc::internal::RpcMethod rpcmethod_UpdateAvatar_;
   };
   static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
 
@@ -386,6 +411,8 @@ class LogicService final {
     virtual ::grpc::Status Login(::grpc::ServerContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response);
     // [预留] 验证 Token (供 CanvasServer 内部调用，客户端不调这个)
     virtual ::grpc::Status VerifyToken(::grpc::ServerContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response);
+    // 更新头像接口
+    virtual ::grpc::Status UpdateAvatar(::grpc::ServerContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response);
   };
   template <class BaseClass>
   class WithAsyncMethod_RegisterUser : public BaseClass {
@@ -467,7 +494,27 @@ class LogicService final {
       ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_RegisterUser<WithAsyncMethod_ResetPassword<WithAsyncMethod_Login<WithAsyncMethod_VerifyToken<Service > > > > AsyncService;
+  template <class BaseClass>
+  class WithAsyncMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodAsync(4);
+    }
+    ~WithAsyncMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestUpdateAvatar(::grpc::ServerContext* context, ::message::UpdateAvatarReq* request, ::grpc::ServerAsyncResponseWriter< ::message::UpdateAvatarRsp>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  typedef WithAsyncMethod_RegisterUser<WithAsyncMethod_ResetPassword<WithAsyncMethod_Login<WithAsyncMethod_VerifyToken<WithAsyncMethod_UpdateAvatar<Service > > > > > AsyncService;
   template <class BaseClass>
   class WithCallbackMethod_RegisterUser : public BaseClass {
    private:
@@ -576,7 +623,34 @@ class LogicService final {
     virtual ::grpc::ServerUnaryReactor* VerifyToken(
       ::grpc::CallbackServerContext* /*context*/, const ::message::VerifyTokenReq* /*request*/, ::message::VerifyTokenRsp* /*response*/)  { return nullptr; }
   };
-  typedef WithCallbackMethod_RegisterUser<WithCallbackMethod_ResetPassword<WithCallbackMethod_Login<WithCallbackMethod_VerifyToken<Service > > > > CallbackService;
+  template <class BaseClass>
+  class WithCallbackMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response) { return this->UpdateAvatar(context, request, response); }));}
+    void SetMessageAllocatorFor_UpdateAvatar(
+        ::grpc::MessageAllocator< ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(4);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* UpdateAvatar(
+      ::grpc::CallbackServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/)  { return nullptr; }
+  };
+  typedef WithCallbackMethod_RegisterUser<WithCallbackMethod_ResetPassword<WithCallbackMethod_Login<WithCallbackMethod_VerifyToken<WithCallbackMethod_UpdateAvatar<Service > > > > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_RegisterUser : public BaseClass {
@@ -642,6 +716,23 @@ class LogicService final {
     }
     // disable synchronous version of this method
     ::grpc::Status VerifyToken(::grpc::ServerContext* /*context*/, const ::message::VerifyTokenReq* /*request*/, ::message::VerifyTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
+  template <class BaseClass>
+  class WithGenericMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodGeneric(4);
+    }
+    ~WithGenericMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -724,6 +815,26 @@ class LogicService final {
     }
     void RequestVerifyToken(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
       ::grpc::Service::RequestAsyncUnary(3, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
+  class WithRawMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodRaw(4);
+    }
+    ~WithRawMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestUpdateAvatar(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(4, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
   template <class BaseClass>
@@ -812,6 +923,28 @@ class LogicService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* VerifyToken(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
+  class WithRawCallbackMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodRawCallback(4,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->UpdateAvatar(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* UpdateAvatar(
       ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
@@ -922,9 +1055,36 @@ class LogicService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedVerifyToken(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::message::VerifyTokenReq,::message::VerifyTokenRsp>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_RegisterUser<WithStreamedUnaryMethod_ResetPassword<WithStreamedUnaryMethod_Login<WithStreamedUnaryMethod_VerifyToken<Service > > > > StreamedUnaryService;
+  template <class BaseClass>
+  class WithStreamedUnaryMethod_UpdateAvatar : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_UpdateAvatar() {
+      ::grpc::Service::MarkMethodStreamed(4,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::message::UpdateAvatarReq, ::message::UpdateAvatarRsp>* streamer) {
+                       return this->StreamedUpdateAvatar(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_UpdateAvatar() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status UpdateAvatar(::grpc::ServerContext* /*context*/, const ::message::UpdateAvatarReq* /*request*/, ::message::UpdateAvatarRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedUpdateAvatar(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::message::UpdateAvatarReq,::message::UpdateAvatarRsp>* server_unary_streamer) = 0;
+  };
+  typedef WithStreamedUnaryMethod_RegisterUser<WithStreamedUnaryMethod_ResetPassword<WithStreamedUnaryMethod_Login<WithStreamedUnaryMethod_VerifyToken<WithStreamedUnaryMethod_UpdateAvatar<Service > > > > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_RegisterUser<WithStreamedUnaryMethod_ResetPassword<WithStreamedUnaryMethod_Login<WithStreamedUnaryMethod_VerifyToken<Service > > > > StreamedService;
+  typedef WithStreamedUnaryMethod_RegisterUser<WithStreamedUnaryMethod_ResetPassword<WithStreamedUnaryMethod_Login<WithStreamedUnaryMethod_VerifyToken<WithStreamedUnaryMethod_UpdateAvatar<Service > > > > > StreamedService;
 };
 
 }  // namespace message

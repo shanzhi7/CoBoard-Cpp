@@ -29,8 +29,11 @@ enum MSG_IDS {
 	ID_CANVAS_LOGIN_RSP = 1008,                 //登录CanvasServer回包
 	ID_CREAT_ROOM_REQ = 1009,                   //创建房间请求
 	ID_CREAT_ROOM_RSP = 1010,                   //创建房间回包
-	ID_JOIN_ROOM_REQ = 1010,                    //加入房间请求
-	ID_JOIN_ROOM_RSP = 1011,                    //加入房间回包
+	ID_JOIN_ROOM_REQ = 1011,                    //加入房间请求
+	ID_JOIN_ROOM_RSP = 1012,                    //加入房间回包
+	ID_GET_OSS_TOKEN = 1013,                    //获取OSS上传签名
+	ID_UPLOAD_IMAGE = 1014,                     //上传图片到OSS
+	ID_SAVE_IMAGE = 1015,                       //将图片保存到数据库
 };
 #define MAX_LENGTH 1024*2
 
