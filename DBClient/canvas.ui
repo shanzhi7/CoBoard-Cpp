@@ -466,7 +466,7 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
       <number>0</number>
      </property>
      <item>
-      <widget class="QTreeWidget" name="treeWidget">
+      <widget class="UserListTree" name="treeWidget">
        <property name="rootIsDecorated">
         <bool>false</bool>
        </property>
@@ -478,15 +478,6 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
          <string/>
         </property>
        </column>
-       <item>
-        <property name="text">
-         <string>我（MyName）</string>
-        </property>
-        <property name="icon">
-         <iconset resource="res.qrc">
-          <normaloff>:/res/deflaut_head.jpg</normaloff>:/res/deflaut_head.jpg</iconset>
-        </property>
-       </item>
       </widget>
      </item>
     </layout>
@@ -550,8 +541,13 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
    </property>
   </action>
  </widget>
- <resources>
-  <include location="res.qrc"/>
- </resources>
+ <customwidgets>
+  <customwidget>
+   <class>UserListTree</class>
+   <extends>QTreeWidget</extends>
+   <header>userlisttree.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
  <connections/>
 </ui>

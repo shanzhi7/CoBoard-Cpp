@@ -374,6 +374,8 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
 
 
     //回包
+
+    //todo... 返回房间用户列表
     rsp.set_error(message::ErrorCodes::SUCCESS);
     rsp.set_room_name(room_info.name);
     rsp.set_owner_uid(room_info.owner_uid);

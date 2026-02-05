@@ -3,6 +3,8 @@
 
 #include "paintscene.h"
 #include "global.h"
+#include "userlisttree.h"
+#include <QTreeWidgetItem>
 #include <QMainWindow>
 #include <QLabel>
 
@@ -25,15 +27,16 @@ protected:
 public slots:
     void slot_creat_room_finish(std::shared_ptr<RoomInfo>);                     //创建房间完成槽函数
 private slots:
-    void on_creatRoom_action_triggered();                                       //点击创建房间action槽函数
 
 private:
     Ui::Canvas *ui;
-    QLabel *statusDot;                      //状态栏标签
-    PaintScene* _paintScene;     //Scene
+    QLabel *statusDot;           // 状态栏标签
+    PaintScene* _paintScene;     // Scene
     std::shared_ptr<RoomInfo> _room_info;
+    QMap<int,QTreeWidgetItem*> _userItemMap;        //用户列表
 
-    void initCanvasUi();
+    void initCanvasUi();        //初始化ui界面
+    void addUser(int uid,QString name,QString avatar_url);                      //添加童虎
 };
 
 #endif // CANVAS_H

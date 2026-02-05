@@ -129,39 +129,12 @@ void Canvas::initCanvasUi()
     bar->addPermanentWidget(statusDot);
 }
 
-void Canvas::on_creatRoom_action_triggered()    //新建房间action槽函数
+void Canvas::addUser(int uid, QString name, QString avatar_url) //添加用户
 {
-    // NewRoomDialog dlg(this);
-    // if(dlg.exec() == QDialog::Accepted) //点击的是创建按钮
-    // {
-    //     QString roomName = dlg.getRoomName();       //获取房间名字
-    //     QSize canvasSize = dlg.getSelectedSize();   //获取用户选择的画布尺寸
-
-    //     //todo... 发送网络请求
-    //     QJsonObject json_obj;
-    //     json_obj["room_name"] = roomName;                   //房间名
-    //     auto info = UserMgr::getInstance()->getMyInfo();    //房主id
-    //     json_obj["width"] = _paintScene->sceneRect().width();   //画布尺寸
-    //     json_obj["height"] = _paintScene->sceneRect().height();
-
-    //     if (info)
-    //     {
-    //         json_obj["owner_uid"] = info->_id;
-    //     } else
-    //     {
-    //         qDebug() << "Error: UserInfo is null!";
-    //         return;
-    //     }
-    //     QJsonDocument jsonDoc(json_obj);
-    //     QByteArray jsonString = jsonDoc.toJson();
-    //     TcpMgr::getInstance()->sig_send_data(ReqId::ID_CREAT_ROOM_REQ,jsonString);      //发送TCP包
-
-
-    //     this->_paintScene->setSceneRect(0,0,canvasSize.width(),canvasSize.height());    //设置选择画布大小
-
-    // }
-
+    QTreeWidgetItem* new_item = ui->treeWidget->addUser(uid,name,avatar_url);
+    _userItemMap.insert(uid,new_item);
 }
+
 
 void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
@@ -171,5 +144,7 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     ui->title_label->setText(room_name + "-房间号:" + room_id);
     statusDot->setText("● 已连接");
     statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;"); // 绿色圆点
+    std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();
+    addUser(my_info->_id,my_info->_name + "(房主)",my_info->_avatar);                          // 添加用户
 }
 

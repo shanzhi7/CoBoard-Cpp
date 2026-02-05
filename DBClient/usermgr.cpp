@@ -100,6 +100,51 @@ void UserMgr::loadAvatar(const QString &url, QLabel *label)
     });
 }
 
+void UserMgr::loadAvatar(const QString &url, QTreeWidgetItem *item)
+{
+    if(url.isEmpty() || item == nullptr) return;
+
+    QString fileName = url.section('/', -1);
+    QString appPath = QCoreApplication::applicationDirPath();
+    QString cacheDirPath = appPath + QDir::separator() + "avatar_cache";
+    QString localPath = QDir::cleanPath(cacheDirPath + QDir::separator() + fileName);
+
+    // 检查缓存
+    if(QFile::exists(localPath))
+    {
+        QPixmap pix(localPath);
+        // 设置 Icon，不是 setPixmap
+        item->setIcon(0, QIcon(pix));
+        return;
+    }
+
+    // 没缓存，下载
+    QNetworkRequest request(url);
+    QNetworkReply* reply = _netMgr->get(request);
+
+    connect(reply, &QNetworkReply::finished, [=]() {
+        if (reply->error() == QNetworkReply::NoError)
+        {
+            QByteArray data = reply->readAll();
+            QPixmap pix;
+            if (pix.loadFromData(data))
+            {
+                // 设置 Icon
+                item->setIcon(0, QIcon(pix));
+
+                // 存缓存
+                QFile file(localPath);
+                if (file.open(QIODevice::WriteOnly))
+                {
+                    file.write(data);
+                    file.close();
+                }
+            }
+        }
+        reply->deleteLater();
+    });
+}
+
 std::shared_ptr<const UserInfo> UserMgr::getMyInfo()
 {
     return this->_my_info;

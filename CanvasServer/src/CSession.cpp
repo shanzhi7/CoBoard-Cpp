@@ -204,13 +204,13 @@ void CSession::Close()
 	// 从房间移除 (通知房间里的其他人)
 	if (auto room = _room.lock())
 	{
-		//room->Leave(_uid);
+		room->Leave(_uid);
 	}
 
 	// 从 SessionMgr 移除 (防止 LogicServer 踢人时找不到)
 	if (_uid != 0)
 	{
-		//SessionMgr::GetInstance()->RemoveSession(_uid);
+		SessionMgr::getInstance()->RemoveSession(_uid);
 	}
 
 	// 关闭 socket
