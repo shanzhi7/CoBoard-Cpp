@@ -21,8 +21,11 @@ Canvas::Canvas(QWidget *parent)
     // 为整个程序安装事件过滤器
     qApp->installEventFilter(this);
 
-    //连接创建房间成功信号
-    //connect(TcpMgr::getInstance().get(),&TcpMgr::sig_creat_room_finish,this,&Canvas::slot_creat_room_finish);
+    //连接新用户加入房间信号槽函数
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_user_joined,this,&Canvas::slot_user_joined);
+
+    //连接新用户离开房间信号槽函数
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_user_left,this,&Canvas::slot_user_leaved);
 
 }
 
@@ -134,6 +137,14 @@ void Canvas::addUser(int uid, QString name, QString avatar_url) //添加用户
     QTreeWidgetItem* new_item = ui->treeWidget->addUser(uid,name,avatar_url);
     _userItemMap.insert(uid,new_item);
 }
+void Canvas::leaveUser(int uid) //移除用户
+{
+    if(_userItemMap.contains(uid))
+    {
+        QTreeWidgetItem* item = _userItemMap.take(uid); //从 Map 中移除，并拿到指针 (一步到位)
+        delete item;
+    }
+}
 
 
 void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
@@ -144,7 +155,97 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     ui->title_label->setText(room_name + "-房间号:" + room_id);
     statusDot->setText("● 已连接");
     statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;"); // 绿色圆点
+
+    //添加自己到 treeWidgetItem
     std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();
     addUser(my_info->_id,my_info->_name + "(房主)",my_info->_avatar);                          // 添加用户
+
+}
+
+void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
+{
+    TipWidget::showTip(ui->graphicsView,"创建房间成功");
+    QString room_name = room_info->name;
+    QString room_id = room_info->id;
+    ui->title_label->setText(room_name + "-房间号:" + room_id);
+    statusDot->setText("● 已连接");
+    statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;");  // 绿色圆点
+
+    std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();      // 获取个人信息
+
+    //添加房间内其他用户到 treeWidgetItem
+    const QList<UserInfo>& members= room_info->members;
+    for(int i = 0;i < members.size();i++)
+    {
+        std::shared_ptr<UserInfo> member_info = std::make_shared<UserInfo>();
+        member_info->_id = members[i]._id;
+        member_info->_name = members[i]._name;
+        member_info->_avatar = members[i]._avatar;
+        if(member_info->_id == my_info->_id)
+        {
+            addUser(member_info->_id,member_info->_name + " (你)",member_info->_avatar);
+            continue;
+        }
+        else if(member_info->_id == room_info->owner_uid)
+        {
+            addUser(member_info->_id,member_info->_name + " (房主)",member_info->_avatar);
+        }
+        else
+        {
+            addUser(member_info->_id,member_info->_name,member_info->_avatar);
+        }
+    }
+}
+
+void Canvas::slot_user_joined(UserInfo new_info)
+{
+    // ---------------------------------------------------------
+    // 更新数据层 (Model)
+    // ---------------------------------------------------------
+    if(_room_info)
+    {
+        //去重
+        bool exists = false;
+        for(const auto& u : _room_info->members)
+        {
+            if(u._id == new_info._id)
+            {
+                exists = true;
+                break;
+            }
+        }
+        if(!exists)
+        {
+            _room_info->members.append(new_info);
+        }
+    }
+    // ---------------------------------------------------------
+    // 更新视图层 (View)
+    // ---------------------------------------------------------
+    addUser(new_info._id,new_info._name,new_info._avatar);  //添加用户
+}
+
+void Canvas::slot_user_leaved(int uid)
+{
+    // ---------------------------------------------------------
+    // 更新数据层 (Model)
+    // ---------------------------------------------------------
+    if (_room_info)
+    {
+        // 遍历查找并删除
+        // QList 在遍历中删除要注意迭代器失效问题，用索引或者 erase 最安全
+        for (int i = 0; i < _room_info->members.size(); ++i)
+        {
+            if (_room_info->members[i]._id == uid)
+            {
+                _room_info->members.removeAt(i);
+                break; // 找到了就删掉并退出，避免继续循环
+            }
+        }
+    }
+    // ---------------------------------------------------------
+    // 更新视图层 (View & Map)
+    // ---------------------------------------------------------
+    leaveUser(uid);
 }
 

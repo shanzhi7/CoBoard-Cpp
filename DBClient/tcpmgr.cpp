@@ -236,8 +236,62 @@ void TcpMgr::initHandlers()
         room_info->port = rsp.redirect_port();
         room_info->width = rsp.canvas_width();
         room_info->height = rsp.canvas_height();
-        emit sig_join_room_finish(room_info);
 
+        qDebug()<<"成员个数："<<rsp.member_list_size();
+        qDebug()<<"房主id : "<<room_info->owner_uid<<" name: "<<room_info->name;
+
+        // 解析成员列表快照
+        for(int i = 0;i < rsp.member_list_size();i++)
+        {
+            const message::UserInfo& protoUser = rsp.member_list(i);
+            UserInfo user_info;
+            user_info._id = protoUser.uid();
+            user_info._name = QString::fromStdString(protoUser.name());
+            user_info._avatar = QString::fromStdString(protoUser.avatar_url());
+
+            room_info->members.append(user_info);
+        }
+        emit sig_join_room_finish(room_info);   //发送给UI，UI 根据 members 初始化列表
+
+    });
+
+    // 注册有人加入广播
+    _handlers.insert(ReqId::ID_USER_JOIN_BROADCAST, [this](ReqId id, int len, QByteArray data) {
+        message::UserJoinRoomBroadcast msg;
+        if (!msg.ParseFromArray(data.data(), data.size()))
+        {
+            qDebug() << "解析 UserJoinRoomBroadcast 失败";
+            return;
+        }
+
+        const message::UserInfo& info = msg.user_info();
+
+        // 构造本地结构体，方便传给 UI
+        UserInfo newMember;
+        newMember._id = info.uid();
+        newMember._name = QString::fromStdString(info.name());
+        newMember._avatar = QString::fromStdString(info.avatar_url());
+
+        qDebug() << "广播: 用户加入 - " << newMember._name << " (UID:" << newMember._id << ")";
+
+        // 发送信号通知 UI (CanvasWidget/UserListWidget) 添加一行
+        emit sig_user_joined(newMember);
+    });
+
+    // 注册有人离开广播
+    _handlers.insert(ReqId::ID_USER_LEAVE_BROADCAST, [this](ReqId id, int len, QByteArray data) {
+        message::UserLeaveRoomBroadcast msg;
+        if (!msg.ParseFromArray(data.data(), data.size()))
+        {
+            qDebug() << "解析 UserLeaveRoomBroadcast 失败";
+            return;
+        }
+
+        int uid = msg.uid();
+        qDebug() << "广播: 用户离开 - UID:" << uid;
+
+        // 发送信号通知 UI 移除对应的那一行
+        emit sig_user_left(uid);
     });
 }
 

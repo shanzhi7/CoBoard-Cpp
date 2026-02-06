@@ -34,6 +34,8 @@ enum MSG_IDS {
 	ID_GET_OSS_TOKEN = 1013,                    //获取OSS上传签名
 	ID_UPLOAD_IMAGE = 1014,                     //上传图片到OSS
 	ID_SAVE_IMAGE = 1015,                       //将图片保存到数据库
+	ID_USER_JOIN_BROADCAST = 1016,				//用户加入房间广播
+	ID_USER_LEAVE_BROADCAST = 1017,				//用户离开房间广播
 };
 #define MAX_LENGTH 1024*2
 

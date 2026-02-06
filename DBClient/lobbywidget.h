@@ -34,7 +34,8 @@ private:
     QString _pendingOssKey; // 暂存 GateServer 发回来的 oss_key
 
 signals:
-    void sig_switchCanvas(std::shared_ptr<RoomInfo> room_info);             //发送切换画布页面
+    void sig_switchCanvas(std::shared_ptr<RoomInfo> room_info);             //发送切换画布页面 create
+    void sig_switchCanvas_join(std::shared_ptr<RoomInfo> room_info);        //发送切换画布页面 join
 
 private slots:
     void slot_create_clicked();                                             //点击创建房间窗口

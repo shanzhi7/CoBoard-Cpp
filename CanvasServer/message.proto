@@ -80,6 +80,15 @@ service LogicService
     rpc UpdateAvatar (UpdateAvatarReq) returns (UpdateAvatarRsp);
 }
 
+message UserInfo {
+    int32 uid = 1;
+    string name = 2;
+    string email = 3;
+    int32 _sex = 4;
+    string avatar_url = 5;
+    string signature = 6;
+}
+
 message GetVarifyReq
 {
   string email = 1;
@@ -171,6 +180,20 @@ message JoinRoomRsp {
 
     string redirect_host = 7; // 目标服务器 IP
     int32 redirect_port = 8;  // 目标服务器 Port
+
+    // 客户端收到后，应清空现有列表并用此列表填充
+    repeated UserInfo member_list = 9;
+}
+
+// 广播：有人加入了
+message UserJoinRoomBroadcast {
+    UserInfo user_info = 1;     // 直接包含用户信息，客户端可以直接用来 add item
+}
+
+// 广播：有人离开了
+message UserLeaveRoomBroadcast {
+    int32 uid = 1;          // 离开的人的 UID
+    string reason = 2;      // 离开原因
 }
 
 // 更新头像请求

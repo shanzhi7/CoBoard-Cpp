@@ -46,6 +46,9 @@ signals:
     void sig_create_room_finish(std::shared_ptr<RoomInfo>);             //发送创建房间完毕信号
     void sig_join_room_finish(std::shared_ptr<RoomInfo> room_info);     //发送加入房间完毕信号
 
+    void sig_user_joined(UserInfo member);                              //用户加入 (广播)
+    void sig_user_left(int uid);                                        //用户离开 (广播)
+
 public slots:
     void slot_tcp_connect(ServerInfo si);                               //用于发起tcp连接请求
     void slot_send_data(ReqId reqid,QByteArray data);                   //用于发送数据给服务器

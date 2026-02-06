@@ -79,8 +79,11 @@ MainWindow::MainWindow(QWidget *parent)
     //连接登录成功切换 lobby页面
     connect(login_widget,&LoginWidget::switchLobby,this,&MainWindow::slotSwitchLobby);
 
-    //lobby 切换 canvas页面
+    //lobby create房间 切换 canvas页面
     connect(lobby_widget,&LobbyWidget::sig_switchCanvas,this,&MainWindow::slotSwitchCanvas);
+
+    //lobby join房间 切换 canvas页面
+    connect(lobby_widget,&LobbyWidget::sig_switchCanvas_join,this,&MainWindow::slotSwitchCanvasJoin);
 
     //emit login_widget->switchCanvas();      //测试
     //emit login_widget->switchLobby();                       //测试
@@ -274,6 +277,14 @@ void MainWindow::slotSwitchCanvas(std::shared_ptr<RoomInfo> room_info)  //切换
 {
     canvas->setRoomInfo(room_info);
     canvas->slot_creat_room_finish(room_info);
+    canvas->show();
+    this->hide();
+}
+
+void MainWindow::slotSwitchCanvasJoin(std::shared_ptr<RoomInfo> room_info)
+{
+    canvas->setRoomInfo(room_info);
+    canvas->slot_join_room_finish(room_info);
     canvas->show();
     this->hide();
 }
