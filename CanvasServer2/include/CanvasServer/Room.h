@@ -5,6 +5,7 @@
 #include <mutex>
 #include <memory>
 #include <iostream>
+#include "CanvasServer/message.pb.h"
 
 // 前置声明，避免循环引用
 class CSession;
@@ -25,6 +26,13 @@ public:
 
 	// 广播消息
 	void Broadcast(const std::string& data, int msg_id, int exclude_uid = 0);	//exclude_uid,排除自己
+
+	//广播辅助函数
+	void BroadcastUserEnter(std::shared_ptr<CSession> session);		//广播用户进入
+	void BroadcastUserLeave(int uid);								//广播用户离开
+
+	//获取房间成员快照
+	std::vector<message::UserInfo> GetMemberSnapshot();
 
 private:
 	std::string _room_id;

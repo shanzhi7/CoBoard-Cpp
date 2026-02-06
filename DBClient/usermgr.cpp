@@ -20,6 +20,16 @@ int UserMgr::getUid()
     return this->_my_info->_id;
 }
 
+QString UserMgr::getAvatar()
+{
+    return this->_my_info->_avatar;
+}
+
+QString UserMgr::getName()
+{
+    return this->_my_info->_name;
+}
+
 
 void UserMgr::setToken(QString &token)
 {

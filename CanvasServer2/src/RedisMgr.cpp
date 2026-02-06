@@ -244,9 +244,9 @@ bool RedisMgr::GetRoomInfo(const std::string& room_id, RoomInfo& room_info)
         {
             room_info.height = std::stoi(result["height"]);
         }
-        if (result.count("owner"))
+        if (result.count("owner_uid"))
         {
-            room_info.owner_uid = std::stoi(result["owner"]);
+            room_info.owner_uid = std::stoi(result["owner_uid"]);
         }
         if (result.count("host"))
         {

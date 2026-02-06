@@ -14,6 +14,7 @@
 class UserInfo
 {
 public:
+    UserInfo();
     UserInfo(int id,QString name,QString email,int sex,QString avatar,QString signature)
         :_id(id),_name(name),_email(email),_sex(sex),_avatar(avatar),_signature(signature)
     {}

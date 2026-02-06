@@ -113,6 +113,8 @@ void LoginWidget::slot_tcp_con_finish(bool bsuccess)
         QJsonObject jsonObj;
         jsonObj["uid"] = UserMgr::getInstance()->getMyInfo()->_id;
         jsonObj["token"] = UserMgr::getInstance()->getToken();
+        jsonObj["name"] = UserMgr::getInstance()->getName();
+        jsonObj["avatar"] = UserMgr::getInstance()->getAvatar();
 
         QJsonDocument jsonDoc(jsonObj);
         QByteArray jsonString = jsonDoc.toJson(QJsonDocument::Indented);

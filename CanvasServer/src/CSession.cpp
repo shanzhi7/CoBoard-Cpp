@@ -200,18 +200,19 @@ void CSession::Close()
 		return;
 	}
 
-	//todo...
-	// 从房间移除 (通知房间里的其他人)
-	if (auto room = _room.lock())
-	{
-		room->Leave(_uid);
-	}
 
 	// 从 SessionMgr 移除 (防止 LogicServer 踢人时找不到)
 	if (_uid != 0)
 	{
 		SessionMgr::getInstance()->RemoveSession(_uid);
 	}
+
+	// 从房间移除 (通知房间里的其他人)
+	if (auto room = _room.lock())
+	{
+		room->Leave(_uid);
+	}
+
 
 	// 关闭 socket
 	boost::system::error_code ec;
@@ -243,4 +244,27 @@ int CSession::GetUserId()
 void CSession::SetRoom(std::shared_ptr<Room> room)
 {
 	this->_room = room;
+}
+bool CSession::IsClosed()
+{
+	return _b_close;
+}
+
+std::string CSession::GetName()
+{
+	return _name;
+}
+void CSession::SetName(const std::string& name)
+{
+	_name = name;
+}
+
+void CSession::SetAvatarUrl(const std::string& avatar_url)
+{
+	_avatar_url = avatar_url;
+}
+
+std::string CSession::GetAvatarUrl()
+{
+	return this->_avatar_url;
 }

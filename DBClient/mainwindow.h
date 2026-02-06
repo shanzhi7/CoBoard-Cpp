@@ -65,5 +65,6 @@ private slots:
     void slotSwitchResetFromLogin();                //切换重置密码槽函数(login->reset)
     void slotSwitchLobby();                         //切换Lobby页面(login->Lobby)
     void slotSwitchCanvas(std::shared_ptr<RoomInfo> room_info);     //切换canvas页面(lobby -> canvas)
+    void slotSwitchCanvasJoin(std::shared_ptr<RoomInfo> room_info); //切换canvas页面 join
 };
 #endif // MAINWINDOW_H

@@ -27,6 +27,7 @@ public:
     QString getToken();
     int getUid();
     QString getAvatar();
+    QString getName();
 
     void setToken(QString& token);
     void setMyInfo(std::shared_ptr<UserInfo> userInfo);

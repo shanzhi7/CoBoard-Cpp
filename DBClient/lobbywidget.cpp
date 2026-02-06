@@ -222,7 +222,7 @@ void LobbyWidget::slot_create_room_finish(std::shared_ptr<RoomInfo> room_info)
 
 void LobbyWidget::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
-    emit sig_switchCanvas(room_info);
+    emit sig_switchCanvas_join(room_info);
 }
 
 void LobbyWidget::slot_load_info()

@@ -142,6 +142,8 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
 
         int client_uid = root["uid"].asInt();
         std::string client_token = root["token"].asString();
+        std::string client_name = root["name"].asString();
+        std::string client_avatar = root["avatar"].asString();
 
         //构造redis key
         std::string token_key = TOKEN_PREFIX + client_token;
@@ -168,6 +170,8 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
 
         // 校验成功！
         session->SetUserId(client_uid);     //绑定UID到Session
+        session->SetName(client_name);
+        session->SetAvatarUrl(client_avatar);
 
         SessionMgr::getInstance()->AddSession(client_uid, session);  //注册到全局管理器(SessionMgr)
 
@@ -261,7 +265,7 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     room_info.width = root["width"].asInt();
     room_info.height = root["height"].asInt();
 
-    //写入redis
+    //写入redis,房间信息
     bool b_redis = RedisMgr::getInstance()->CreateRoom(room_id, room_info); //CreateRoom 内部使用了 pipeline 和 expire
     if (!b_redis)
     {
@@ -269,6 +273,11 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
         std::cout << "[LogicSystem] Failed to register room in Redis." << std::endl;
         return;
     }
+
+    //redis：将房主加入到房间的成员列表
+    RedisMgr::getInstance()->AddUserToRoom(room_id, std::to_string(owner_uid));
+
+    room->Join(session);    //加入内存
 
     //成功返回
     rsp["error"] = message::ErrorCodes::SUCCESS;
@@ -373,9 +382,7 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     }
 
 
-    //回包
-
-    //todo... 返回房间用户列表
+    //构造回包
     rsp.set_error(message::ErrorCodes::SUCCESS);
     rsp.set_room_name(room_info.name);
     rsp.set_owner_uid(room_info.owner_uid);
@@ -384,6 +391,20 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     rsp.set_room_id(room_id);
     rsp.set_redirect_host(room_info.host);
     rsp.set_redirect_port(room_info.port);
+
+    //填充填充 member_list
+    std::vector<message::UserInfo> current_members = room->GetMemberSnapshot();
+
+    for (auto& member : current_members)
+    {
+        // add_member_list() 返回一个指向新添加元素的指针
+        message::UserInfo* pUser = rsp.add_member_list();
+
+        // 将 member 复制到 pUser
+        pUser->set_uid(member.uid());
+        pUser->set_name(member.name());
+        pUser->set_avatar_url(member.avatar_url());
+    }
 
     std::cout << "Join Success! User[" << uid << "] entered Room[" << room_id << "]" << std::endl;
 }

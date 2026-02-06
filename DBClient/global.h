@@ -17,6 +17,7 @@
 #include <QWidget>
 #include <QStyle>
 #include <QLineEdit>
+#include "userdata.h"
 struct Bubble{
     double x;           // X坐标
     double y;           // Y坐标
@@ -47,6 +48,8 @@ enum ReqId{
     ID_GET_OSS_TOKEN = 1013,                    //获取OSS上传签名
     ID_UPLOAD_IMAGE = 1014,                     //上传图片到OSS
     ID_SAVE_IMAGE = 1015,                       //将图片保存到数据库
+    ID_USER_JOIN_BROADCAST = 1016,				//用户加入房间广播
+    ID_USER_LEAVE_BROADCAST = 1017,				//用户离开房间广播
 };
 
 enum ErrorCodes{
@@ -78,6 +81,8 @@ struct RoomInfo {
     int port;         // CanvasServer Port
     int width = 1920;
     int height = 1080;
+
+    QList<UserInfo> members;
 };
 
 extern QString gate_url_prefix;
