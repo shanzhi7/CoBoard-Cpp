@@ -8,5 +8,8 @@
         <file>res/Eraser.png</file>
         <file>res/pen.png</file>
         <file>res/deflaut_head.jpg</file>
+        <file>res/shape_oval.png</file>
+        <file>res/shape_rect.png</file>
+        <file>res/pen_width.png</file>
     </qresource>
 </RCC>

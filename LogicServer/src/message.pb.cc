@@ -483,6 +483,32 @@ struct GetVarifyReqDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 GetVarifyReqDefaultTypeInternal _GetVarifyReq_default_instance_;
 
+inline constexpr DrawReq_Point::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : x_{0},
+        y_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DrawReq_Point::DrawReq_Point(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DrawReq_PointDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DrawReq_PointDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DrawReq_PointDefaultTypeInternal() {}
+  union {
+    DrawReq_Point _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DrawReq_PointDefaultTypeInternal _DrawReq_Point_default_instance_;
+
 inline constexpr UserJoinRoomBroadcast::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -546,8 +572,46 @@ struct JoinRoomRspDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 JoinRoomRspDefaultTypeInternal _JoinRoomRsp_default_instance_;
+
+inline constexpr DrawReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : path_points_{},
+        item_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{0},
+        cmd_{static_cast< ::message::DrawCmd >(0)},
+        shape_{static_cast< ::message::ShapeType >(0)},
+        color_{0},
+        width_{0},
+        pen_style_{0},
+        start_x_{0},
+        start_y_{0},
+        current_x_{0},
+        current_y_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DrawReq::DrawReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DrawReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DrawReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DrawReqDefaultTypeInternal() {}
+  union {
+    DrawReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DrawReqDefaultTypeInternal _DrawReq_default_instance_;
 }  // namespace message
-static const ::_pb::EnumDescriptor* file_level_enum_descriptors_message_2eproto[2];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_message_2eproto[4];
 static constexpr const ::_pb::ServiceDescriptor**
     file_level_service_descriptors_message_2eproto = nullptr;
 const ::uint32_t
@@ -743,6 +807,36 @@ const ::uint32_t
         ~0u,  // no sizeof(Split)
         PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarRsp, _impl_.error_),
         PROTOBUF_FIELD_OFFSET(::message::UpdateAvatarRsp, _impl_.uid_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq_Point, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq_Point, _impl_.x_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq_Point, _impl_.y_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.item_id_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.cmd_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.shape_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.color_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.width_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.pen_style_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.start_x_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.start_y_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.current_x_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.current_y_),
+        PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.path_points_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -764,6 +858,8 @@ static const ::_pbi::MigrationSchema
         {160, -1, -1, sizeof(::message::UserLeaveRoomBroadcast)},
         {170, -1, -1, sizeof(::message::UpdateAvatarReq)},
         {180, -1, -1, sizeof(::message::UpdateAvatarRsp)},
+        {190, -1, -1, sizeof(::message::DrawReq_Point)},
+        {200, -1, -1, sizeof(::message::DrawReq)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserInfo_default_instance_._instance,
@@ -783,6 +879,8 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserLeaveRoomBroadcast_default_instance_._instance,
     &::message::_UpdateAvatarReq_default_instance_._instance,
     &::message::_UpdateAvatarRsp_default_instance_._instance,
+    &::message::_DrawReq_Point_default_instance_._instance,
+    &::message::_DrawReq_default_instance_._instance,
 };
 const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -816,46 +914,59 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "oomBroadcast\022\013\n\003uid\030\001 \001(\005\022\016\n\006reason\030\002 \001("
     "\t\"2\n\017UpdateAvatarReq\022\013\n\003uid\030\001 \001(\005\022\022\n\nava"
     "tar_url\030\002 \001(\t\"-\n\017UpdateAvatarRsp\022\r\n\005erro"
-    "r\030\001 \001(\005\022\013\n\003uid\030\002 \001(\005*\217\004\n\nErrorCodes\022\013\n\007S"
-    "UCCESS\020\000\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFailed\020\352"
-    "\007\022\022\n\rVarifyExpired\020\353\007\022\022\n\rVarifyCodeErr\020\354"
-    "\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n"
-    "\016PasswdUpFailed\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021"
-    "\n\014TokenInvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010Lo"
-    "ginErr\020\365\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010Red"
-    "isErr\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020\355\007\022"
-    "\021\n\014UserNotExist\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022"
-    "\n\rFriendOffline\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022"
-    "\025\n\020RoomCreateFailed\020\220\010\022\021\n\014RoomNotExist\020\221"
-    "\010\022\025\n\020RoomAlreadyExist\020\222\010\022\r\n\010RoomFull\020\223\010\022"
-    "\023\n\016RoomJoinFailed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\r\n\010"
-    "NotOwner\020\226\010\022\021\n\014NeedRedirect\020\271\027*\207\001\n\005MsgID"
-    "\022\016\n\nID_UNKNOWN\020\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014I"
-    "D_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_D"
-    "RAW_RSP\020\354\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEA"
-    "R_RSP\020\356\0072P\n\rVarifyService\022\?\n\rGetVarifyCo"
-    "de\022\025.message.GetVarifyReq\032\025.message.GetV"
-    "arifyRsp\"\0002\313\002\n\014LogicService\022<\n\014RegisterU"
-    "ser\022\024.message.RegisterReq\032\024.message.Regi"
-    "sterRsp\"\000\022G\n\rResetPassword\022\031.message.Res"
-    "etPasswordReq\032\031.message.ResetPasswordRsp"
-    "\"\000\022-\n\005Login\022\021.message.LoginReq\032\021.message"
-    ".LoginRsp\022A\n\013VerifyToken\022\027.message.Verif"
-    "yTokenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014"
-    "UpdateAvatar\022\030.message.UpdateAvatarReq\032\030"
-    ".message.UpdateAvatarRspb\006proto3"
+    "r\030\001 \001(\005\022\013\n\003uid\030\002 \001(\005\"\256\002\n\007DrawReq\022\013\n\003uid\030"
+    "\001 \001(\005\022\017\n\007item_id\030\002 \001(\t\022\035\n\003cmd\030\003 \001(\0162\020.me"
+    "ssage.DrawCmd\022!\n\005shape\030\004 \001(\0162\022.message.S"
+    "hapeType\022\r\n\005color\030\005 \001(\005\022\r\n\005width\030\006 \001(\005\022\021"
+    "\n\tpen_style\030\007 \001(\005\022\017\n\007start_x\030\010 \001(\002\022\017\n\007st"
+    "art_y\030\t \001(\002\022\021\n\tcurrent_x\030\n \001(\002\022\021\n\tcurren"
+    "t_y\030\013 \001(\002\022+\n\013path_points\030\014 \003(\0132\026.message"
+    ".DrawReq.Point\032\035\n\005Point\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030"
+    "\002 \001(\002*\217\004\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\017\n\nErr"
+    "or_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpi"
+    "red\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPasswdErr\020"
+    "\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016PasswdUpFailed"
+    "\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021\n\014TokenInvalid\020"
+    "\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021Se"
+    "rverInternalErr\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010Mys"
+    "qlErr\020\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserNotExist"
+    "\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022\n\rFriendOffline"
+    "\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022\025\n\020RoomCreateFa"
+    "iled\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020RoomAlread"
+    "yExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\023\n\016RoomJoinFail"
+    "ed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\r\n\010NotOwner\020\226\010\022\021\n\014"
+    "NeedRedirect\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UNKNOWN\020"
+    "\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022"
+    "\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014I"
+    "D_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007*a\n\007Dra"
+    "wCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010"
+    "CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n"
+    "\tCMD_CLEAR\020\005*o\n\tShapeType\022\021\n\rSHAPE_UNKNO"
+    "WN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nS"
+    "HAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ERA"
+    "SER\020\0052P\n\rVarifyService\022\?\n\rGetVarifyCode\022"
+    "\025.message.GetVarifyReq\032\025.message.GetVari"
+    "fyRsp\"\0002\313\002\n\014LogicService\022<\n\014RegisterUser"
+    "\022\024.message.RegisterReq\032\024.message.Registe"
+    "rRsp\"\000\022G\n\rResetPassword\022\031.message.ResetP"
+    "asswordReq\032\031.message.ResetPasswordRsp\"\000\022"
+    "-\n\005Login\022\021.message.LoginReq\032\021.message.Lo"
+    "ginRsp\022A\n\013VerifyToken\022\027.message.VerifyTo"
+    "kenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014Upd"
+    "ateAvatar\022\030.message.UpdateAvatarReq\032\030.me"
+    "ssage.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    2312,
+    2829,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
     nullptr,
     0,
-    17,
+    19,
     schemas,
     file_default_instances,
     TableStruct_message_2eproto::offsets,
@@ -880,6 +991,24 @@ PROTOBUF_CONSTINIT const uint32_t MsgID_internal_data_[] = {
     65536u, 393216u, 1004u, 1002u, 1006u, 1001u, 1003u, 1005u, };
 bool MsgID_IsValid(int value) {
   return ::_pbi::ValidateEnum(value, MsgID_internal_data_);
+}
+const ::google::protobuf::EnumDescriptor* DrawCmd_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_message_2eproto);
+  return file_level_enum_descriptors_message_2eproto[2];
+}
+PROTOBUF_CONSTINIT const uint32_t DrawCmd_internal_data_[] = {
+    393216u, 0u, };
+bool DrawCmd_IsValid(int value) {
+  return 0 <= value && value <= 5;
+}
+const ::google::protobuf::EnumDescriptor* ShapeType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_message_2eproto);
+  return file_level_enum_descriptors_message_2eproto[3];
+}
+PROTOBUF_CONSTINIT const uint32_t ShapeType_internal_data_[] = {
+    393216u, 0u, };
+bool ShapeType_IsValid(int value) {
+  return 0 <= value && value <= 5;
 }
 // ===================================================================
 
@@ -5784,6 +5913,753 @@ void UpdateAvatarRsp::InternalSwap(UpdateAvatarRsp* PROTOBUF_RESTRICT other) {
 }
 
 ::google::protobuf::Metadata UpdateAvatarRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DrawReq_Point::_Internal {
+ public:
+};
+
+DrawReq_Point::DrawReq_Point(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.DrawReq.Point)
+}
+DrawReq_Point::DrawReq_Point(
+    ::google::protobuf::Arena* arena, const DrawReq_Point& from)
+    : DrawReq_Point(arena) {
+  MergeFrom(from);
+}
+inline PROTOBUF_NDEBUG_INLINE DrawReq_Point::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0} {}
+
+inline void DrawReq_Point::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, x_),
+           0,
+           offsetof(Impl_, y_) -
+               offsetof(Impl_, x_) +
+               sizeof(Impl_::y_));
+}
+DrawReq_Point::~DrawReq_Point() {
+  // @@protoc_insertion_point(destructor:message.DrawReq.Point)
+  SharedDtor(*this);
+}
+inline void DrawReq_Point::SharedDtor(MessageLite& self) {
+  DrawReq_Point& this_ = static_cast<DrawReq_Point&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.~Impl_();
+}
+
+inline void* DrawReq_Point::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) DrawReq_Point(arena);
+}
+constexpr auto DrawReq_Point::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::ZeroInit(sizeof(DrawReq_Point),
+                                            alignof(DrawReq_Point));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull DrawReq_Point::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_DrawReq_Point_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &DrawReq_Point::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<DrawReq_Point>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &DrawReq_Point::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<DrawReq_Point>(), &DrawReq_Point::ByteSizeLong,
+            &DrawReq_Point::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_._cached_size_),
+        false,
+    },
+    &DrawReq_Point::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* DrawReq_Point::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 0, 2> DrawReq_Point::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::DrawReq_Point>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // float y = 2;
+    {::_pbi::TcParser::FastF32S1,
+     {21, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.y_)}},
+    // float x = 1;
+    {::_pbi::TcParser::FastF32S1,
+     {13, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.x_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // float x = 1;
+    {PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.x_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // float y = 2;
+    {PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.y_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+  }},
+  // no aux_entries
+  {{
+  }},
+};
+
+PROTOBUF_NOINLINE void DrawReq_Point::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.DrawReq.Point)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  ::memset(&_impl_.x_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.y_) -
+      reinterpret_cast<char*>(&_impl_.x_)) + sizeof(_impl_.y_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* DrawReq_Point::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const DrawReq_Point& this_ = static_cast<const DrawReq_Point&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* DrawReq_Point::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const DrawReq_Point& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.DrawReq.Point)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // float x = 1;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_x()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                1, this_._internal_x(), target);
+          }
+
+          // float y = 2;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_y()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                2, this_._internal_y(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.DrawReq.Point)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t DrawReq_Point::ByteSizeLong(const MessageLite& base) {
+          const DrawReq_Point& this_ = static_cast<const DrawReq_Point&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t DrawReq_Point::ByteSizeLong() const {
+          const DrawReq_Point& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.DrawReq.Point)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // float x = 1;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_x()) != 0) {
+              total_size += 5;
+            }
+            // float y = 2;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_y()) != 0) {
+              total_size += 5;
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void DrawReq_Point::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DrawReq_Point*>(&to_msg);
+  auto& from = static_cast<const DrawReq_Point&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.DrawReq.Point)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (::absl::bit_cast<::uint32_t>(from._internal_x()) != 0) {
+    _this->_impl_.x_ = from._impl_.x_;
+  }
+  if (::absl::bit_cast<::uint32_t>(from._internal_y()) != 0) {
+    _this->_impl_.y_ = from._impl_.y_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DrawReq_Point::CopyFrom(const DrawReq_Point& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.DrawReq.Point)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DrawReq_Point::InternalSwap(DrawReq_Point* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.y_)
+      + sizeof(DrawReq_Point::_impl_.y_)
+      - PROTOBUF_FIELD_OFFSET(DrawReq_Point, _impl_.x_)>(
+          reinterpret_cast<char*>(&_impl_.x_),
+          reinterpret_cast<char*>(&other->_impl_.x_));
+}
+
+::google::protobuf::Metadata DrawReq_Point::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DrawReq::_Internal {
+ public:
+};
+
+DrawReq::DrawReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.DrawReq)
+}
+inline PROTOBUF_NDEBUG_INLINE DrawReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::DrawReq& from_msg)
+      : path_points_{visibility, arena, from.path_points_},
+        item_id_(arena, from.item_id_),
+        _cached_size_{0} {}
+
+DrawReq::DrawReq(
+    ::google::protobuf::Arena* arena,
+    const DrawReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DrawReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, uid_),
+           offsetof(Impl_, current_y_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::current_y_));
+
+  // @@protoc_insertion_point(copy_constructor:message.DrawReq)
+}
+inline PROTOBUF_NDEBUG_INLINE DrawReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : path_points_{visibility, arena},
+        item_id_(arena),
+        _cached_size_{0} {}
+
+inline void DrawReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           0,
+           offsetof(Impl_, current_y_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::current_y_));
+}
+DrawReq::~DrawReq() {
+  // @@protoc_insertion_point(destructor:message.DrawReq)
+  SharedDtor(*this);
+}
+inline void DrawReq::SharedDtor(MessageLite& self) {
+  DrawReq& this_ = static_cast<DrawReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.item_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* DrawReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) DrawReq(arena);
+}
+constexpr auto DrawReq::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.path_points_) +
+          decltype(DrawReq::_impl_.path_points_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(DrawReq), alignof(DrawReq), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&DrawReq::PlacementNew_,
+                                 sizeof(DrawReq),
+                                 alignof(DrawReq));
+  }
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull DrawReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_DrawReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &DrawReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<DrawReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &DrawReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<DrawReq>(), &DrawReq::ByteSizeLong,
+            &DrawReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(DrawReq, _impl_._cached_size_),
+        false,
+    },
+    &DrawReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* DrawReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<4, 12, 1, 39, 2> DrawReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    12, 120,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294963200,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    12,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::DrawReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.uid_)}},
+    // string item_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.item_id_)}},
+    // .message.DrawCmd cmd = 3;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.cmd_), 63>(),
+     {24, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.cmd_)}},
+    // .message.ShapeType shape = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.shape_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.shape_)}},
+    // int32 color = 5;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.color_), 63>(),
+     {40, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.color_)}},
+    // int32 width = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.width_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.width_)}},
+    // int32 pen_style = 7;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DrawReq, _impl_.pen_style_), 63>(),
+     {56, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.pen_style_)}},
+    // float start_x = 8;
+    {::_pbi::TcParser::FastF32S1,
+     {69, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.start_x_)}},
+    // float start_y = 9;
+    {::_pbi::TcParser::FastF32S1,
+     {77, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.start_y_)}},
+    // float current_x = 10;
+    {::_pbi::TcParser::FastF32S1,
+     {85, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.current_x_)}},
+    // float current_y = 11;
+    {::_pbi::TcParser::FastF32S1,
+     {93, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.current_y_)}},
+    // repeated .message.DrawReq.Point path_points = 12;
+    {::_pbi::TcParser::FastMtR1,
+     {98, 63, 0, PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.path_points_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string item_id = 2;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.item_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .message.DrawCmd cmd = 3;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.cmd_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+    // .message.ShapeType shape = 4;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.shape_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+    // int32 color = 5;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.color_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 width = 6;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.width_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 pen_style = 7;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.pen_style_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // float start_x = 8;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.start_x_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // float start_y = 9;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.start_y_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // float current_x = 10;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.current_x_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // float current_y = 11;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.current_y_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kFloat)},
+    // repeated .message.DrawReq.Point path_points = 12;
+    {PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.path_points_), 0, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+  }}, {{
+    {::_pbi::TcParser::GetTable<::message::DrawReq_Point>()},
+  }}, {{
+    "\17\0\7\0\0\0\0\0\0\0\0\0\0\0\0\0"
+    "message.DrawReq"
+    "item_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void DrawReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.DrawReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.path_points_.Clear();
+  _impl_.item_id_.ClearToEmpty();
+  ::memset(&_impl_.uid_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.current_y_) -
+      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.current_y_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* DrawReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const DrawReq& this_ = static_cast<const DrawReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* DrawReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const DrawReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.DrawReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          // string item_id = 2;
+          if (!this_._internal_item_id().empty()) {
+            const std::string& _s = this_._internal_item_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.DrawReq.item_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // .message.DrawCmd cmd = 3;
+          if (this_._internal_cmd() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteEnumToArray(
+                3, this_._internal_cmd(), target);
+          }
+
+          // .message.ShapeType shape = 4;
+          if (this_._internal_shape() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteEnumToArray(
+                4, this_._internal_shape(), target);
+          }
+
+          // int32 color = 5;
+          if (this_._internal_color() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<5>(
+                    stream, this_._internal_color(), target);
+          }
+
+          // int32 width = 6;
+          if (this_._internal_width() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<6>(
+                    stream, this_._internal_width(), target);
+          }
+
+          // int32 pen_style = 7;
+          if (this_._internal_pen_style() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<7>(
+                    stream, this_._internal_pen_style(), target);
+          }
+
+          // float start_x = 8;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_start_x()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                8, this_._internal_start_x(), target);
+          }
+
+          // float start_y = 9;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_start_y()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                9, this_._internal_start_y(), target);
+          }
+
+          // float current_x = 10;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_current_x()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                10, this_._internal_current_x(), target);
+          }
+
+          // float current_y = 11;
+          if (::absl::bit_cast<::uint32_t>(this_._internal_current_y()) != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteFloatToArray(
+                11, this_._internal_current_y(), target);
+          }
+
+          // repeated .message.DrawReq.Point path_points = 12;
+          for (unsigned i = 0, n = static_cast<unsigned>(
+                                   this_._internal_path_points_size());
+               i < n; i++) {
+            const auto& repfield = this_._internal_path_points().Get(i);
+            target =
+                ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+                    12, repfield, repfield.GetCachedSize(),
+                    target, stream);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.DrawReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t DrawReq::ByteSizeLong(const MessageLite& base) {
+          const DrawReq& this_ = static_cast<const DrawReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t DrawReq::ByteSizeLong() const {
+          const DrawReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.DrawReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // repeated .message.DrawReq.Point path_points = 12;
+            {
+              total_size += 1UL * this_._internal_path_points_size();
+              for (const auto& msg : this_._internal_path_points()) {
+                total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+              }
+            }
+          }
+           {
+            // string item_id = 2;
+            if (!this_._internal_item_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_item_id());
+            }
+            // int32 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+            // .message.DrawCmd cmd = 3;
+            if (this_._internal_cmd() != 0) {
+              total_size += 1 +
+                            ::_pbi::WireFormatLite::EnumSize(this_._internal_cmd());
+            }
+            // .message.ShapeType shape = 4;
+            if (this_._internal_shape() != 0) {
+              total_size += 1 +
+                            ::_pbi::WireFormatLite::EnumSize(this_._internal_shape());
+            }
+            // int32 color = 5;
+            if (this_._internal_color() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_color());
+            }
+            // int32 width = 6;
+            if (this_._internal_width() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_width());
+            }
+            // int32 pen_style = 7;
+            if (this_._internal_pen_style() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_pen_style());
+            }
+            // float start_x = 8;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_start_x()) != 0) {
+              total_size += 5;
+            }
+            // float start_y = 9;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_start_y()) != 0) {
+              total_size += 5;
+            }
+            // float current_x = 10;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_current_x()) != 0) {
+              total_size += 5;
+            }
+            // float current_y = 11;
+            if (::absl::bit_cast<::uint32_t>(this_._internal_current_y()) != 0) {
+              total_size += 5;
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void DrawReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DrawReq*>(&to_msg);
+  auto& from = static_cast<const DrawReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.DrawReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_internal_mutable_path_points()->MergeFrom(
+      from._internal_path_points());
+  if (!from._internal_item_id().empty()) {
+    _this->_internal_set_item_id(from._internal_item_id());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  if (from._internal_cmd() != 0) {
+    _this->_impl_.cmd_ = from._impl_.cmd_;
+  }
+  if (from._internal_shape() != 0) {
+    _this->_impl_.shape_ = from._impl_.shape_;
+  }
+  if (from._internal_color() != 0) {
+    _this->_impl_.color_ = from._impl_.color_;
+  }
+  if (from._internal_width() != 0) {
+    _this->_impl_.width_ = from._impl_.width_;
+  }
+  if (from._internal_pen_style() != 0) {
+    _this->_impl_.pen_style_ = from._impl_.pen_style_;
+  }
+  if (::absl::bit_cast<::uint32_t>(from._internal_start_x()) != 0) {
+    _this->_impl_.start_x_ = from._impl_.start_x_;
+  }
+  if (::absl::bit_cast<::uint32_t>(from._internal_start_y()) != 0) {
+    _this->_impl_.start_y_ = from._impl_.start_y_;
+  }
+  if (::absl::bit_cast<::uint32_t>(from._internal_current_x()) != 0) {
+    _this->_impl_.current_x_ = from._impl_.current_x_;
+  }
+  if (::absl::bit_cast<::uint32_t>(from._internal_current_y()) != 0) {
+    _this->_impl_.current_y_ = from._impl_.current_y_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DrawReq::CopyFrom(const DrawReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.DrawReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DrawReq::InternalSwap(DrawReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.path_points_.InternalSwap(&other->_impl_.path_points_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.item_id_, &other->_impl_.item_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.current_y_)
+      + sizeof(DrawReq::_impl_.current_y_)
+      - PROTOBUF_FIELD_OFFSET(DrawReq, _impl_.uid_)>(
+          reinterpret_cast<char*>(&_impl_.uid_),
+          reinterpret_cast<char*>(&other->_impl_.uid_));
+}
+
+::google::protobuf::Metadata DrawReq::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

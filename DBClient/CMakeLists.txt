@@ -11,6 +11,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Widgets)
 
 # 2. 查找 Protobuf 和 gRPC (由 vcpkg 提供)
 find_package(protobuf CONFIG REQUIRED)
@@ -56,6 +57,7 @@ qt_add_executable(DBClient
     lobbywidget.h lobbywidget.cpp lobbywidget.ui
     joinroomdialog.h joinroomdialog.cpp joinroomdialog.ui
     userlisttree.h userlisttree.cpp
+    widthpopup.h widthpopup.cpp
 
 )
 
@@ -81,6 +83,7 @@ target_link_libraries(DBClient PRIVATE Qt6::Widgets)
 target_link_libraries(DBClient PRIVATE Qt6::Core)
 target_link_libraries(DBClient PRIVATE Qt6::Core)
 target_link_libraries(DBClient PRIVATE Qt6::Core)
+target_link_libraries(DBClient PRIVATE Qt6::Widgets)
 
 include(GNUInstallDirs)
 

@@ -85,6 +85,16 @@ struct RoomInfo {
     QList<UserInfo> members;
 };
 
+// 定义本地图元类型, 跟 Proto 里的顺序保持一致
+enum ShapeType {
+    Shape_Unknown = 0,  // 未知
+    Shape_Pen = 1,      // 钢笔
+    Shape_Rect = 2,     // 矩形
+    Shape_Oval = 3,     // 椭圆
+    Shape_Line = 4,     // 直线 (可选)
+    Shape_Eraser = 5    // 橡皮擦
+};
+
 extern QString gate_url_prefix;
 
 

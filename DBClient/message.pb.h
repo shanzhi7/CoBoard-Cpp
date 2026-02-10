@@ -53,6 +53,12 @@ struct TableStruct_message_2eproto {
 extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_message_2eproto;
 namespace message {
+class DrawReq;
+struct DrawReqDefaultTypeInternal;
+extern DrawReqDefaultTypeInternal _DrawReq_default_instance_;
+class DrawReq_Point;
+struct DrawReq_PointDefaultTypeInternal;
+extern DrawReq_PointDefaultTypeInternal _DrawReq_Point_default_instance_;
 class GetVarifyReq;
 struct GetVarifyReqDefaultTypeInternal;
 extern GetVarifyReqDefaultTypeInternal _GetVarifyReq_default_instance_;
@@ -195,6 +201,80 @@ const std::string& MsgID_Name(T value) {
 inline bool MsgID_Parse(absl::string_view name, MsgID* value) {
   return ::google::protobuf::internal::ParseNamedEnum<MsgID>(
       MsgID_descriptor(), name, value);
+}
+enum DrawCmd : int {
+  CMD_UNKNOWN = 0,
+  CMD_START = 1,
+  CMD_MOVE = 2,
+  CMD_END = 3,
+  CMD_UNDO = 4,
+  CMD_CLEAR = 5,
+  DrawCmd_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::min(),
+  DrawCmd_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::max(),
+};
+
+bool DrawCmd_IsValid(int value);
+extern const uint32_t DrawCmd_internal_data_[];
+constexpr DrawCmd DrawCmd_MIN = static_cast<DrawCmd>(0);
+constexpr DrawCmd DrawCmd_MAX = static_cast<DrawCmd>(5);
+constexpr int DrawCmd_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor*
+DrawCmd_descriptor();
+template <typename T>
+const std::string& DrawCmd_Name(T value) {
+  static_assert(std::is_same<T, DrawCmd>::value ||
+                    std::is_integral<T>::value,
+                "Incorrect type passed to DrawCmd_Name().");
+  return DrawCmd_Name(static_cast<DrawCmd>(value));
+}
+template <>
+inline const std::string& DrawCmd_Name(DrawCmd value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<DrawCmd_descriptor,
+                                                 0, 5>(
+      static_cast<int>(value));
+}
+inline bool DrawCmd_Parse(absl::string_view name, DrawCmd* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<DrawCmd>(
+      DrawCmd_descriptor(), name, value);
+}
+enum ShapeType : int {
+  SHAPE_UNKNOWN = 0,
+  SHAPE_PEN = 1,
+  SHAPE_RECT = 2,
+  SHAPE_OVAL = 3,
+  SHAPE_LINE = 4,
+  SHAPE_ERASER = 5,
+  ShapeType_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::min(),
+  ShapeType_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::max(),
+};
+
+bool ShapeType_IsValid(int value);
+extern const uint32_t ShapeType_internal_data_[];
+constexpr ShapeType ShapeType_MIN = static_cast<ShapeType>(0);
+constexpr ShapeType ShapeType_MAX = static_cast<ShapeType>(5);
+constexpr int ShapeType_ARRAYSIZE = 5 + 1;
+const ::google::protobuf::EnumDescriptor*
+ShapeType_descriptor();
+template <typename T>
+const std::string& ShapeType_Name(T value) {
+  static_assert(std::is_same<T, ShapeType>::value ||
+                    std::is_integral<T>::value,
+                "Incorrect type passed to ShapeType_Name().");
+  return ShapeType_Name(static_cast<ShapeType>(value));
+}
+template <>
+inline const std::string& ShapeType_Name(ShapeType value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<ShapeType_descriptor,
+                                                 0, 5>(
+      static_cast<int>(value));
+}
+inline bool ShapeType_Parse(absl::string_view name, ShapeType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<ShapeType>(
+      ShapeType_descriptor(), name, value);
 }
 
 // ===================================================================
@@ -3550,6 +3630,208 @@ class GetVarifyReq final : public ::google::protobuf::Message
 };
 // -------------------------------------------------------------------
 
+class DrawReq_Point final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.DrawReq.Point) */ {
+ public:
+  inline DrawReq_Point() : DrawReq_Point(nullptr) {}
+  ~DrawReq_Point() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DrawReq_Point* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DrawReq_Point));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DrawReq_Point(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline DrawReq_Point(const DrawReq_Point& from) : DrawReq_Point(nullptr, from) {}
+  inline DrawReq_Point(DrawReq_Point&& from) noexcept
+      : DrawReq_Point(nullptr, std::move(from)) {}
+  inline DrawReq_Point& operator=(const DrawReq_Point& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DrawReq_Point& operator=(DrawReq_Point&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DrawReq_Point& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const DrawReq_Point* internal_default_instance() {
+    return reinterpret_cast<const DrawReq_Point*>(
+        &_DrawReq_Point_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 17;
+  friend void swap(DrawReq_Point& a, DrawReq_Point& b) { a.Swap(&b); }
+  inline void Swap(DrawReq_Point* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DrawReq_Point* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DrawReq_Point* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DrawReq_Point>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DrawReq_Point& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DrawReq_Point& from) { DrawReq_Point::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DrawReq_Point* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.DrawReq.Point"; }
+
+ protected:
+  explicit DrawReq_Point(::google::protobuf::Arena* arena);
+  DrawReq_Point(::google::protobuf::Arena* arena, const DrawReq_Point& from);
+  DrawReq_Point(::google::protobuf::Arena* arena, DrawReq_Point&& from) noexcept
+      : DrawReq_Point(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kXFieldNumber = 1,
+    kYFieldNumber = 2,
+  };
+  // float x = 1;
+  void clear_x() ;
+  float x() const;
+  void set_x(float value);
+
+  private:
+  float _internal_x() const;
+  void _internal_set_x(float value);
+
+  public:
+  // float y = 2;
+  void clear_y() ;
+  float y() const;
+  void set_y(float value);
+
+  private:
+  float _internal_y() const;
+  void _internal_set_y(float value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.DrawReq.Point)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      1, 2, 0,
+      0, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const DrawReq_Point& from_msg);
+    float x_;
+    float y_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
 class UserJoinRoomBroadcast final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:message.UserJoinRoomBroadcast) */ {
  public:
@@ -4049,6 +4331,342 @@ class JoinRoomRsp final : public ::google::protobuf::Message
     ::int32_t canvas_width_;
     ::int32_t canvas_height_;
     ::int32_t redirect_port_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class DrawReq final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.DrawReq) */ {
+ public:
+  inline DrawReq() : DrawReq(nullptr) {}
+  ~DrawReq() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(DrawReq* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(DrawReq));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR DrawReq(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline DrawReq(const DrawReq& from) : DrawReq(nullptr, from) {}
+  inline DrawReq(DrawReq&& from) noexcept
+      : DrawReq(nullptr, std::move(from)) {}
+  inline DrawReq& operator=(const DrawReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline DrawReq& operator=(DrawReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const DrawReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const DrawReq* internal_default_instance() {
+    return reinterpret_cast<const DrawReq*>(
+        &_DrawReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 18;
+  friend void swap(DrawReq& a, DrawReq& b) { a.Swap(&b); }
+  inline void Swap(DrawReq* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(DrawReq* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  DrawReq* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<DrawReq>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const DrawReq& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const DrawReq& from) { DrawReq::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(DrawReq* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.DrawReq"; }
+
+ protected:
+  explicit DrawReq(::google::protobuf::Arena* arena);
+  DrawReq(::google::protobuf::Arena* arena, const DrawReq& from);
+  DrawReq(::google::protobuf::Arena* arena, DrawReq&& from) noexcept
+      : DrawReq(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+  using Point = DrawReq_Point;
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kPathPointsFieldNumber = 12,
+    kItemIdFieldNumber = 2,
+    kUidFieldNumber = 1,
+    kCmdFieldNumber = 3,
+    kShapeFieldNumber = 4,
+    kColorFieldNumber = 5,
+    kWidthFieldNumber = 6,
+    kPenStyleFieldNumber = 7,
+    kStartXFieldNumber = 8,
+    kStartYFieldNumber = 9,
+    kCurrentXFieldNumber = 10,
+    kCurrentYFieldNumber = 11,
+  };
+  // repeated .message.DrawReq.Point path_points = 12;
+  int path_points_size() const;
+  private:
+  int _internal_path_points_size() const;
+
+  public:
+  void clear_path_points() ;
+  ::message::DrawReq_Point* mutable_path_points(int index);
+  ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>* mutable_path_points();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>& _internal_path_points() const;
+  ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>* _internal_mutable_path_points();
+  public:
+  const ::message::DrawReq_Point& path_points(int index) const;
+  ::message::DrawReq_Point* add_path_points();
+  const ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>& path_points() const;
+  // string item_id = 2;
+  void clear_item_id() ;
+  const std::string& item_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_item_id(Arg_&& arg, Args_... args);
+  std::string* mutable_item_id();
+  PROTOBUF_NODISCARD std::string* release_item_id();
+  void set_allocated_item_id(std::string* value);
+
+  private:
+  const std::string& _internal_item_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_item_id(
+      const std::string& value);
+  std::string* _internal_mutable_item_id();
+
+  public:
+  // int32 uid = 1;
+  void clear_uid() ;
+  ::int32_t uid() const;
+  void set_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_uid() const;
+  void _internal_set_uid(::int32_t value);
+
+  public:
+  // .message.DrawCmd cmd = 3;
+  void clear_cmd() ;
+  ::message::DrawCmd cmd() const;
+  void set_cmd(::message::DrawCmd value);
+
+  private:
+  ::message::DrawCmd _internal_cmd() const;
+  void _internal_set_cmd(::message::DrawCmd value);
+
+  public:
+  // .message.ShapeType shape = 4;
+  void clear_shape() ;
+  ::message::ShapeType shape() const;
+  void set_shape(::message::ShapeType value);
+
+  private:
+  ::message::ShapeType _internal_shape() const;
+  void _internal_set_shape(::message::ShapeType value);
+
+  public:
+  // int32 color = 5;
+  void clear_color() ;
+  ::int32_t color() const;
+  void set_color(::int32_t value);
+
+  private:
+  ::int32_t _internal_color() const;
+  void _internal_set_color(::int32_t value);
+
+  public:
+  // int32 width = 6;
+  void clear_width() ;
+  ::int32_t width() const;
+  void set_width(::int32_t value);
+
+  private:
+  ::int32_t _internal_width() const;
+  void _internal_set_width(::int32_t value);
+
+  public:
+  // int32 pen_style = 7;
+  void clear_pen_style() ;
+  ::int32_t pen_style() const;
+  void set_pen_style(::int32_t value);
+
+  private:
+  ::int32_t _internal_pen_style() const;
+  void _internal_set_pen_style(::int32_t value);
+
+  public:
+  // float start_x = 8;
+  void clear_start_x() ;
+  float start_x() const;
+  void set_start_x(float value);
+
+  private:
+  float _internal_start_x() const;
+  void _internal_set_start_x(float value);
+
+  public:
+  // float start_y = 9;
+  void clear_start_y() ;
+  float start_y() const;
+  void set_start_y(float value);
+
+  private:
+  float _internal_start_y() const;
+  void _internal_set_start_y(float value);
+
+  public:
+  // float current_x = 10;
+  void clear_current_x() ;
+  float current_x() const;
+  void set_current_x(float value);
+
+  private:
+  float _internal_current_x() const;
+  void _internal_set_current_x(float value);
+
+  public:
+  // float current_y = 11;
+  void clear_current_y() ;
+  float current_y() const;
+  void set_current_y(float value);
+
+  private:
+  float _internal_current_y() const;
+  void _internal_set_current_y(float value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.DrawReq)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      4, 12, 1,
+      39, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const DrawReq& from_msg);
+    ::google::protobuf::RepeatedPtrField< ::message::DrawReq_Point > path_points_;
+    ::google::protobuf::internal::ArenaStringPtr item_id_;
+    ::int32_t uid_;
+    int cmd_;
+    int shape_;
+    ::int32_t color_;
+    ::int32_t width_;
+    ::int32_t pen_style_;
+    float start_x_;
+    float start_y_;
+    float current_x_;
+    float current_y_;
     ::google::protobuf::internal::CachedSize _cached_size_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -6183,6 +6801,375 @@ inline void UpdateAvatarRsp::_internal_set_uid(::int32_t value) {
   _impl_.uid_ = value;
 }
 
+// -------------------------------------------------------------------
+
+// DrawReq_Point
+
+// float x = 1;
+inline void DrawReq_Point::clear_x() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.x_ = 0;
+}
+inline float DrawReq_Point::x() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.Point.x)
+  return _internal_x();
+}
+inline void DrawReq_Point::set_x(float value) {
+  _internal_set_x(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.Point.x)
+}
+inline float DrawReq_Point::_internal_x() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.x_;
+}
+inline void DrawReq_Point::_internal_set_x(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.x_ = value;
+}
+
+// float y = 2;
+inline void DrawReq_Point::clear_y() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.y_ = 0;
+}
+inline float DrawReq_Point::y() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.Point.y)
+  return _internal_y();
+}
+inline void DrawReq_Point::set_y(float value) {
+  _internal_set_y(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.Point.y)
+}
+inline float DrawReq_Point::_internal_y() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.y_;
+}
+inline void DrawReq_Point::_internal_set_y(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.y_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// DrawReq
+
+// int32 uid = 1;
+inline void DrawReq::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = 0;
+}
+inline ::int32_t DrawReq::uid() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.uid)
+  return _internal_uid();
+}
+inline void DrawReq::set_uid(::int32_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.uid)
+}
+inline ::int32_t DrawReq::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void DrawReq::_internal_set_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string item_id = 2;
+inline void DrawReq::clear_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.ClearToEmpty();
+}
+inline const std::string& DrawReq::item_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.DrawReq.item_id)
+  return _internal_item_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void DrawReq::set_item_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.DrawReq.item_id)
+}
+inline std::string* DrawReq::mutable_item_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_item_id();
+  // @@protoc_insertion_point(field_mutable:message.DrawReq.item_id)
+  return _s;
+}
+inline const std::string& DrawReq::_internal_item_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.item_id_.Get();
+}
+inline void DrawReq::_internal_set_item_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.Set(value, GetArena());
+}
+inline std::string* DrawReq::_internal_mutable_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.item_id_.Mutable( GetArena());
+}
+inline std::string* DrawReq::release_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.DrawReq.item_id)
+  return _impl_.item_id_.Release();
+}
+inline void DrawReq::set_allocated_item_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.item_id_.IsDefault()) {
+    _impl_.item_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.DrawReq.item_id)
+}
+
+// .message.DrawCmd cmd = 3;
+inline void DrawReq::clear_cmd() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cmd_ = 0;
+}
+inline ::message::DrawCmd DrawReq::cmd() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.cmd)
+  return _internal_cmd();
+}
+inline void DrawReq::set_cmd(::message::DrawCmd value) {
+  _internal_set_cmd(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.cmd)
+}
+inline ::message::DrawCmd DrawReq::_internal_cmd() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::message::DrawCmd>(_impl_.cmd_);
+}
+inline void DrawReq::_internal_set_cmd(::message::DrawCmd value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.cmd_ = value;
+}
+
+// .message.ShapeType shape = 4;
+inline void DrawReq::clear_shape() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shape_ = 0;
+}
+inline ::message::ShapeType DrawReq::shape() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.shape)
+  return _internal_shape();
+}
+inline void DrawReq::set_shape(::message::ShapeType value) {
+  _internal_set_shape(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.shape)
+}
+inline ::message::ShapeType DrawReq::_internal_shape() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::message::ShapeType>(_impl_.shape_);
+}
+inline void DrawReq::_internal_set_shape(::message::ShapeType value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.shape_ = value;
+}
+
+// int32 color = 5;
+inline void DrawReq::clear_color() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.color_ = 0;
+}
+inline ::int32_t DrawReq::color() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.color)
+  return _internal_color();
+}
+inline void DrawReq::set_color(::int32_t value) {
+  _internal_set_color(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.color)
+}
+inline ::int32_t DrawReq::_internal_color() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.color_;
+}
+inline void DrawReq::_internal_set_color(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.color_ = value;
+}
+
+// int32 width = 6;
+inline void DrawReq::clear_width() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.width_ = 0;
+}
+inline ::int32_t DrawReq::width() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.width)
+  return _internal_width();
+}
+inline void DrawReq::set_width(::int32_t value) {
+  _internal_set_width(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.width)
+}
+inline ::int32_t DrawReq::_internal_width() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.width_;
+}
+inline void DrawReq::_internal_set_width(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.width_ = value;
+}
+
+// int32 pen_style = 7;
+inline void DrawReq::clear_pen_style() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pen_style_ = 0;
+}
+inline ::int32_t DrawReq::pen_style() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.pen_style)
+  return _internal_pen_style();
+}
+inline void DrawReq::set_pen_style(::int32_t value) {
+  _internal_set_pen_style(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.pen_style)
+}
+inline ::int32_t DrawReq::_internal_pen_style() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.pen_style_;
+}
+inline void DrawReq::_internal_set_pen_style(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.pen_style_ = value;
+}
+
+// float start_x = 8;
+inline void DrawReq::clear_start_x() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_x_ = 0;
+}
+inline float DrawReq::start_x() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.start_x)
+  return _internal_start_x();
+}
+inline void DrawReq::set_start_x(float value) {
+  _internal_set_start_x(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.start_x)
+}
+inline float DrawReq::_internal_start_x() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.start_x_;
+}
+inline void DrawReq::_internal_set_start_x(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_x_ = value;
+}
+
+// float start_y = 9;
+inline void DrawReq::clear_start_y() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_y_ = 0;
+}
+inline float DrawReq::start_y() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.start_y)
+  return _internal_start_y();
+}
+inline void DrawReq::set_start_y(float value) {
+  _internal_set_start_y(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.start_y)
+}
+inline float DrawReq::_internal_start_y() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.start_y_;
+}
+inline void DrawReq::_internal_set_start_y(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.start_y_ = value;
+}
+
+// float current_x = 10;
+inline void DrawReq::clear_current_x() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.current_x_ = 0;
+}
+inline float DrawReq::current_x() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.current_x)
+  return _internal_current_x();
+}
+inline void DrawReq::set_current_x(float value) {
+  _internal_set_current_x(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.current_x)
+}
+inline float DrawReq::_internal_current_x() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.current_x_;
+}
+inline void DrawReq::_internal_set_current_x(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.current_x_ = value;
+}
+
+// float current_y = 11;
+inline void DrawReq::clear_current_y() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.current_y_ = 0;
+}
+inline float DrawReq::current_y() const {
+  // @@protoc_insertion_point(field_get:message.DrawReq.current_y)
+  return _internal_current_y();
+}
+inline void DrawReq::set_current_y(float value) {
+  _internal_set_current_y(value);
+  // @@protoc_insertion_point(field_set:message.DrawReq.current_y)
+}
+inline float DrawReq::_internal_current_y() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.current_y_;
+}
+inline void DrawReq::_internal_set_current_y(float value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.current_y_ = value;
+}
+
+// repeated .message.DrawReq.Point path_points = 12;
+inline int DrawReq::_internal_path_points_size() const {
+  return _internal_path_points().size();
+}
+inline int DrawReq::path_points_size() const {
+  return _internal_path_points_size();
+}
+inline void DrawReq::clear_path_points() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.path_points_.Clear();
+}
+inline ::message::DrawReq_Point* DrawReq::mutable_path_points(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:message.DrawReq.path_points)
+  return _internal_mutable_path_points()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>* DrawReq::mutable_path_points()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:message.DrawReq.path_points)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_path_points();
+}
+inline const ::message::DrawReq_Point& DrawReq::path_points(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.DrawReq.path_points)
+  return _internal_path_points().Get(index);
+}
+inline ::message::DrawReq_Point* DrawReq::add_path_points() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::message::DrawReq_Point* _add = _internal_mutable_path_points()->Add();
+  // @@protoc_insertion_point(field_add:message.DrawReq.path_points)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>& DrawReq::path_points() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:message.DrawReq.path_points)
+  return _internal_path_points();
+}
+inline const ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>&
+DrawReq::_internal_path_points() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.path_points_;
+}
+inline ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>*
+DrawReq::_internal_mutable_path_points() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.path_points_;
+}
+
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
 #endif  // __GNUC__
@@ -6205,6 +7192,18 @@ struct is_proto_enum<::message::MsgID> : std::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor<::message::MsgID>() {
   return ::message::MsgID_descriptor();
+}
+template <>
+struct is_proto_enum<::message::DrawCmd> : std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor<::message::DrawCmd>() {
+  return ::message::DrawCmd_descriptor();
+}
+template <>
+struct is_proto_enum<::message::ShapeType> : std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor<::message::ShapeType>() {
+  return ::message::ShapeType_descriptor();
 }
 
 }  // namespace protobuf

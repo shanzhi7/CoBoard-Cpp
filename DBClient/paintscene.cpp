@@ -1,117 +1,273 @@
 #include "paintscene.h"
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsPathItem>
+#include <QUuid>
 
 PaintScene::PaintScene(QObject *parent)
     : QGraphicsScene{parent}
+    , _currShapeType(Shape_Pen) // 默认钢笔
+    , _currPathItem(nullptr)
+    , _currRectItem(nullptr)
+    , _currOvalItem(nullptr)
+    , _penColor(Qt::black)
+    , _penWidth(3)
+
 {
-    m_currItem = nullptr;
+    // 初始化橡皮擦光标 (begin)
+    _eraserCursorItem = new QGraphicsEllipseItem();
+    // 样式：黑色细边框
+    _eraserCursorItem->setPen(QPen(Qt::black, 1));
+    // 样式：极淡的半透明灰色 (方便看清范围)
+    _eraserCursorItem->setBrush(QBrush(QColor(200, 200, 200, 50)));
+
+    // 层级：保证永远浮在所有画作上面
+    _eraserCursorItem->setZValue(9999);
+
+    // 关键：不接受鼠标点击，让鼠标事件能穿透它传给底下的图元
+    _eraserCursorItem->setAcceptedMouseButtons(Qt::NoButton);
+    _eraserCursorItem->setAcceptHoverEvents(false);
+
+    // 默认隐藏
+    _eraserCursorItem->hide();
+
+    // 添加到场景
+    addItem(_eraserCursorItem);
+    // 初始化橡皮擦光标 (end)
 }
 void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
-    // 1. 鼠标按下：开始新的一笔
-    m_currPath = QPainterPath(); // 重置路径
-    m_lastPoint = event->scenePos(); // 【记录】起始点
-    m_currPath.moveTo(event->scenePos()); // 移动画笔到鼠标点击的位置
+    // 只允许左键绘画
+    if (event->button() != Qt::LeftButton)
+    {
+        // 如果是右键，可以把事件传给父类处理，或者直接 return
+        QGraphicsScene::mousePressEvent(event);
+        return;
+    }
 
-    // 2. 创建一个图元，加到舞台上
-    m_currItem = new QGraphicsPathItem();
-    m_currItem->setPen(QPen(Qt::black, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin)); //设置圆角笔触，拐弯更圆润
-    m_currItem->setPath(m_currPath);
+    _currUuid = QUuid::createUuid().toString();
+    _startPos = event->scenePos(); // 记录绝对起点(用于矩形/圆)
+    _lastPoint = _startPos;        // 记录上一笔点(用于画笔)
 
-    addItem(m_currItem); // 【关键】把这一笔加进舞台
+    // 根据当前类型创建不同的 Item
+    switch (_currShapeType)
+    {
+        case Shape_Pen:
+        case Shape_Eraser:
+        {
+            _currPath = QPainterPath();
+            _currPath.moveTo(_startPos);
 
+            _currPathItem = new QGraphicsPathItem();
+
+            // 橡皮擦逻辑：颜色白色，宽度稍大
+            QColor color = (_currShapeType == Shape_Eraser) ? Qt::white : _penColor;
+            int width = (_currShapeType == Shape_Eraser) ? (_penWidth * 3) : _penWidth;
+
+            QPen pen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin); //设置圆角笔触，拐弯更圆润
+            _currPathItem->setPen(pen);
+            _currPathItem->setPath(_currPath);
+
+            // 橡皮擦需要设置 ZValue 高一点，或者设置组合模式(但在 Scene 里直接覆盖白色最简单)
+            //if (_currShapeType == Shape_Eraser) _currPathItem->setZValue(100);
+
+            addItem(_currPathItem);
+            break;
+        }
+        case Shape_Rect:    //矩形模式
+        {
+            _currRectItem = new QGraphicsRectItem();
+            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin);
+            _currRectItem->setPen(pen);
+            // 初始矩形大小为 0
+            _currRectItem->setRect(QRectF(_startPos, _startPos));
+            addItem(_currRectItem);
+            break;
+        }
+        case Shape_Oval:    //椭圆模式
+        {
+            _currOvalItem = new QGraphicsEllipseItem();
+            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+            _currOvalItem->setPen(pen);
+            _currOvalItem->setRect(QRectF(_startPos, _startPos));
+            addItem(_currOvalItem);
+            break;
+        }
+        default:
+            break;
+    }
+
+    // 发送开始信号
+    // emit sigStrokeStart(_currUuid, _currShapeType, _startPos, _penColor, _penWidth);
 }
 
 void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
+    emit sigCursorPosChanged(event->scenePos());     // 发送鼠标坐标信号
 
-    if (!m_currItem)
-        return;
-
-    // 只有当按着鼠标移动时才画
-    // if (m_currItem) {
-
-    //     // 计算当前点和上一个点的距离
-    //     QPointF newPos = event->scenePos();
-    //     QPointF lastPos = m_currPath.currentPosition();
-
-    //     qreal distance = QLineF(newPos, lastPos).length();
-
-    //     // 如果移动距离小于 5 像素，直接忽略，不处理！
-    //     // 这能大幅减少点的数量，解决“越画越卡”
-    //     if (distance < 5.0) {
-    //         return;
-    //     }
-
-    //     // 1. 路径连线到当前鼠标位置
-    //     m_currPath.lineTo(event->scenePos());
-
-    //     // 2. 更新图元的路径，界面会自动刷新
-    //     m_currItem->setPath(m_currPath);
-    // }
-
-
-    QPointF currentPoint = event->scenePos();
-
-    qreal dx = currentPoint.x() - m_lastPoint.x();
-    qreal dy = currentPoint.y() - m_lastPoint.y();
-
-    if ( (dx * dx + dy * dy) < 25.0 )
+    if (_currShapeType == Shape_Eraser)//如果是橡皮擦模式，更新光标位置
     {
-        return; // 距离太近，忽略
+        updateEraserCursor(event->scenePos());
     }
-    // 贝塞尔平滑算法（防折线）
-    // 原理：不直接连到 currentPoint，而是连到它和上一个点的“中点”
-    // 使用上一个点作为“控制点”来拉扯曲线
-    QPointF midPoint = (m_lastPoint + currentPoint) / 2.0;
 
+    // 1. 【关键】必须按住左键移动才算数
+    if (!(event->buttons() & Qt::LeftButton)) return;
 
-    m_currPath.quadTo(m_lastPoint, midPoint);
+    QPointF currPos = event->scenePos();
 
-    // 更新显示
-    m_currItem->setPath(m_currPath);
+    switch (_currShapeType)
+    {
+        case Shape_Pen:
+        case Shape_Eraser:
+        {
+            if (!_currPathItem) return;
 
-    // 【新增】发射移动信号
-    // 注意：我们要发给后端的其实是新的目标点。
-    // 虽然本地用了贝塞尔优化，但发给后端最简单的做法是发原始点，
-    // 让接收端（也就是别人的电脑）也运行一套一样的贝塞尔逻辑即可。
-    //emit sigStrokeMove(currentPoint);
+            // 距离检测 (防抖)
+            qreal dx = currPos.x() - _lastPoint.x();
+            qreal dy = currPos.y() - _lastPoint.y();
+            if ((dx * dx + dy * dy) < MIN_DIST_SQ) return;
 
-    // 更新上一个点
-    m_lastPoint = currentPoint;
-    m_pointCount++; // 计数
+            addPointToPath(currPos);
+            _lastPoint = currPos;
 
-    // 【核心优化】如果当前这笔画已经超过 100 个点
-    if (m_pointCount > 100) {
-        // 1. 把当前的 Item "封存" (它以后再也不会变了，Qt 渲染它非常快)
-        // (不需要做任何操作，只要不再去 setPath 它就是静态的)
+            // 发送移动信号 (发送的是新增点)
+            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            break;
+        }
+        case Shape_Rect:
+        {
+            if (!_currRectItem) return;
+            // 实时更新矩形大小
+            // normalized() 非常重要！它支持反向拖拽（从右下往左上画）
+            QRectF rect(_startPos, currPos);
+            _currRectItem->setRect(rect.normalized());
 
-        // 2. 马上开启一个新的 Item，无缝衔接
-        // 新的路径起点必须是上一段的终点，保证视觉不断开
-        QPointF newStart = m_currPath.currentPosition();
+            // 节流发送移动信号 (发送的是当前鼠标位置，用于预览)
+            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            break;
+        }
+        case Shape_Oval:
+        {
+            if (!_currOvalItem) return;
+            QRectF rect(_startPos, currPos);
+            _currOvalItem->setRect(rect.normalized());
 
-        m_currPath = QPainterPath(); // 清空路径
-        m_currPath.moveTo(newStart); // 移到断点处
+            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            break;
+        }
+    }
+}
+void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+{
+    if (event->button() != Qt::LeftButton) return;
 
-        m_currItem = new QGraphicsPathItem();
-        m_currItem->setPen(QPen(Qt::black, 3, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-        m_currItem->setPath(m_currPath);
-        addItem(m_currItem);
+    switch (_currShapeType)
+    {
+        case Shape_Pen:
+        case Shape_Eraser:
+        {
+            if (_currPathItem)
+            {
+                addPointToPath(event->scenePos()); // 补上最后一点
+                _currPathItem = nullptr;
+            }
+            break;
+        }
 
-        m_pointCount = 0; // 重置计数器
+        case Shape_Rect:
+        {
+            if (_currRectItem)
+            {
+                // 确保最后形状正确
+                QRectF rect(_startPos, event->scenePos());
+                _currRectItem->setRect(rect.normalized());
+                _currRectItem = nullptr;
+            }
+            break;
+        }
+
+        case Shape_Oval:
+        {
+            if (_currOvalItem)
+            {
+                QRectF rect(_startPos, event->scenePos());
+                _currOvalItem->setRect(rect.normalized());
+                _currOvalItem = nullptr;
+            }
+            break;
+        }
+    }
+
+    // emit sigStrokeEnd(_currUuid, _currShapeType);
+    _currUuid = "";
+}
+
+void PaintScene::addPointToPath(const QPointF &pos)
+{
+    _currPath.lineTo(pos);
+    if (_currPathItem) {
+        _currPathItem->setPath(_currPath);
     }
 }
 
-void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
+void PaintScene::initNewItem(const QPointF &pos)
 {
-    // 把最后一段没画完的补上
-    if (m_currItem)
+
+}
+
+void PaintScene::updateEraserCursor(const QPointF &pos)
+{
+    if(!_eraserCursorItem)
+        return;
+
+    int eraserWidth = _penWidth * 3;
+    qreal radius = eraserWidth / 2.0;
+
+    // (鼠标中心x - 半径, 鼠标中心y - 半径)
+    _eraserCursorItem->setRect(pos.x() - radius, pos.y() - radius, eraserWidth, eraserWidth);
+
+    if (!_eraserCursorItem->isVisible())    //显示
     {
-        m_currPath.lineTo(event->scenePos());
-        m_currItem->setPath(m_currPath);
-        m_currItem = nullptr;
+        _eraserCursorItem->show();
     }
-    // 【新增】发射结束信号
-    //emit sigStrokeEnd();
+}
+
+void PaintScene::setPenColor(const QColor &color)
+{
+    _penColor = color;
+}
+
+void PaintScene::setPenWidth(int width)
+{
+    _penWidth = width;
+}
+
+void PaintScene::setShapeType(ShapeType type)
+{
+    _currShapeType = type;
+    // 控制橡皮擦显隐
+    if (_currShapeType == Shape_Eraser)
+    {
+        _eraserCursorItem->show();
+    } else
+    {
+        _eraserCursorItem->hide();
+    }
+}
+
+QColor PaintScene::getPenColor()
+{
+    return _penColor;
+}
+
+int PaintScene::getPenWidth()
+{
+    return _penWidth;
+}
+
+void PaintScene::hideEraserCursor()
+{
+    if (_eraserCursorItem)
+    {
+        _eraserCursorItem->hide();
+    }
 }

@@ -400,11 +400,29 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
      </property>
      <item>
       <widget class="QToolButton" name="pen_tool">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/res/pen.png);</string>
+        <string notr="true"/>
        </property>
        <property name="text">
         <string/>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>20</width>
+         <height>20</height>
+        </size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="autoExclusive">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
@@ -412,6 +430,54 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
       <widget class="QToolButton" name="eraser_tool">
        <property name="styleSheet">
         <string notr="true">border-image: url(:/res/Eraser.png);</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="autoExclusive">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="rect_tool">
+       <property name="styleSheet">
+        <string notr="true">border-image: url(:/res/shape_rect.png);</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="autoExclusive">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="oval_tool">
+       <property name="styleSheet">
+        <string notr="true">border-image: url(:/res/shape_oval.png);</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+       <property name="autoExclusive">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="width_tool">
+       <property name="styleSheet">
+        <string notr="true">border-image: url(:/res/pen_width.png);</string>
        </property>
        <property name="text">
         <string/>

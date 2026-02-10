@@ -207,3 +207,65 @@ message UpdateAvatarRsp {
     int32 error = 1;
     int32 uid = 2;
 }
+
+// ============================================================
+// 1. 枚举定义
+// ============================================================
+
+// 绘画指令状态
+enum DrawCmd {
+    CMD_UNKNOWN = 0;
+    CMD_START = 1;      // 鼠标按下：开始画
+    CMD_MOVE = 2;       // 鼠标拖拽：【核心】用于实时预览 (Server 只转发不存库)
+    CMD_END = 3;        // 鼠标松开：最终确定 (Server 存入数据库/历史记录)
+    CMD_UNDO = 4;       // 撤销
+    CMD_CLEAR = 5;      // 清空
+}
+
+// 图元类型
+enum ShapeType {
+    SHAPE_UNKNOWN = 0;
+    SHAPE_PEN = 1;      // 自由画笔 (曲线)
+    SHAPE_RECT = 2;     // 矩形
+    SHAPE_OVAL = 3;     // 椭圆
+    SHAPE_LINE = 4;     // 直线
+    SHAPE_ERASER = 5;   // 橡皮擦
+}
+
+// ============================================================
+// 2. 核心绘画请求
+// ============================================================
+
+message DrawReq {
+    // --- 身份识别 ---
+    int32 uid = 1;          // 谁画的
+    string item_id = 2;     // 【核心】图元UUID (客户端生成，用于识别是在修改同一个图元)
+    
+    // --- 状态与类型 ---
+    DrawCmd cmd = 3;        // START / MOVE / END
+    ShapeType shape = 4;    // RECT / OVAL ...
+
+    // --- 样式属性 ---
+    int32 color = 5;        // 0xAARRGGBB
+    int32 width = 6;        // 线宽
+    int32 pen_style = 7;    // (可选) 虚线/实线等
+
+    // --- 坐标数据 ---
+    
+    // 【方案 A：几何图形专用 (Rect/Oval/Line)】
+    // 只需要两个点：[起点] 和 [当前鼠标位置]
+    // 接收端逻辑：QRectF(QPointF(start_x, start_y), QPointF(current_x, current_y))
+    float start_x = 8;
+    float start_y = 9;
+    float current_x = 10;
+    float current_y = 11;
+
+    // 【方案 B：自由画笔专用 (Pen/Eraser)】
+    // 自由画笔是“一串点”，不能只传起点终点
+    // 在 MOVE 状态下，这里传输“自上次发包以来新增的点”
+    message Point {
+        float x = 1;
+        float y = 2;
+    }
+    repeated Point path_points = 12; 
+}
