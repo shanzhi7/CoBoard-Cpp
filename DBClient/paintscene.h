@@ -40,6 +40,7 @@ private:
     QGraphicsPathItem* _currPathItem;           // 画笔
     QGraphicsRectItem* _currRectItem;           // 矩形
     QGraphicsEllipseItem* _currOvalItem;        // 椭圆
+    QGraphicsLineItem* _currLineItem;           // 直线
     QGraphicsEllipseItem* _eraserCursorItem;    // 橡皮擦的光标圆圈 (仅显示)
 
     QPainterPath _currPath; // 路径数据 (Pen/Eraser 用)

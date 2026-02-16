@@ -5,10 +5,11 @@
 
 PaintScene::PaintScene(QObject *parent)
     : QGraphicsScene{parent}
-    , _currShapeType(Shape_Pen) // 默认钢笔
+    , _currShapeType(Shape_Line) // 默认钢笔
     , _currPathItem(nullptr)
     , _currRectItem(nullptr)
     , _currOvalItem(nullptr)
+    , _currLineItem(nullptr)
     , _penColor(Qt::black)
     , _penWidth(3)
 
@@ -92,6 +93,16 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
             addItem(_currOvalItem);
             break;
         }
+        case Shape_Line:    //直线模式
+        {
+            _currLineItem = new QGraphicsLineItem();
+            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+            _currLineItem->setPen(pen);
+            // 初始直线，起点和终点都在按下的位置
+            _currLineItem->setLine(QLineF(_startPos, _startPos));
+            addItem(_currLineItem);
+            break;
+        }
         default:
             break;
     }
@@ -154,6 +165,13 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
             break;
         }
+        case Shape_Line:    // 直线模式
+        {
+            if (!_currLineItem) return;
+            // 动态更新线条，起点不变，终点跟着鼠标走
+            _currLineItem->setLine(QLineF(_startPos, currPos));
+            break;
+        }
     }
 }
 void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
@@ -195,6 +213,16 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
             }
             break;
         }
+        case Shape_Line:    //直线模式
+        {
+            if (_currLineItem)
+            {
+                // 确保最后形状正确
+                _currLineItem->setLine(QLineF(_startPos, event->scenePos()));
+                _currLineItem = nullptr;
+            }
+            break;
+        }
     }
 
     // emit sigStrokeEnd(_currUuid, _currShapeType);
@@ -204,7 +232,8 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 void PaintScene::addPointToPath(const QPointF &pos)
 {
     _currPath.lineTo(pos);
-    if (_currPathItem) {
+    if (_currPathItem)
+    {
         _currPathItem->setPath(_currPath);
     }
 }

@@ -1,0 +1,35 @@
+Date : 2026-02-11 01:16:39
+Directory : e:\qt_project\SyncCanvas
+Total : 9 files,  365 codes, 38 comments, 79 blanks, all 482 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |          8 |        362 |         38 |         79 |        479 |
+| CMake    |          1 |          3 |          0 |          0 |          3 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++--------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                             | files      | code       | comment    | blank      | total      |
++--------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                |          9 |        365 |         38 |         79 |        482 |
+| DBClient                                         |          9 |        365 |         38 |         79 |        482 |
++--------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++--------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                         | language | code       | comment    | blank      | total      |
++--------------------------------------------------+----------+------------+------------+------------+------------+
+| e:\qt_project\SyncCanvas\DBClient\CMakeLists.txt | CMake    |          3 |          0 |          0 |          3 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.cpp     | C++      |         58 |         14 |         19 |         91 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.h       | C++      |          7 |          0 |          4 |         11 |
+| e:\qt_project\SyncCanvas\DBClient\global.h       | C++      |          8 |          1 |          1 |         10 |
+| e:\qt_project\SyncCanvas\DBClient\mainwindow.cpp | C++      |         16 |         -1 |          2 |         17 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.cpp | C++      |        148 |         -6 |         14 |        156 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.h   | C++      |         24 |         10 |         12 |         46 |
+| e:\qt_project\SyncCanvas\DBClient\widthpopup.cpp | C++      |          1 |          0 |          2 |          3 |
+| e:\qt_project\SyncCanvas\DBClient\widthpopup.h   | C++      |        100 |         20 |         25 |        145 |
+| Total                                            |          |        365 |         38 |         79 |        482 |
++--------------------------------------------------+----------+------------+------------+------------+------------+

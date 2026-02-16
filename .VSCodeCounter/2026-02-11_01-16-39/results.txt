@@ -1,0 +1,199 @@
+Date : 2026-02-11 01:16:39
+Directory : e:\qt_project\SyncCanvas
+Total : 147 files,  10354 codes, 1439 comments, 1955 blanks, all 13748 lines
+
+Languages
++------------+------------+------------+------------+------------+------------+
+| language   | files      | code       | comment    | blank      | total      |
++------------+------------+------------+------------+------------+------------+
+| C++        |        123 |      8,477 |      1,355 |      1,771 |     11,603 |
+| JSON       |          7 |      1,010 |          0 |          8 |      1,018 |
+| CMake      |          5 |        547 |          0 |         99 |        646 |
+| JavaScript |          6 |        171 |         56 |         35 |        262 |
+| Batch      |          3 |         81 |         28 |         26 |        135 |
+| Markdown   |          3 |         68 |          0 |         16 |         84 |
++------------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                            | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                               |        147 |     10,354 |      1,439 |      1,955 |     13,748 |
+| . (Files)                                                                       |          1 |          4 |          0 |          1 |          5 |
+| CanvasServer                                                                    |         26 |      1,814 |        255 |        345 |      2,414 |
+| CanvasServer (Files)                                                            |          3 |        250 |          9 |         32 |        291 |
+| CanvasServer2                                                                   |         26 |      1,817 |        255 |        343 |      2,415 |
+| CanvasServer2 (Files)                                                           |          3 |        251 |          9 |         30 |        290 |
+| CanvasServer2\include                                                           |         13 |        430 |         73 |        102 |        605 |
+| CanvasServer2\include\CanvasServer                                              |         13 |        430 |         73 |        102 |        605 |
+| CanvasServer2\src                                                               |         10 |      1,136 |        173 |        211 |      1,520 |
+| CanvasServer\include                                                            |         13 |        430 |         73 |        102 |        605 |
+| CanvasServer\include\CanvasServer                                               |         13 |        430 |         73 |        102 |        605 |
+| CanvasServer\src                                                                |         10 |      1,134 |        173 |        211 |      1,518 |
+| DBClient                                                                        |         42 |      3,124 |        586 |        814 |      4,524 |
+| GateServer                                                                      |         24 |      1,641 |        168 |        242 |      2,051 |
+| GateServer (Files)                                                              |          4 |        257 |         10 |         32 |        299 |
+| GateServer\include                                                              |         11 |        414 |         50 |         86 |        550 |
+| GateServer\include\GateServer                                                   |         11 |        414 |         50 |         86 |        550 |
+| GateServer\src                                                                  |          9 |        970 |        108 |        124 |      1,202 |
+| LogicServer                                                                     |         19 |      1,183 |        119 |        171 |      1,473 |
+| LogicServer (Files)                                                             |          2 |        216 |          0 |         24 |        240 |
+| LogicServer\include                                                             |         10 |        240 |         46 |         56 |        342 |
+| LogicServer\include\LogicServer                                                 |         10 |        240 |         46 |         56 |        342 |
+| LogicServer\src                                                                 |          7 |        727 |         73 |         91 |        891 |
+| VerifyServer                                                                    |          9 |        771 |         56 |         39 |        866 |
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| filename                                                                        | language   | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| e:\qt_project\SyncCanvas\CanvasServer2\CMakeLists.txt                           | CMake      |        119 |          0 |         20 |        139 |
+| e:\qt_project\SyncCanvas\CanvasServer2\CMakePresets.json                        | JSON       |        103 |          0 |          1 |        104 |
+| e:\qt_project\SyncCanvas\CanvasServer2\gen_message.bat                          | Batch      |         29 |          9 |          9 |         47 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\AsioIOServicePool.h | C++        |         25 |          4 |         11 |         40 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\CServer.h           | C++        |         19 |          0 |          3 |         22 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\CSession.h          | C++        |         55 |          6 |         11 |         72 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\CanvasServer.h      | C++        |          2 |          3 |          4 |          9 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\ConfigMgr.h         | C++        |         66 |          0 |         10 |         76 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\LogicSystem.h       | C++        |         31 |          7 |         10 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\MsgNode.h           | C++        |         51 |          6 |          6 |         63 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\RedisMgr.h          | C++        |         30 |          6 |         12 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\Room.h              | C++        |         31 |          6 |         11 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\RoomMgr.h           | C++        |         20 |          5 |          6 |         31 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\SessionMgr.h        | C++        |         20 |          3 |          5 |         28 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\Singleton.h         | C++        |         29 |          9 |          5 |         43 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\const.h             | C++        |         51 |         18 |          8 |         77 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\AsioIOServicePool.cpp                | C++        |         42 |          8 |          7 |         57 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\CServer.cpp                          | C++        |         38 |          4 |          4 |         46 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\CSession.cpp                         | C++        |        198 |         36 |         38 |        272 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\CanvasServer.cpp                     | C++        |         59 |         18 |         17 |         94 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\ConfigMgr.cpp                        | C++        |         40 |          3 |          4 |         47 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\LogicSystem.cpp                      | C++        |        307 |         43 |         60 |        410 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\RedisMgr.cpp                         | C++        |        244 |         22 |         27 |        293 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\Room.cpp                             | C++        |        128 |         33 |         32 |        193 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\RoomMgr.cpp                          | C++        |         44 |          2 |         11 |         57 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\SessionMgr.cpp                       | C++        |         36 |          4 |         11 |         51 |
+| e:\qt_project\SyncCanvas\CanvasServer\CMakeLists.txt                            | CMake      |        118 |          0 |         22 |        140 |
+| e:\qt_project\SyncCanvas\CanvasServer\CMakePresets.json                         | JSON       |        103 |          0 |          1 |        104 |
+| e:\qt_project\SyncCanvas\CanvasServer\gen_message.bat                           | Batch      |         29 |          9 |          9 |         47 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\AsioIOServicePool.h  | C++        |         25 |          4 |         11 |         40 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\CServer.h            | C++        |         19 |          0 |          3 |         22 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\CSession.h           | C++        |         55 |          6 |         11 |         72 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\CanvasServer.h       | C++        |          2 |          3 |          4 |          9 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\ConfigMgr.h          | C++        |         66 |          0 |         10 |         76 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\LogicSystem.h        | C++        |         31 |          7 |         10 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\MsgNode.h            | C++        |         51 |          6 |          6 |         63 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\RedisMgr.h           | C++        |         30 |          6 |         12 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\Room.h               | C++        |         31 |          6 |         11 |         48 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\RoomMgr.h            | C++        |         20 |          5 |          6 |         31 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\SessionMgr.h         | C++        |         20 |          3 |          5 |         28 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\Singleton.h          | C++        |         29 |          9 |          5 |         43 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\const.h              | C++        |         51 |         18 |          8 |         77 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\AsioIOServicePool.cpp                 | C++        |         42 |          8 |          7 |         57 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\CServer.cpp                           | C++        |         38 |          4 |          4 |         46 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\CSession.cpp                          | C++        |        196 |         36 |         38 |        270 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\CanvasServer.cpp                      | C++        |         59 |         18 |         17 |         94 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\ConfigMgr.cpp                         | C++        |         40 |          3 |          4 |         47 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\LogicSystem.cpp                       | C++        |        307 |         43 |         60 |        410 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\RedisMgr.cpp                          | C++        |        244 |         22 |         27 |        293 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\Room.cpp                              | C++        |        128 |         33 |         32 |        193 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\RoomMgr.cpp                           | C++        |         44 |          2 |         11 |         57 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\SessionMgr.cpp                        | C++        |         36 |          4 |         11 |         51 |
+| e:\qt_project\SyncCanvas\DBClient\CMakeLists.txt                                | CMake      |         91 |          0 |         18 |        109 |
+| e:\qt_project\SyncCanvas\DBClient\README.md                                     | Markdown   |         37 |          0 |          8 |         45 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.cpp                                    | C++        |        237 |         48 |         58 |        343 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.h                                      | C++        |         44 |          0 |         13 |         57 |
+| e:\qt_project\SyncCanvas\DBClient\global.cpp                                    | C++        |         21 |          7 |         14 |         42 |
+| e:\qt_project\SyncCanvas\DBClient\global.h                                      | C++        |         76 |         11 |         15 |        102 |
+| e:\qt_project\SyncCanvas\DBClient\hoverwidget.cpp                               | C++        |        104 |         27 |         34 |        165 |
+| e:\qt_project\SyncCanvas\DBClient\hoverwidget.h                                 | C++        |         31 |         15 |         13 |         59 |
+| e:\qt_project\SyncCanvas\DBClient\httpmgr.cpp                                   | C++        |         85 |         16 |         17 |        118 |
+| e:\qt_project\SyncCanvas\DBClient\httpmgr.h                                     | C++        |         33 |         10 |         10 |         53 |
+| e:\qt_project\SyncCanvas\DBClient\joinroomdialog.cpp                            | C++        |         38 |          1 |          9 |         48 |
+| e:\qt_project\SyncCanvas\DBClient\joinroomdialog.h                              | C++        |         20 |          0 |         10 |         30 |
+| e:\qt_project\SyncCanvas\DBClient\lobbywidget.cpp                               | C++        |        216 |         36 |         51 |        303 |
+| e:\qt_project\SyncCanvas\DBClient\lobbywidget.h                                 | C++        |         39 |          0 |         14 |         53 |
+| e:\qt_project\SyncCanvas\DBClient\loginwidget.cpp                               | C++        |        153 |         27 |         41 |        221 |
+| e:\qt_project\SyncCanvas\DBClient\loginwidget.h                                 | C++        |         36 |         11 |         16 |         63 |
+| e:\qt_project\SyncCanvas\DBClient\main.cpp                                      | C++        |         24 |          2 |          6 |         32 |
+| e:\qt_project\SyncCanvas\DBClient\mainwindow.cpp                                | C++        |        203 |         55 |         50 |        308 |
+| e:\qt_project\SyncCanvas\DBClient\mainwindow.h                                  | C++        |         49 |          9 |         13 |         71 |
+| e:\qt_project\SyncCanvas\DBClient\newroomdialog.cpp                             | C++        |         95 |         21 |         32 |        148 |
+| e:\qt_project\SyncCanvas\DBClient\newroomdialog.h                               | C++        |         28 |          0 |         13 |         41 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.cpp                                | C++        |        202 |         30 |         42 |        274 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.h                                  | C++        |         45 |         13 |         21 |         79 |
+| e:\qt_project\SyncCanvas\DBClient\registerwidget.cpp                            | C++        |        201 |         54 |         42 |        297 |
+| e:\qt_project\SyncCanvas\DBClient\registerwidget.h                              | C++        |         31 |         10 |         11 |         52 |
+| e:\qt_project\SyncCanvas\DBClient\resetwidget.cpp                               | C++        |        195 |         38 |         40 |        273 |
+| e:\qt_project\SyncCanvas\DBClient\resetwidget.h                                 | C++        |         31 |          1 |         11 |         43 |
+| e:\qt_project\SyncCanvas\DBClient\singleton.h                                   | C++        |         33 |          9 |          5 |         47 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.cpp                                    | C++        |        259 |         39 |         57 |        355 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.h                                      | C++        |         45 |          1 |         13 |         59 |
+| e:\qt_project\SyncCanvas\DBClient\tipwidget.cpp                                 | C++        |         54 |         24 |         18 |         96 |
+| e:\qt_project\SyncCanvas\DBClient\tipwidget.h                                   | C++        |         15 |         16 |          7 |         38 |
+| e:\qt_project\SyncCanvas\DBClient\userdata.cpp                                  | C++        |          5 |          0 |          3 |          8 |
+| e:\qt_project\SyncCanvas\DBClient\userdata.h                                    | C++        |         18 |         10 |          3 |         31 |
+| e:\qt_project\SyncCanvas\DBClient\userlisttree.cpp                              | C++        |         15 |          0 |          3 |         18 |
+| e:\qt_project\SyncCanvas\DBClient\userlisttree.h                                | C++        |         13 |          0 |          4 |         17 |
+| e:\qt_project\SyncCanvas\DBClient\usermgr.cpp                                   | C++        |        125 |         11 |         26 |        162 |
+| e:\qt_project\SyncCanvas\DBClient\usermgr.h                                     | C++        |         30 |          9 |          7 |         46 |
+| e:\qt_project\SyncCanvas\DBClient\welcomewidget.cpp                             | C++        |         27 |          5 |         10 |         42 |
+| e:\qt_project\SyncCanvas\DBClient\welcomewidget.h                               | C++        |         19 |          0 |          9 |         28 |
+| e:\qt_project\SyncCanvas\DBClient\widthpopup.cpp                                | C++        |          1 |          0 |          2 |          3 |
+| e:\qt_project\SyncCanvas\DBClient\widthpopup.h                                  | C++        |        100 |         20 |         25 |        145 |
+| e:\qt_project\SyncCanvas\GateServer\CMakeLists.txt                              | CMake      |        106 |          0 |         16 |        122 |
+| e:\qt_project\SyncCanvas\GateServer\CMakePresets.json                           | JSON       |        101 |          0 |          1 |        102 |
+| e:\qt_project\SyncCanvas\GateServer\README.md                                   | Markdown   |         27 |          0 |          7 |         34 |
+| e:\qt_project\SyncCanvas\GateServer\gen_message.bat                             | Batch      |         23 |         10 |          8 |         41 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\AsioIOServicePool.h      | C++        |         25 |          4 |         11 |         40 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\CServer.h                | C++        |         23 |          1 |          0 |         24 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\ConfigMgr.h              | C++        |         66 |          0 |         10 |         76 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\GateServer.h             | C++        |          2 |          3 |          4 |          9 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\HttpConnection.h         | C++        |         91 |         11 |         10 |        112 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\LogicGrpcClient.h        | C++        |         33 |          1 |          6 |         40 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\LogicSystem.h            | C++        |         31 |          0 |          7 |         38 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\RedisMgr.h               | C++        |         26 |          3 |          9 |         38 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\Singleton.h              | C++        |         29 |          9 |          5 |         43 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\VerifyGrpcClient.h       | C++        |         59 |          1 |         17 |         77 |
+| e:\qt_project\SyncCanvas\GateServer\include\GateServer\const.h                  | C++        |         29 |         17 |          7 |         53 |
+| e:\qt_project\SyncCanvas\GateServer\src\AsioIOServicePool.cpp                   | C++        |         42 |          8 |          7 |         57 |
+| e:\qt_project\SyncCanvas\GateServer\src\CServer.cpp                             | C++        |         31 |          6 |          7 |         44 |
+| e:\qt_project\SyncCanvas\GateServer\src\ConfigMgr.cpp                           | C++        |         40 |          3 |          4 |         47 |
+| e:\qt_project\SyncCanvas\GateServer\src\GateServer.cpp                          | C++        |         40 |          8 |          4 |         52 |
+| e:\qt_project\SyncCanvas\GateServer\src\HttpConnection.cpp                      | C++        |        147 |          8 |          9 |        164 |
+| e:\qt_project\SyncCanvas\GateServer\src\LogicGrpcClient.cpp                     | C++        |         78 |         18 |         12 |        108 |
+| e:\qt_project\SyncCanvas\GateServer\src\LogicSystem.cpp                         | C++        |        366 |         40 |         58 |        464 |
+| e:\qt_project\SyncCanvas\GateServer\src\RedisMgr.cpp                            | C++        |        163 |         17 |         15 |        195 |
+| e:\qt_project\SyncCanvas\GateServer\src\VerifyGrpcClient.cpp                    | C++        |         63 |          0 |          8 |         71 |
+| e:\qt_project\SyncCanvas\LogicServer\CMakeLists.txt                             | CMake      |        113 |          0 |         23 |        136 |
+| e:\qt_project\SyncCanvas\LogicServer\CMakePresets.json                          | JSON       |        103 |          0 |          1 |        104 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\ConfigMgr.h            | C++        |         66 |          0 |         10 |         76 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\LogicServer.h          | C++        |          2 |          3 |          4 |          9 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\LogicServiceImpl.h     | C++        |         27 |          5 |          8 |         40 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\MysqlDao.h             | C++        |         16 |          4 |          8 |         28 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\MysqlMgr.h             | C++        |         17 |          4 |          3 |         24 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\MysqlPool.h            | C++        |         29 |          1 |          5 |         35 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\RedisMgr.h             | C++        |         26 |          3 |          9 |         38 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\Singleton.h            | C++        |         29 |          9 |          5 |         43 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\const.h                | C++        |         19 |         17 |          4 |         40 |
+| e:\qt_project\SyncCanvas\LogicServer\include\LogicServer\data.h                 | C++        |          9 |          0 |          0 |          9 |
+| e:\qt_project\SyncCanvas\LogicServer\src\ConfigMgr.cpp                          | C++        |         40 |          3 |          4 |         47 |
+| e:\qt_project\SyncCanvas\LogicServer\src\LogicServer.cpp                        | C++        |         52 |          9 |         10 |         71 |
+| e:\qt_project\SyncCanvas\LogicServer\src\LogicServiceImpl.cpp                   | C++        |        195 |         22 |         27 |        244 |
+| e:\qt_project\SyncCanvas\LogicServer\src\MysqlDao.cpp                           | C++        |        188 |         17 |         26 |        231 |
+| e:\qt_project\SyncCanvas\LogicServer\src\MysqlMgr.cpp                           | C++        |         24 |          2 |          6 |         32 |
+| e:\qt_project\SyncCanvas\LogicServer\src\MysqlPool.cpp                          | C++        |         65 |          3 |          3 |         71 |
+| e:\qt_project\SyncCanvas\LogicServer\src\RedisMgr.cpp                           | C++        |        163 |         17 |         15 |        195 |
+| e:\qt_project\SyncCanvas\README.md                                              | Markdown   |          4 |          0 |          1 |          5 |
+| e:\qt_project\SyncCanvas\VerifyServer\config.js                                 | JavaScript |         13 |          4 |          5 |         22 |
+| e:\qt_project\SyncCanvas\VerifyServer\config.json                               | JSON       |         17 |          0 |          2 |         19 |
+| e:\qt_project\SyncCanvas\VerifyServer\const.js                                  | JavaScript |          7 |          1 |          2 |         10 |
+| e:\qt_project\SyncCanvas\VerifyServer\email.js                                  | JavaScript |         25 |          9 |          6 |         40 |
+| e:\qt_project\SyncCanvas\VerifyServer\package-lock.json                         | JSON       |        563 |          0 |          1 |        564 |
+| e:\qt_project\SyncCanvas\VerifyServer\package.json                              | JSON       |         20 |          0 |          1 |         21 |
+| e:\qt_project\SyncCanvas\VerifyServer\proto.js                                  | JavaScript |         10 |          9 |          7 |         26 |
+| e:\qt_project\SyncCanvas\VerifyServer\redis.js                                  | JavaScript |         61 |         27 |          3 |         91 |
+| e:\qt_project\SyncCanvas\VerifyServer\server.js                                 | JavaScript |         55 |          6 |         12 |         73 |
+| Total                                                                           |            |     10,354 |      1,439 |      1,955 |     13,748 |
++---------------------------------------------------------------------------------+------------+------------+------------+------------+------------+

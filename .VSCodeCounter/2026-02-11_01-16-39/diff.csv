@@ -1,0 +1,11 @@
+"filename", "language", "CMake", "C++", "comment", "blank", "total"
+"e:\qt_project\SyncCanvas\DBClient\CMakeLists.txt", "CMake", 3, 0, 0, 0, 3
+"e:\qt_project\SyncCanvas\DBClient\canvas.cpp", "C++", 0, 58, 14, 19, 91
+"e:\qt_project\SyncCanvas\DBClient\canvas.h", "C++", 0, 7, 0, 4, 11
+"e:\qt_project\SyncCanvas\DBClient\global.h", "C++", 0, 8, 1, 1, 10
+"e:\qt_project\SyncCanvas\DBClient\mainwindow.cpp", "C++", 0, 16, -1, 2, 17
+"e:\qt_project\SyncCanvas\DBClient\paintscene.cpp", "C++", 0, 148, -6, 14, 156
+"e:\qt_project\SyncCanvas\DBClient\paintscene.h", "C++", 0, 24, 10, 12, 46
+"e:\qt_project\SyncCanvas\DBClient\widthpopup.cpp", "C++", 0, 1, 0, 2, 3
+"e:\qt_project\SyncCanvas\DBClient\widthpopup.h", "C++", 0, 100, 20, 25, 145
+"Total", "-", 3, 362, 38, 79, 482
