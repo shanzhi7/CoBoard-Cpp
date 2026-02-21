@@ -39,7 +39,7 @@ CoBoard 是一个基于 **Client-Server 架构** 的多人实时协作画板系�
 ---
 
 ## 🏗️ 系统架构设计
-![Uploading 服务端设计.png…]()
+<img width="1156" height="763" alt="服务端设计" src="https://github.com/user-attachments/assets/66c72f37-0523-4929-bf71-e7ffd0e7bd25" />
 
 ### 架构特点
 - 控制面使用 HTTP 短连接处理业务逻辑
