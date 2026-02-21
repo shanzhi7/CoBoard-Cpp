@@ -3,7 +3,7 @@
 > 基于 C++ 与 Qt Graphics View Framework 实现的多人实时协作画板系统，  
 > 支持房间协作、实时绘画同步、头像上传与完整客户端-服务端架构设计。
 
-![Architecture](./docs/architecture.png)
+![Architecture]([./docs/architecture.png](https://github.com/shanzhi7/CoBoard-Cpp/blob/main/%E6%9C%8D%E5%8A%A1%E7%AB%AF%E8%AE%BE%E8%AE%A1.png?raw=true))
 
 ---
 
