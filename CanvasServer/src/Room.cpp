@@ -94,11 +94,9 @@ void Room::Broadcast(const std::string& data, int msg_id, int exclude_uid)
 { 
     std::lock_guard<std::mutex> lock(_mutex);
 
-    // 如果是画画请求，存入历史记录
-    if (msg_id == ID_DRAW_REQ_DEL)
-    {
-        _history.push_back(data);
-    }
+    //todo...(后续阶段)：房间历史记录
+        // 现在先不存，先把实时同步跑通
+    // if (msg_id == ID_DRAW_RSP) { ... }
 
     // 遍历发送
     for (auto& pair : _sessions)
@@ -108,6 +106,8 @@ void Room::Broadcast(const std::string& data, int msg_id, int exclude_uid)
 
         // 跳过发送者自己 (因为他本地已经画出来了，不需要服务器回显)
         if (target_uid == exclude_uid) continue;
+        if (!target_session) continue;
+        if (target_session->IsClosed()) continue;
 
         // 发送
         target_session->Send(data, msg_id);

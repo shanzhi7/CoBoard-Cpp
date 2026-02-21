@@ -86,23 +86,23 @@ MainWindow::MainWindow(QWidget *parent)
     connect(lobby_widget,&LobbyWidget::sig_switchCanvas_join,this,&MainWindow::slotSwitchCanvasJoin);
 
     // --- 测试 ---
-    std::shared_ptr<RoomInfo> room_info = std::make_shared<RoomInfo>();
-    UserInfo user_info;
-    std::shared_ptr<UserInfo> myInfo = std::make_shared<UserInfo>(user_info);
-    UserMgr::getInstance()->setMyInfo(myInfo);
-    user_info._id = 3;
-    user_info._avatar = "111";
-    user_info._name = "shanzhi";
-    room_info->id = "123456";
-    room_info->name = "shanzhi7";
-    room_info->owner_uid = 3;
-    room_info->host = "127.0.0.1";
-    room_info->port = 8092;
-    room_info->width = 1920;
-    room_info->height = 1080;
-    room_info->members.append(user_info);
+    // std::shared_ptr<RoomInfo> room_info = std::make_shared<RoomInfo>();
+    // UserInfo user_info;
+    // std::shared_ptr<UserInfo> myInfo = std::make_shared<UserInfo>(user_info);
+    // UserMgr::getInstance()->setMyInfo(myInfo);
+    // user_info._id = 3;
+    // user_info._avatar = "111";
+    // user_info._name = "shanzhi";
+    // room_info->id = "123456";
+    // room_info->name = "shanzhi7";
+    // room_info->owner_uid = 3;
+    // room_info->host = "127.0.0.1";
+    // room_info->port = 8092;
+    // room_info->width = 1920;
+    // room_info->height = 1080;s
+    // room_info->members.append(user_info);
 
-    emit lobby_widget->sig_switchCanvas(room_info);
+    // emit lobby_widget->sig_switchCanvas(room_info);
 
 }
 

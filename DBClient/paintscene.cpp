@@ -5,7 +5,7 @@
 
 PaintScene::PaintScene(QObject *parent)
     : QGraphicsScene{parent}
-    , _currShapeType(Shape_Line) // 默认钢笔
+    , _currShapeType(Shape_Pen) // 默认钢笔
     , _currPathItem(nullptr)
     , _currRectItem(nullptr)
     , _currOvalItem(nullptr)
@@ -108,7 +108,7 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
     }
 
     // 发送开始信号
-    // emit sigStrokeStart(_currUuid, _currShapeType, _startPos, _penColor, _penWidth);
+    emit sigStrokeStart(_currUuid, (int)_currShapeType, _startPos, _penColor, _penWidth);
 }
 
 void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
@@ -141,7 +141,7 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             _lastPoint = currPos;
 
             // 发送移动信号 (发送的是新增点)
-            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
             break;
         }
         case Shape_Rect:
@@ -153,7 +153,7 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             _currRectItem->setRect(rect.normalized());
 
             // 节流发送移动信号 (发送的是当前鼠标位置，用于预览)
-            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
             break;
         }
         case Shape_Oval:
@@ -162,7 +162,7 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             QRectF rect(_startPos, currPos);
             _currOvalItem->setRect(rect.normalized());
 
-            // emit sigStrokeMove(_currUuid, _currShapeType, currPos);
+            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
             break;
         }
         case Shape_Line:    // 直线模式
@@ -170,6 +170,7 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
             if (!_currLineItem) return;
             // 动态更新线条，起点不变，终点跟着鼠标走
             _currLineItem->setLine(QLineF(_startPos, currPos));
+            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
             break;
         }
     }
@@ -225,7 +226,7 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
         }
     }
 
-    // emit sigStrokeEnd(_currUuid, _currShapeType);
+    emit sigStrokeEnd(_currUuid, (int)_currShapeType, event->scenePos());   //发送网络信号
     _currUuid = "";
 }
 
@@ -299,4 +300,113 @@ void PaintScene::hideEraserCursor()
     {
         _eraserCursorItem->hide();
     }
+}
+
+static QColor ColorFromArgbInt(int32_t argb)    //将颜色转为Qt颜色
+{
+    // argb: 0xAARRGGBB
+    int a = (argb >> 24) & 0xFF;
+    int r = (argb >> 16) & 0xFF;
+    int g = (argb >> 8) & 0xFF;
+    int b = (argb) & 0xFF;
+    return QColor(r, g, b, a);
+}
+
+void PaintScene::applyRemoteDraw(const message::DrawReq& req)   //添加远端绘画
+{
+    const QString uuid = QString::fromStdString(req.item_id()); // 图元uuid
+    const int shape = (int)req.shape();                         // 图元类型
+    const int cmd = (int)req.cmd();                             // 图元命令（start，move，end）
+
+    const QPointF start(req.start_x(), req.start_y());          // startPos
+    const QPointF cur(req.current_x(), req.current_y());        // curPos
+    const QColor color = ColorFromArgbInt(req.color());         // 颜色
+    const int width = req.width();                              // 画笔粗细
+
+    // 拿到或创建 RemoteItem
+    RemoteItem &ri = _remoteItems[uuid];
+    if (cmd == message::CMD_START)
+    {
+        ri = RemoteItem{};
+        ri.shape = shape;
+        ri.start = start;
+        ri.color = color;
+        ri.width = width;
+
+        if (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER)
+        {
+            ri.path = QPainterPath();
+            ri.path.moveTo(start);
+
+            ri.pathItem = new QGraphicsPathItem();
+            QColor penColor = (shape == message::SHAPE_ERASER) ? Qt::white : color;
+            int penWidth = (shape == message::SHAPE_ERASER) ? (width * 3) : width;
+            ri.pathItem->setPen(QPen(penColor, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            ri.pathItem->setPath(ri.path);
+            addItem(ri.pathItem);
+        }
+        else if (shape == message::SHAPE_RECT)
+        {
+            ri.rectItem = new QGraphicsRectItem();
+            ri.rectItem->setPen(QPen(color, width, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
+            ri.rectItem->setRect(QRectF(start, start).normalized());
+            addItem(ri.rectItem);
+        }
+        else if (shape == message::SHAPE_OVAL)
+        {
+            ri.ovalItem = new QGraphicsEllipseItem();
+            ri.ovalItem->setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            ri.ovalItem->setRect(QRectF(start, start).normalized());
+            addItem(ri.ovalItem);
+        }
+        else if (shape == message::SHAPE_LINE)
+        {
+            ri.lineItem = new QGraphicsLineItem();
+            ri.lineItem->setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+            ri.lineItem->setLine(QLineF(start, start));
+            addItem(ri.lineItem);
+        }
+        return;
+    }
+
+    // MOVE / END
+    if (!_remoteItems.contains(uuid)) return;   //不存在这个 图元直接返回
+
+    if (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER)
+    {
+        if (!ri.pathItem) return;
+
+        // 方案：用 path_points 增量点（推荐）
+        if (req.path_points_size() > 0)
+        {
+            for (int i = 0; i < req.path_points_size(); ++i)
+            {
+                const auto& p = req.path_points(i);
+                ri.path.lineTo(QPointF(p.x(), p.y()));
+            }
+        }
+        else
+        {
+            // 兜底：如果你 MVP 阶段 MOVE 只填 current_x/current_y，也能画
+            ri.path.lineTo(cur);
+        }
+        ri.pathItem->setPath(ri.path);
+    }
+    else if (shape == message::SHAPE_RECT)
+    {
+        if (!ri.rectItem) return;
+        ri.rectItem->setRect(QRectF(ri.start, cur).normalized());
+    }
+    else if (shape == message::SHAPE_OVAL)
+    {
+        if (!ri.ovalItem) return;
+        ri.ovalItem->setRect(QRectF(ri.start, cur).normalized());
+    }
+    else if (shape == message::SHAPE_LINE)
+    {
+        if (!ri.lineItem) return;
+        ri.lineItem->setLine(QLineF(ri.start, cur));
+    }
+
+    // END：先不清理 map（以后做 Undo 会用到）
 }

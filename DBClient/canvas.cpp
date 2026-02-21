@@ -17,6 +17,30 @@ Canvas::Canvas(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // 16ms 节流：批量发送 Pen/Eraser 的 path_points
+    _strokeFlushTimer = new QTimer(this);
+    _strokeFlushTimer->setInterval(16);
+
+    connect(_strokeFlushTimer, &QTimer::timeout, this, [this]() {
+
+        // 遍历所有正在画的 uuid，把点批量发出去
+        for (auto it = _pendingPointsByUuid.begin(); it != _pendingPointsByUuid.end(); ++it)
+        {
+            PendingStrokePoints& pendingStroke = it.value();
+
+            // 不在绘制中，跳过
+            if (!pendingStroke.active) continue;
+
+            // 没有新增点，跳过（避免无意义的 flush 调用）
+            if (pendingStroke.points.isEmpty()) continue;
+
+            flushStrokePoints(it.key(), false);
+        }
+    });
+
+    _strokeFlushTimer->start();
+
+
     initCanvasUi();
     initToolBtn();  //初始化toolbtn
 
@@ -30,6 +54,15 @@ Canvas::Canvas(QWidget *parent)
 
     //连接新用户离开房间信号槽函数
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_user_left,this,&Canvas::slot_user_leaved);
+
+    // PaintScene -> Canvas (发送)
+    connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
+    connect(_paintScene, &PaintScene::sigStrokeMove,  this, &Canvas::slot_onStrokeMove);
+    connect(_paintScene, &PaintScene::sigStrokeEnd,   this, &Canvas::slot_onStrokeEnd);
+
+    // TcpMgr -> Canvas (接收广播)
+    connect(TcpMgr::getInstance().get(), &TcpMgr::sig_draw_broadcast,
+            this, &Canvas::slot_onDrawBroadcast);
 
     //开启鼠标追踪，鼠标不点击也把事件传给scene
     ui->graphicsView->setMouseTracking(true);
@@ -338,5 +371,228 @@ void Canvas::on_width_tool_clicked()
     _widthPopup->show();
 }
 
+static int32_t ToArgbInt(const QColor& c)   //Qt颜色转 int
+{
+    // Qt 的 rgba() 是 0xAARRGGBB
+    return static_cast<int32_t>(c.rgba());
+}
 
+//画笔开始槽函数
+void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width)
+{
+    if (!_room_info) return;
+
+    // 只有 Pen/Eraser 才需要缓存点并走 16ms 批量发送
+    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
+                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+
+    if (isPenLike)
+    {
+        PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];
+        pendingStroke.type = type;
+        pendingStroke.points.clear();
+        pendingStroke.active = true;
+    }
+
+    // ---------- 发送 START ----------
+    message::DrawReq req;
+    req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+    req.set_item_id(uuid.toStdString());
+    req.set_cmd(message::CMD_START);
+    req.set_shape(static_cast<message::ShapeType>(type));
+    req.set_color(ToArgbInt(color));
+    req.set_width(width);
+
+    // START 必须带起点，远端才能 moveTo 正确位置
+    req.set_start_x(startPos.x());
+    req.set_start_y(startPos.y());
+    req.set_current_x(startPos.x());
+    req.set_current_y(startPos.y());
+
+    std::string binaryData;
+    if (!req.SerializeToString(&binaryData)) return;
+    qDebug() << "[Draw] cmd=" << req.cmd()
+             << " shape=" << req.shape()
+             << " uid=" << req.uid()
+             << " uuid=" << uuid
+             << " bytes=" << (int)binaryData.size();
+
+    TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
+}
+
+//画笔移动槽函数，Pen/Eraser “只缓存点”，几何图形仍然直接发
+void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
+{
+    if (!_room_info) return;
+
+    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
+                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+
+    // Pen/Eraser：只缓存点，不立刻发包
+    if (isPenLike)
+    {
+        // 正常流程下 START 会创建 entry；这里再保证一下健壮性（防止乱序/极端情况）
+        PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];
+        pendingStroke.type = type;
+        pendingStroke.active = true;
+        pendingStroke.points.push_back(currentPos);
+        return;
+    }
+
+    // 几何图形：直接发 MOVE（数据小，实时预览重要）
+    message::DrawReq req;
+    req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+    req.set_item_id(uuid.toStdString());
+    req.set_cmd(message::CMD_MOVE);
+    req.set_shape(static_cast<message::ShapeType>(type));
+    req.set_current_x(currentPos.x());
+    req.set_current_y(currentPos.y());
+
+    std::string binaryData;
+    if (!req.SerializeToString(&binaryData))
+    {
+        qDebug() << "[Draw] Serialize failed!";
+        return;
+    }
+
+    // ⭐ 加在这里（发送之前）
+    message::DrawReq selfCheck;
+    if (!selfCheck.ParseFromString(binaryData))
+    {
+        qDebug() << "[Draw] Serialize self-check failed! bytes=" << binaryData.size();
+    }
+    else
+    {
+        qDebug() << "[Draw START] bytes=" << binaryData.size()
+        << " uid=" << selfCheck.uid()
+        << " cmd=" << selfCheck.cmd();
+    }
+    qDebug() << "[Draw] cmd=" << req.cmd()
+             << " shape=" << req.shape()
+             << " uid=" << req.uid()
+             << " uuid=" << uuid
+             << " bytes=" << (int)binaryData.size();
+
+    TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
+}
+
+//画笔结束槽函数，先 flush 剩余点，再发 END，并把 active 关掉
+void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
+{
+    if (!_room_info) return;
+
+    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
+                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+
+    if (isPenLike)
+    {
+        // 把最后点塞进缓存，确保不丢
+        PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];
+        pendingStroke.points.push_back(endPos);
+
+        // 立刻把剩余点打包发送（MOVE）
+        flushStrokePoints(uuid, true);
+
+        // 标记结束 + 清理 entry，防止 map 越积越大
+        pendingStroke.active = false;
+        _pendingPointsByUuid.remove(uuid);
+    }
+
+    // 发 END（几何图形/笔画都发，作为结束标志）
+    message::DrawReq req;
+    req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+    req.set_item_id(uuid.toStdString());
+    req.set_cmd(message::CMD_END);
+    req.set_shape(static_cast<message::ShapeType>(type));
+    req.set_current_x(endPos.x());
+    req.set_current_y(endPos.y());
+
+    std::string binaryData;
+    if (!req.SerializeToString(&binaryData)) return;
+    qDebug() << "[Draw] cmd=" << req.cmd()
+             << " shape=" << req.shape()
+             << " uid=" << req.uid()
+             << " uuid=" << uuid
+             << " bytes=" << (int)binaryData.size();
+
+    TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
+}
+
+//收到绘画广播
+void Canvas::slot_onDrawBroadcast(QByteArray data)
+{
+    message::DrawReq req;
+    if (!req.ParseFromArray(data.data(), data.size()))
+        return;
+
+    // 正常来说服务器会 exclude sender，所以这里一般不会收到自己
+    // 但加个保险也行：
+    int myUid = UserMgr::getInstance()->getMyInfo()->_id;
+    if (req.uid() == myUid) return;
+
+    _paintScene->applyRemoteDraw(req);  //调用applyRemoteDraw处理
+}
+
+void Canvas::flushStrokePoints(const QString& uuid, bool force)
+{
+    auto iterator = _pendingPointsByUuid.find(uuid);
+    if (iterator == _pendingPointsByUuid.end())
+        return;
+
+    PendingStrokePoints& pendingStroke = iterator.value();
+
+    // 不在绘制中就不处理
+    if (!pendingStroke.active)
+        return;
+
+    // 没点就不发（force 也不发空包）
+    if (pendingStroke.points.isEmpty())
+        return;
+
+    // 【保护】每个网络包最多携带的点数，避免单包过大
+    static const int MAX_POINTS_PER_PACKET = 80;
+
+    // 按批次发送：每次取出前 N 个点打包
+    while (!pendingStroke.points.isEmpty())
+    {
+        const int pointsToSend = qMin(MAX_POINTS_PER_PACKET, pendingStroke.points.size());
+
+        message::DrawReq req;
+        req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+        req.set_item_id(uuid.toStdString());
+        req.set_cmd(message::CMD_MOVE);
+        req.set_shape(static_cast<message::ShapeType>(pendingStroke.type));
+
+        // current 用这一批的最后一个点（方便远端兜底）
+        const QPointF& lastPoint = pendingStroke.points[pointsToSend - 1];
+        req.set_current_x(lastPoint.x());
+        req.set_current_y(lastPoint.y());
+
+        // 批量塞入 path_points
+        req.mutable_path_points()->Reserve(pointsToSend);
+        for (int i = 0; i < pointsToSend; ++i)
+        {
+            const QPointF& pt = pendingStroke.points[i];
+            auto* protoPoint = req.add_path_points();
+            protoPoint->set_x(pt.x());
+            protoPoint->set_y(pt.y());
+        }
+
+        // 从缓存中移除已经发送的这批点
+        pendingStroke.points.erase(pendingStroke.points.begin(),
+                                   pendingStroke.points.begin() + pointsToSend);
+
+        // 发送网络包
+        std::string binaryData;
+        if (!req.SerializeToString(&binaryData))
+            return;
+
+        TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
+
+        // 如果不是强制 flush（force=false），最多发一包就够了，
+        // 避免在一次 timer tick 里发送过多包造成“突刺”
+        if (!force) // true: (END),false: (16ms time)
+            break;
+    }
+}
 

@@ -8,8 +8,8 @@
 // 确保字节对齐，防止不同编译器补齐导致解析错误
 #pragma pack(push, 1)
 struct MsgHead {
-    short msg_id;
-    short msg_len; // body 长度
+    std::uint16_t msg_id;
+    std::uint16_t msg_len; // body 长度
 };
 #pragma pack(pop)
 

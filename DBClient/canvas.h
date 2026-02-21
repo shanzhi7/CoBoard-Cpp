@@ -9,6 +9,9 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QButtonGroup>
+#include <QTimer>
+#include <QHash>
+#include <QVector>
 
 namespace Ui {
 class Canvas;
@@ -34,8 +37,14 @@ private slots:
     void slot_user_leaved(int uid);                                            //用户离开槽函数    (广播)
 
     void on_color_tool_clicked();                                               // color_tool槽函数，选择画笔颜色
-
     void on_width_tool_clicked();                                               // width_tool槽函数，选择画笔粗细
+
+    // --收到paintSence发送的绘画信号对应的槽函数--
+    void slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width);
+    void slot_onStrokeMove(QString uuid, int type, QPointF currentPos);
+    void slot_onStrokeEnd(QString uuid, int type, QPointF endPos);
+
+    void slot_onDrawBroadcast(QByteArray data);   // 收到服务器广播
 
 private:
     Ui::Canvas *ui;
@@ -46,6 +55,19 @@ private:
     QMap<int,QTreeWidgetItem*> _userItemMap;        // 用户列表
 
     QButtonGroup* _toolGroup;                       // toolbtn按钮组
+
+    // ====== Pen/Eraser MOVE 节流缓存 ======
+    struct PendingStrokePoints {
+        int type = 0;                  // ShapeType
+        QVector<QPointF> points;       // 待发送的增量点
+        bool active = false;
+    };
+
+    QTimer* _strokeFlushTimer = nullptr;    // 定时器
+    QHash<QString, PendingStrokePoints> _pendingPointsByUuid;
+
+    void flushStrokePoints(const QString& uuid, bool force); // force=true: 立即把剩余点发出去
+
 
     void initCanvasUi();        //初始化ui界面
     void initToolBtn();         //初始化tool按钮

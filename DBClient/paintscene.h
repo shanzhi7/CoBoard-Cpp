@@ -6,6 +6,7 @@
 #include <QPainterPath>
 #include <QPointF>
 #include "global.h"
+#include "message.pb.h"
 
 class PaintScene : public QGraphicsScene
 {
@@ -23,6 +24,8 @@ public:
     int getPenWidth();
 
     void hideEraserCursor();        //供外部用来隐藏橡皮擦
+
+    void applyRemoteDraw(const message::DrawReq& req);  //应用远端绘画，收到广播后调用
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
@@ -60,6 +63,22 @@ private:
     // 橡皮擦位置更新逻辑
     void updateEraserCursor(const QPointF& pos);
 
+    // --远端图元管理--
+    struct RemoteItem {
+        int shape = 0;
+        QPointF start;
+        QColor color;
+        int width = 1;
+
+        QGraphicsPathItem* pathItem = nullptr;
+        QPainterPath path;
+
+        QGraphicsRectItem* rectItem = nullptr;
+        QGraphicsEllipseItem* ovalItem = nullptr;
+        QGraphicsLineItem* lineItem = nullptr;
+    };
+    QHash<QString, RemoteItem> _remoteItems;
+
 signals:
     // --- 网络同步信号 ---
     // start: 发送UUID，颜色，线宽，起点
@@ -69,7 +88,7 @@ signals:
     void sigStrokeMove(QString uuid,int type,QPointF currentPos);
 
     // end: 发送UUID，表示这一笔画完了
-    void sigStrokeEnd(QString uuid,int type);
+    void sigStrokeEnd(QString uuid,int type,QPointF endPos);
 
     // 鼠标位置改变信号
     void sigCursorPosChanged(QPointF pos);

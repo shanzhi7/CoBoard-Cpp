@@ -2,14 +2,37 @@
 #include "CanvasServer/Room.h"
 #include "CanvasServer/LogicSystem.h" 
 #include "CanvasServer/SessionMgr.h"
+#include "CanvasServer/const.h"
+#include "CanvasServer/message.pb.h"
+
+static void DumpHex(const char* data, int len, int max_dump = 128)
+{
+	int n = std::min(len, max_dump);
+	for (int i = 0; i < n; ++i)
+	{
+		unsigned char c = static_cast<unsigned char>(data[i]);
+		std::cout << std::hex << (int)c << " ";
+	}
+	if (len > n) std::cout << "...";
+	std::cout << std::dec << std::endl;
+}
+
+static void DumpHexTail(const char* data, int len, int tail = 32)
+{
+	int start = std::max(0, len - tail);
+	for (int i = start; i < len; ++i)
+	{
+		unsigned char c = static_cast<unsigned char>(data[i]);
+		std::cout << std::hex << (int)c << " ";
+	}
+	std::cout << std::dec << std::endl;
+}
 
 CSession::CSession(boost::asio::io_context& io_context)
 	:_socket(io_context),
 	_session_id(""),
 	_uid(0),
-	_b_close(false),
-	_name(""),
-    _avatar_url("")
+	_b_close(false)
 {
 	boost::uuids::uuid a_uuid = boost::uuids::random_generator()();
 	_session_id = boost::uuids::to_string(a_uuid);
@@ -161,24 +184,69 @@ void CSession::ReadBody(short msg_id, short msg_len)
 			// 设置实际长度
 			recv_node->_cur_len = bytes_transferred;
 			recv_node->_data[recv_node->_cur_len] = '\0';	// 结束符
-			std::cout<<"revc msgid is :"<<msg_id<<std::endl;
-
-			//todo...
+			std::cout << "revc msgid is :" << msg_id << std::endl;
 
 			// 核心分流逻辑：快慢分离
 			// 
-			// A. 快通道：高频绘画数据，不进 LogicQueue，直接广播
-			if (msg_id == ID_DRAW_REQ_DEL)
+			// 快通道：高频绘画数据，不进 LogicQueue，直接广播
+			if (msg_id == ID_DRAW_REQ)
 			{
-				// 如果加入了房间，直接广播
-				if (auto room = _room.lock())
+				if (_uid == 0) //基础校验：必须登录
 				{
-					// 转成 string 只是为了方便 Broadcast 接口，实际内部也是 memcpy
-					// 如果追求极致，Room::Broadcast 可以接收 RecvNode 指针
-					//room->Broadcast(std::string(recv_node->_data, recv_node->_cur_len), _uid);
+					std::cout << "[CSession] DrawReq rejected: not logged in. SessionId=" << _session_id << std::endl;
+					ReadHead();
+					return;
 				}
+
+				auto room = _room.lock();	//weak ptr升级
+				if (!room)	//必须已经加入房间
+				{
+					std::cout << "[CSession] DrawReq rejected: not in room. UID=" << _uid << std::endl;
+					ReadHead();
+					return;
+				}
+
+				std::cout << "[CSession] DrawReq raw len=" << recv_node->_cur_len << " head(64)=";
+				DumpHex(recv_node->_data, recv_node->_cur_len, 64);
+
+				std::cout << "[CSession] DrawReq raw tail(32)=";
+				DumpHexTail(recv_node->_data, recv_node->_cur_len, 32);
+
+				std::cout << "[CSession] DrawReq raw len=" << recv_node->_cur_len << " first16=";
+				for (int i = 0; i < std::min<int>(16, recv_node->_cur_len); ++i)
+				{
+					unsigned char c = static_cast<unsigned char>(recv_node->_data[i]);
+					std::cout << std::hex << (int)c << " ";
+				}
+				std::cout << std::dec << std::endl;
+
+				//解析 protobuf (用于校验 uid 防止伪造)
+				message::DrawReq drawReq;
+				if (!drawReq.ParseFromArray(recv_node->_data, recv_node->_cur_len))
+				{
+					std::cout << "[CSession] DrawReq parse failed. UID=" << _uid << std::endl;
+					ReadHead();
+					return;
+				}
+
+				//防止伪造：req.uid 必须等于 session uid
+				if (drawReq.uid() != _uid)
+				{
+					std::cout << "[CSession] DrawReq uid mismatch! SessionUID=" << _uid
+						<< " ReqUID=" << drawReq.uid() << " -> Close()" << std::endl;
+					// “安全优先”直接断开连接
+					Close();
+					return;
+				}
+
+				//广播发给其他人
+				std::string rawBinary(recv_node->_data, recv_node->_cur_len);
+				room->Broadcast(rawBinary, ID_DRAW_RSP, _uid);
+
+				ReadHead();
+				return;
 			}
-			// B. 慢通道：业务逻辑 (登录、加入房间)，扔进队列
+			// 慢通道：业务逻辑 (登录、加入房间)，扔进队列
 			else
 			{
 				LogicSystem::getInstance()->PostMsgToQue(

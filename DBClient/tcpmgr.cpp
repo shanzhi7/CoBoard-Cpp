@@ -293,6 +293,11 @@ void TcpMgr::initHandlers()
         // 发送信号通知 UI 移除对应的那一行
         emit sig_user_left(uid);
     });
+
+    //注册绘画广播 (服务器转发别人画的)
+    _handlers.insert(ReqId::ID_DRAW_RSP,[this](ReqId,int,QByteArray data){
+        emit sig_draw_broadcast(data);  //发送广播信号
+    });
 }
 
 void TcpMgr::handleMsg(ReqId id, int len, QByteArray data)

@@ -36,6 +36,8 @@ enum MSG_IDS {
 	ID_SAVE_IMAGE = 1015,                       //将图片保存到数据库
 	ID_USER_JOIN_BROADCAST = 1016,				//用户加入房间广播
 	ID_USER_LEAVE_BROADCAST = 1017,				//用户离开房间广播
+	ID_DRAW_REQ = 1018,      // 绘画请求（客户端 -> CanvasServer）
+	ID_DRAW_RSP = 1019,      // 绘画广播（CanvasServer -> 房间其他人）
 };
 #define MAX_LENGTH 1024*2
 
