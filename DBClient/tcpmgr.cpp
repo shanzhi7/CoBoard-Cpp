@@ -11,7 +11,6 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
     //连接成功
     QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
         qDebug()<<"连接到 Server！";
-        emit sig_con_success(true);
 
         if(!_pending_room_id.isEmpty()) //检查是否有“重定向后的加入房间”任务
         {
@@ -27,13 +26,18 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
             req.SerializeToString(&binaryData);
             QByteArray sendData = QByteArray::fromStdString(binaryData);
 
-            // 直接调用底层的发送函数，或者 emit sig_send_data
-            this->slot_send_data(ReqId::ID_JOIN_ROOM_REQ, sendData);
-
-            //发完之后清空任务，防止下次普通重连时误发
-            _pending_room_id.clear();
-            _pending_uid = 0;
+            // 重定向切服：先登录
+            send_canvas_login();
+            return;
         }
+        // 掉线重连连上后：自动 CanvasLogin
+        if (_is_offline_reconnect)
+        {
+            qDebug() << "[TcpMgr] offline reconnect connected, auto canvas login...";
+            send_canvas_login();
+            return;
+        }
+        emit sig_con_success(true);
     });
 
     //准备读取数据
@@ -114,7 +118,42 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
                              qDebug() << "Other Error!";
                              break;
                          }
+                         if (_is_offline_reconnect)
+                         {
+                             emit sig_go_lobby("网络错误，正在尝试重连…");
+                             slot_start_reconnect();
+                         }
                      });
+
+    _reconnect_timer.setSingleShot(true);   //设置单次定时器
+    QObject::connect(&_reconnect_timer, &QTimer::timeout, this, &TcpMgr::slot_do_reconnect);     //连接定时器timeout 重新连接服务器
+
+    // disconnected监听
+    QObject::connect(&_socket,&QTcpSocket::disconnected,this,[this](){
+        qDebug() << "[TcpMgr] disconnected";
+
+        // 如果是重定向切服造成的断开 (slot_switch_server 里 abort)，不要走掉线重连
+        if(!_pending_room_id.isEmpty())
+        {
+            qDebug()<<"[TcpMgr] 在重定向切换期间断开连接，忽略离线重连";
+            return;
+        }
+
+        //通知UI回大厅 (本地行为，不依赖服务器在线)
+        emit sig_go_lobby("服务器连接断开，正在尝试重连...");
+
+        if (_is_offline_reconnect)
+        {
+            slot_start_reconnect();
+            return;
+        }
+
+        //标记进入掉线流程
+        _is_offline_reconnect = true;
+
+        //启动指数退避重连
+        slot_start_reconnect();
+    });
 
     initHandlers();
 
@@ -143,6 +182,7 @@ void TcpMgr::initHandlers()
             int err = ErrorCodes::ERR_JSON;
             qDebug()<<"登录失败,error json解析失败 "<<err;
             emit sig_login_failed(err);
+            return;
         }
         int err = jsonObj["error"].toInt();
         if(err != ErrorCodes::SUCCESS)
@@ -153,7 +193,44 @@ void TcpMgr::initHandlers()
         }
 
         qDebug()<<"tcpmgr: recv error is "<<jsonObj["error"].toInt()<<" uid is "<<jsonObj["uid"].toInt();
-        emit sig_switch_canvas();   //发送信号切换canvas界面
+
+        // 重定向切服后的 join：登录成功后再发 join
+        if(!_pending_room_id.isEmpty())
+        {
+                qDebug() << "[TcpMgr] redirect: login ok, auto join room:" << _pending_room_id;
+
+            message::JoinRoomReq req;
+            req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+            req.set_room_id(_pending_room_id.toStdString());
+
+            std::string binaryData;
+            req.SerializeToString(&binaryData);
+
+            this->slot_send_data(ReqId::ID_JOIN_ROOM_REQ, QByteArray::fromStdString(binaryData));
+
+            _pending_room_id.clear();
+            _pending_uid = 0;
+            return;
+        }
+
+        // 掉线重连: 登录成功后自动join上次房间
+        if(_is_offline_reconnect && !_resume_room_id.isEmpty())
+        {
+             qDebug() << "[TcpMgr] offline reconnect: login ok, auto join room:" << _resume_room_id;
+
+             //发送join房间请求给服务器
+            message::JoinRoomReq req;
+            req.set_uid(UserMgr::getInstance()->getMyInfo()->_id);
+            req.set_room_id(_resume_room_id.toStdString());
+
+            std::string binaryData;
+            req.SerializeToString(&binaryData);
+
+            this->slot_send_data(ReqId::ID_JOIN_ROOM_REQ, QByteArray::fromStdString(binaryData));
+            qDebug() << "[JOIN SEND] tag=offline_auto room=" << _resume_room_id;
+            return; // 等 Join 成功再切页面
+        }
+        emit sig_switch_canvas();   // 普通首次登录： 切到 Lobby
     });
 
     //注册创建房间回包函数
@@ -190,6 +267,11 @@ void TcpMgr::initHandlers()
         room_info->owner_uid = jsonObj["owner_uid"].toInt();
         room_info->width = jsonObj["width"].toInt();
         room_info->height = jsonObj["height"].toInt();
+
+        _resume_room_id = room_info->id;
+        _room_host = room_info->host;
+        _room_port = (uint16_t)room_info->port;
+
         emit sig_create_room_finish(room_info);      //发送信号通知 Lobby
     });
 
@@ -250,6 +332,22 @@ void TcpMgr::initHandlers()
             user_info._avatar = QString::fromStdString(protoUser.avatar_url());
 
             room_info->members.append(user_info);
+        }
+
+        // 记录“恢复用”的房间信息（以后断线就连这个CanvasServer + join这个房间）
+        _resume_room_id = room_info->id;
+        _room_host = room_info->host;
+        _room_port = (uint16_t)room_info->port;
+
+        if (_is_offline_reconnect)  // 掉线重连成功逻辑
+        {
+            qDebug() << "[TcpMgr] offline reconnect: join ok, back to canvas";
+            _is_offline_reconnect = false;
+            _reconnect_timer.stop();
+            _reconnect_cnt = 0;
+
+            emit sig_resume_join_finish(room_info);
+            return;
         }
         emit sig_join_room_finish(room_info);   //发送给UI，UI 根据 members 初始化列表
 
@@ -345,6 +443,7 @@ void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
 void TcpMgr::slot_switch_server(const QString &host, int port,const QString& room_id, int uid)
 {
 
+    _is_offline_reconnect = false; // 切服不是掉线重连
     // 先把任务记在小本本上
     _pending_room_id = room_id;
     _pending_uid = uid;
@@ -356,4 +455,65 @@ void TcpMgr::slot_switch_server(const QString &host, int port,const QString& roo
     qDebug() << "[TcpMgr] Switching to " << host << ":" << port;
     _socket.connectToHost(host, port);
 
+}
+
+int TcpMgr::calc_backoff_ms()   //计算指数退避ms，也就是下次发送连接请求的时间
+{
+    // 200, 400, 800, 1600, 3200, 5000
+    int base = 200;
+    int ms = base * (1 << qMin(_reconnect_cnt, 5));
+    return qMin(ms, 5000);
+}
+
+void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
+{
+    // 如果已经在等 timer，就别重复启动
+    if (_reconnect_timer.isActive())
+        return;
+    int backoff = calc_backoff_ms();
+    qDebug() << "[TcpMgr] will reconnect in" << backoff << "ms, cnt=" << _reconnect_cnt;
+    _reconnect_timer.start(backoff);    //启动定时器,backoff ms 后开始重连
+}
+
+void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
+{
+    //优先连接 "房间所属服务器", 没有就连接当前 _host/_post
+    QString host = !_room_host.isEmpty() ? _room_host : _host;
+    uint16_t port = (_room_port != 0) ? _room_port : _port;
+
+    if (host.isEmpty() || port == 0)
+    {
+        qDebug() << "[TcpMgr] no host/port to reconnect";
+        emit sig_go_lobby("没有可用服务器地址，请重新登录。");
+        _is_offline_reconnect = false;
+        return;
+    }
+
+    // 次数+1，用于下次退避更久
+    _reconnect_cnt++;
+    // 确保 socket 干净
+    if (_socket.state() != QAbstractSocket::UnconnectedState)
+        _socket.abort();
+
+    _host = host;
+    _port = port;
+
+    qDebug() << "[TcpMgr] reconnecting to" << host << ":" << port;
+    _socket.setProxy(QNetworkProxy::NoProxy);
+    _socket.connectToHost(host, port);
+}
+
+void TcpMgr::send_canvas_login() //复用LoginWidget 的 CanvasLogin 组包
+{
+    // 序列化发送内容（完全复用 LoginWidget::slot_tcp_con_finish 的逻辑）
+    QJsonObject jsonObj;
+    jsonObj["uid"] = UserMgr::getInstance()->getMyInfo()->_id;
+    jsonObj["token"] = UserMgr::getInstance()->getToken();
+    jsonObj["name"] = UserMgr::getInstance()->getName();
+    jsonObj["avatar"] = UserMgr::getInstance()->getAvatar();
+
+    QJsonDocument jsonDoc(jsonObj);
+    QByteArray jsonString = jsonDoc.toJson(QJsonDocument::Indented);
+
+    this->slot_send_data(ReqId::ID_CANVAS_LOGIN_REQ, jsonString);
 }

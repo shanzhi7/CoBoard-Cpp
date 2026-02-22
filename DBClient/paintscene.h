@@ -27,6 +27,8 @@ public:
 
     void applyRemoteDraw(const message::DrawReq& req);  //应用远端绘画，收到广播后调用
 
+    void resetScene();              //清空所有图元 + 远端缓存
+
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
     void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;

@@ -37,6 +37,9 @@ LobbyWidget::LobbyWidget(QWidget *parent)
     //登录成功，加载用户信息
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_switch_canvas,this,&LobbyWidget::slot_load_info);
 
+    //连接掉线，显示掉线提示
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_go_lobby,this,&LobbyWidget::slot_go_lobby);
+
     initIcons();            //初始化图标
     initHandles_map();      //初始化回包处理函数
 
@@ -206,6 +209,7 @@ void LobbyWidget::slot_join_clicked()
         {
             // 将 std::string 转回 Qt 用的 QByteArray
             QByteArray sendData = QByteArray::fromStdString(binaryData);
+            qDebug() << "[JOIN SEND] tag=ui_click room=" << room_id;
             emit TcpMgr::getInstance()->sig_send_data(ReqId::ID_JOIN_ROOM_REQ, sendData);
         }
         else
@@ -298,5 +302,10 @@ void LobbyWidget::slot_lobby_mod_finish(ReqId reqid, QString res, ErrorCodes err
     QJsonObject jsonObject = jsonDoc.object();
     //调用对应的处理函数
     _handlers_map[reqid](jsonObject);
+}
+
+void LobbyWidget::slot_go_lobby(QString tip)
+{
+    TipWidget::showTip(ui->draw_label,tip);
 }
 

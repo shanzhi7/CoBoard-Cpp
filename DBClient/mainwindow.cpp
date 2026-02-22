@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "tcpmgr.h"
 #include <QRandomGenerator>
 #include <QTimer>
 #include <QPainter>
@@ -84,6 +85,18 @@ MainWindow::MainWindow(QWidget *parent)
 
     //lobby join房间 切换 canvas页面
     connect(lobby_widget,&LobbyWidget::sig_switchCanvas_join,this,&MainWindow::slotSwitchCanvasJoin);
+
+    //断线: 回到大厅
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_go_lobby,this,[this](QString tip){
+        canvas->resetForReconnect();
+        this->show();
+        if (canvas) canvas->hide();
+        qDebug() << "[UI] go lobby:" << tip;
+    });
+
+    // 掉线恢复：Join成功后切回Canvas（复用现有逻辑）
+    connect(TcpMgr::getInstance().get(), &TcpMgr::sig_resume_join_finish,
+            this, &MainWindow::slotSwitchCanvasJoin);
 
     // --- 测试 ---
     // std::shared_ptr<RoomInfo> room_info = std::make_shared<RoomInfo>();

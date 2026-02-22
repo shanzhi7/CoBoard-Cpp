@@ -47,6 +47,7 @@ private slots:
     void on_upload_btn_clicked();                                           //上传头像按钮槽函数
 
     void slot_lobby_mod_finish(ReqId reqid,QString res,ErrorCodes err);     //http请求完成槽函数
+    void slot_go_lobby(QString tip);                                        //收到tcpmgr发来的掉线通知
 };
 
 #endif // LOBBYWIDGET_H

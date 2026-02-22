@@ -39,7 +39,7 @@ LoginWidget::LoginWidget(QWidget *parent)
     //CanvasServer连接成功，使用token发送登录请求
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_con_success,this,&LoginWidget::slot_tcp_con_finish);
 
-    //tcp登录成功，连接发送切换canvas信号
+    //tcp登录成功，连接发送切换Lobby信号
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_switch_canvas,this,&LoginWidget::switchLobby);
 }
 
