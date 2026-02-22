@@ -26,6 +26,7 @@ public:
     ~Canvas();
 
     void setRoomInfo(std::shared_ptr<RoomInfo> room_info);                      //设置房间信息
+    void resetForReconnect();                                                   //断线回大厅时调用
 protected:
     virtual bool eventFilter(QObject* watched,QEvent* event) override;          //事件过滤器
 
@@ -64,7 +65,7 @@ private:
     };
 
     QTimer* _strokeFlushTimer = nullptr;    // 定时器
-    QHash<QString, PendingStrokePoints> _pendingPointsByUuid;
+    QHash<QString, PendingStrokePoints> _pendingPointsByUuid;   // 存储uuid对应的 PendingStrokePoints 待处理点
 
     void flushStrokePoints(const QString& uuid, bool force); // force=true: 立即把剩余点发出去
 

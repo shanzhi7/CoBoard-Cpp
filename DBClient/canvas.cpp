@@ -81,6 +81,30 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
     this->_room_info = room_info;
 }
 
+void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
+{
+    // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
+    if (_strokeFlushTimer)
+        _strokeFlushTimer->stop();
+
+    // 2) 清空待发送点缓存
+    _pendingPointsByUuid.clear();
+
+    // 3) 清空画面
+    if (_paintScene)
+        _paintScene->resetScene();
+
+    // 4) 清空用户列表 UI + map
+    _userItemMap.clear();
+    if (ui && ui->treeWidget)
+    {
+        ui->treeWidget->clear();
+    }
+
+    // 5) 清空房间信息
+    _room_info.reset();
+}
+
 bool Canvas::eventFilter(QObject *watched, QEvent *event)
 {
 
@@ -229,6 +253,20 @@ void Canvas::initToolBtn()
 
 void Canvas::addUser(int uid, QString name, QString avatar_url) //添加用户
 {
+    // 已存在：更新，不新增
+    if (_userItemMap.contains(uid))
+    {
+        QTreeWidgetItem* item = _userItemMap.value(uid);
+        if (item)
+        {
+            item->setText(0, name);
+            item->setData(0, Qt::UserRole, uid);
+            UserMgr::getInstance()->loadAvatar(avatar_url, item);
+        }
+        return;
+    }
+
+    // 不存在：新增
     QTreeWidgetItem* new_item = ui->treeWidget->addUser(uid,name,avatar_url);
     _userItemMap.insert(uid,new_item);
 }
@@ -254,6 +292,9 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     //添加自己到 treeWidgetItem
     std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();
     addUser(my_info->_id,my_info->_name + "(房主)",my_info->_avatar);                          // 添加用户
+
+    if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
+        _strokeFlushTimer->start(16);
 
 }
 
@@ -290,6 +331,8 @@ void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
             addUser(member_info->_id,member_info->_name,member_info->_avatar);
         }
     }
+    if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
+        _strokeFlushTimer->start(16);
 }
 
 void Canvas::slot_user_joined(UserInfo new_info)
@@ -382,6 +425,9 @@ void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor
 {
     if (!_room_info) return;
 
+    if (_strokeFlushTimer && !_strokeFlushTimer->isActive())    // flush启动定时器
+        _strokeFlushTimer->start(16);
+
     // 只有 Pen/Eraser 才需要缓存点并走 16ms 批量发送
     const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
                             type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
@@ -455,23 +501,23 @@ void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
         return;
     }
 
-    // ⭐ 加在这里（发送之前）
-    message::DrawReq selfCheck;
-    if (!selfCheck.ParseFromString(binaryData))
-    {
-        qDebug() << "[Draw] Serialize self-check failed! bytes=" << binaryData.size();
-    }
-    else
-    {
-        qDebug() << "[Draw START] bytes=" << binaryData.size()
-        << " uid=" << selfCheck.uid()
-        << " cmd=" << selfCheck.cmd();
-    }
-    qDebug() << "[Draw] cmd=" << req.cmd()
-             << " shape=" << req.shape()
-             << " uid=" << req.uid()
-             << " uuid=" << uuid
-             << " bytes=" << (int)binaryData.size();
+    // 输出调试
+    // message::DrawReq selfCheck;
+    // if (!selfCheck.ParseFromString(binaryData))
+    // {
+    //     qDebug() << "[Draw] Serialize self-check failed! bytes=" << binaryData.size();
+    // }
+    // else
+    // {
+    //     qDebug() << "[Draw START] bytes=" << binaryData.size()
+    //     << " uid=" << selfCheck.uid()
+    //     << " cmd=" << selfCheck.cmd();
+    // }
+    // qDebug() << "[Draw] cmd=" << req.cmd()
+    //          << " shape=" << req.shape()
+    //          << " uid=" << req.uid()
+    //          << " uuid=" << uuid
+    //          << " bytes=" << (int)binaryData.size();
 
     TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
 }
@@ -509,11 +555,6 @@ void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
 
     std::string binaryData;
     if (!req.SerializeToString(&binaryData)) return;
-    qDebug() << "[Draw] cmd=" << req.cmd()
-             << " shape=" << req.shape()
-             << " uid=" << req.uid()
-             << " uuid=" << uuid
-             << " bytes=" << (int)binaryData.size();
 
     TcpMgr::getInstance()->slot_send_data(ReqId::ID_DRAW_REQ, QByteArray::fromStdString(binaryData));
 }
@@ -552,7 +593,7 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
     // 【保护】每个网络包最多携带的点数，避免单包过大
     static const int MAX_POINTS_PER_PACKET = 80;
 
-    // 按批次发送：每次取出前 N 个点打包
+    // 按批次发送：每次取出最大 MAX_POINTS_PER_PACKET 个点发出
     while (!pendingStroke.points.isEmpty())
     {
         const int pointsToSend = qMin(MAX_POINTS_PER_PACKET, pendingStroke.points.size());

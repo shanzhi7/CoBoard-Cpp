@@ -17,7 +17,7 @@ Room::~Room()
 void Room::Join(std::shared_ptr<CSession> session)
 {
 
-    if (session->IsClosed())
+    if (!session || session->IsClosed())
     {
         std::cout << "[Room] Join failed: Session is closed. UID: " << session->GetUserId() << std::endl;
         return;
@@ -28,8 +28,14 @@ void Room::Join(std::shared_ptr<CSession> session)
     {
         return;
     }
+    bool first_join = false;    // 是否是第一次加入
     {
         std::lock_guard<std::mutex> lock(_mutex);
+
+        // 是否第一次加入
+        if (_sessions.find(uid) == _sessions.end())
+            first_join = true;
+
         _sessions[uid] = session;
         session->SetRoom(shared_from_this());   //这样 Session 断开时知道通知哪个房间,session有room的弱指针
 
@@ -45,8 +51,9 @@ void Room::Join(std::shared_ptr<CSession> session)
         return;
     }
 
-    // 通知其他用户，更新客户端ui
-    BroadcastUserEnter(session);
+        // 只有第一次 join 才广播进入，通知其他用户，更新客户端ui
+    if (first_join)
+        BroadcastUserEnter(session);
 
     //todo...
     // 让他看到之前别人画的东西

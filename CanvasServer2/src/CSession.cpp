@@ -206,20 +206,6 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				std::cout << "[CSession] DrawReq raw len=" << recv_node->_cur_len << " head(64)=";
-				DumpHex(recv_node->_data, recv_node->_cur_len, 64);
-
-				std::cout << "[CSession] DrawReq raw tail(32)=";
-				DumpHexTail(recv_node->_data, recv_node->_cur_len, 32);
-
-				std::cout << "[CSession] DrawReq raw len=" << recv_node->_cur_len << " first16=";
-				for (int i = 0; i < std::min<int>(16, recv_node->_cur_len); ++i)
-				{
-					unsigned char c = static_cast<unsigned char>(recv_node->_data[i]);
-					std::cout << std::hex << (int)c << " ";
-				}
-				std::cout << std::dec << std::endl;
-
 				//解析 protobuf (用于校验 uid 防止伪造)
 				message::DrawReq drawReq;
 				if (!drawReq.ParseFromArray(recv_node->_data, recv_node->_cur_len))

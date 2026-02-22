@@ -343,7 +343,7 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     if (room_info.host != self_host || std::to_string(room_info.port) != self_port)
     {
         std::cout << "[HandleJoinRoom]:Redirect: Target is [" << room_info.host << ":" << room_info.port
-            << "] Self is [" << self_host << ":" << self_host << "]" << std::endl;
+            << "] Self is [" << self_host << ":" << self_port << "]" << std::endl;
 
         rsp.set_error(message::ErrorCodes::NeedRedirect);   //设置重定向错误
 
@@ -354,19 +354,23 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         return;
     }
 
-    //正常加入，房主跟加入者在本机
-    bool addSuccess = RedisMgr::getInstance()->AddUserToRoom(room_id, uid);
-    if (!addSuccess)
+    auto room = RoomMgr::getInstance()->GetRoom(room_id); // 先查内存
+
+    if (!room)
     {
-        rsp.set_error(message::ErrorCodes::RoomJoinFailed);
-        return;
-    }
-    auto room = RoomMgr::getInstance()->GetRoom(room_id);               //获取房间
-    if (!room)      //房间不存在RoomMgr
-    {
-        std::cerr << "[HandleJoinRoom] Critical: Room exists in Redis but failed to load in Memory!" << std::endl;
-        rsp.set_error(message::ErrorCodes::ServerInternalErr);
-        return;
+        std::cout << "[HandleJoinRoom] Room not in memory, restoring... from Redis. Room[" << room_id << "]" << std::endl;
+
+        // 内存创建房间
+        room = RoomMgr::getInstance()->GetOrCreateRoom(room_id);
+        if (!room)
+        {
+            std::cerr << "[HandleJoinRoom] Restore failed: GetOrCreateRoom returned null. Room[" << room_id << "]" << std::endl;
+            rsp.set_error(message::ErrorCodes::ServerInternalErr);
+            return;
+        }
+
+        // 用 Redis 的元信息初始化（你 Room 目前只有 name/owner_uid）
+        room->SetRoomInfo(room_info.name, room_info.owner_uid);
     }
     auto user_session = SessionMgr::getInstance()->GetSession(std::stoi(uid));
     if (user_session)
@@ -380,7 +384,13 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         rsp.set_error(message::ErrorCodes::LoginErr);
         return;
     }
-
+    //正常加入，房主跟加入者在本机
+    bool addSuccess = RedisMgr::getInstance()->AddUserToRoom(room_id, uid);
+    if (!addSuccess)
+    {
+        rsp.set_error(message::ErrorCodes::RoomJoinFailed);
+        return;
+    }
 
     //构造回包
     rsp.set_error(message::ErrorCodes::SUCCESS);
