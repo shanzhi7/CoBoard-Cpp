@@ -1,0 +1,54 @@
+Date : 2026-02-23 03:20:19
+Directory : e:\qt_project\SyncCanvas
+Total : 19 files,  791 codes, 114 comments, 180 blanks, all 1085 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         18 |        624 |        114 |        146 |        884 |
+| Markdown |          1 |        167 |          0 |         34 |        201 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                   |         19 |        791 |        114 |        180 |      1,085 |
+| . (Files)                                                           |          1 |        167 |          0 |         34 |        201 |
+| CanvasServer                                                        |          4 |         61 |          4 |         11 |         76 |
+| CanvasServer2                                                       |          4 |         59 |          4 |         11 |         74 |
+| CanvasServer2\include                                               |          1 |          2 |          0 |          0 |          2 |
+| CanvasServer2\include\CanvasServer                                  |          1 |          2 |          0 |          0 |          2 |
+| CanvasServer2\src                                                   |          3 |         57 |          4 |         11 |         72 |
+| CanvasServer\include                                                |          1 |          2 |          0 |          0 |          2 |
+| CanvasServer\include\CanvasServer                                   |          1 |          2 |          0 |          0 |          2 |
+| CanvasServer\src                                                    |          3 |         59 |          4 |         11 |         74 |
+| DBClient                                                            |         10 |        504 |        106 |        124 |        734 |
++---------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                            | language | code       | comment    | blank      | total      |
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\const.h | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\CSession.cpp             | C++      |         49 |         -1 |          7 |         55 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\LogicSystem.cpp          | C++      |          6 |          2 |          2 |         10 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\Room.cpp                 | C++      |          2 |          3 |          2 |          7 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\const.h  | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\CSession.cpp              | C++      |         51 |         -1 |          7 |         57 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\LogicSystem.cpp           | C++      |          6 |          2 |          2 |         10 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\Room.cpp                  | C++      |          2 |          3 |          2 |          7 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.cpp                        | C++      |        185 |         57 |         55 |        297 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.h                          | C++      |         16 |          2 |          5 |         23 |
+| e:\qt_project\SyncCanvas\DBClient\global.h                          | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\DBClient\lobbywidget.cpp                   | C++      |          6 |          1 |          2 |          9 |
+| e:\qt_project\SyncCanvas\DBClient\lobbywidget.h                     | C++      |          1 |          0 |          0 |          1 |
+| e:\qt_project\SyncCanvas\DBClient\mainwindow.cpp                    | C++      |         -7 |         18 |          2 |         13 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.cpp                    | C++      |        153 |          9 |         17 |        179 |
+| e:\qt_project\SyncCanvas\DBClient\paintscene.h                      | C++      |         16 |          1 |          5 |         22 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.cpp                        | C++      |        118 |         16 |         31 |        165 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.h                          | C++      |         14 |          2 |          7 |         23 |
+| e:\qt_project\SyncCanvas\README.md                                  | Markdown |        167 |          0 |         34 |        201 |
+| Total                                                               |          |        791 |        114 |        180 |      1,085 |
++---------------------------------------------------------------------+----------+------------+------------+------------+------------+

@@ -14,12 +14,49 @@ Room::~Room()
     // 可以在这里清空 _sessions，但智能指针会自动处理
 }
 
+// 实现：加入历史记录
+void Room::AppendHistory(const std::string& raw_drawreq)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    _history.emplace_back(raw_drawreq);
+
+    // 简单裁切: 超过上限丢掉最老的部分 (避免vector频繁erase头部)
+    if (_history.size() > MAX_HISTORY_OPS)
+    {
+        const size_t kTrim = MAX_HISTORY_OPS / 10 + 1; // 每次裁剪约10%
+        if (kTrim < _history.size())
+        {
+            _history.erase(_history.begin(), _history.begin() + static_cast<long>(kTrim));
+        }
+    }
+}
+
+// 实现：获取历史记录快照
+std::vector<std::string> Room::GetHistorySnapshot()
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    return _history;    // 拷贝一份，回放在锁外做
+}
+
+// 实现：清空历史记录
+void Room::ClearHistory()
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    _history.clear();
+}
+
 void Room::Join(std::shared_ptr<CSession> session)
 {
 
-    if (!session || session->IsClosed())
+    if (!session)
     {
-        std::cout << "[Room] Join failed: Session is closed. UID: " << session->GetUserId() << std::endl;
+        std::cout << "[Room] Join failed: null session\n";
+        return;
+    }
+    if (session->IsClosed())
+    {
+        std::cout << "[Room] Join failed: session closed. UID: "
+            << session->GetUserId() << std::endl;
         return;
     }
 
@@ -29,6 +66,8 @@ void Room::Join(std::shared_ptr<CSession> session)
         return;
     }
     bool first_join = false;    // 是否是第一次加入
+    std::vector<std::string> history_snapshot;
+
     {
         std::lock_guard<std::mutex> lock(_mutex);
 
@@ -39,33 +78,46 @@ void Room::Join(std::shared_ptr<CSession> session)
         _sessions[uid] = session;
         session->SetRoom(shared_from_this());   //这样 Session 断开时知道通知哪个房间,session有room的弱指针
 
+        // 只给“首次加入”的人回放历史
+        if (first_join && !_history.empty())
+        {
+            history_snapshot = _history;
+        }
+
         std::cout << "[Room " << _room_id << "] User joined: " << uid
             << ". Total: " << _sessions.size() << std::endl;
+
+        // 双重保险,加入后再查一次
+        // 如果刚才加入的过程中那边断开了，现在赶紧把他踢出去
+        if (session->IsClosed())
+        {
+            _sessions.erase(uid); // 立即回滚
+            return;
+        }
     }
 
-    // 双重保险,加入后再查一次
-    // 如果刚才加入的过程中那边断开了，现在赶紧把他踢出去
-    if (session->IsClosed())
+    //先回放历史 (只给加入者)
+    if (first_join && !history_snapshot.empty())
     {
-        _sessions.erase(uid); // 立即回滚
-        return;
+        auto weak_sess = std::weak_ptr<CSession>(session);
+
+        // 投递到该 session 的 IO executor 线程串行执行
+        boost::asio::post(session->GetSocket().get_executor(),
+            [weak_sess, history_snapshot]() {
+                auto sess = weak_sess.lock();
+                if (!sess || sess->IsClosed()) return;
+
+                for (const auto& data : history_snapshot)
+                {
+                    sess->Send(data, ID_DRAW_RSP);
+                }
+            });
     }
 
         // 只有第一次 join 才广播进入，通知其他用户，更新客户端ui
     if (first_join)
         BroadcastUserEnter(session);
 
-    //todo...
-    // 让他看到之前别人画的东西
-    //if (!_history.empty())
-    //{
-    //    // 这里的 ID_DRAW_REQ 假设是画画的数据包 ID
-    //    // 在实际业务中，可能需要把多条历史打包成一个包发送，这里简单起见逐条发
-    //    for (const auto& draw_data : _history)
-    //    {
-    //        session->Send(draw_data, ID_DRAW_REQ);
-    //    }
-    //}
 }
 void Room::Leave(int uid)
 {

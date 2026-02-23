@@ -37,6 +37,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
             send_canvas_login();
             return;
         }
+        // 首次登录到CanvasServer服务
         emit sig_con_success(true);
     });
 

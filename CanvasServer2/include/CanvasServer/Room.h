@@ -34,6 +34,11 @@ public:
 	//获取房间成员快照
 	std::vector<message::UserInfo> GetMemberSnapshot();
 
+	// --画板历史(存内存)--
+	void AppendHistory(const std::string& raw_drawreq);	// 保存一条可回放的操作
+	std::vector<std::string> GetHistorySnapshot();		// 线程安全拷贝一份用于回放
+	void ClearHistory();								// 清除历史记录（清屏时用）
+
 private:
 	std::string _room_id;
 	std::string _name;
@@ -42,7 +47,10 @@ private:
 	std::mutex _mutex;		//// 互斥锁：保护 _sessions 和 _history
 	std::map<int, std::shared_ptr<CSession>> _sessions;	// 房间内的用户列表: UID -> Session
 
-	// 【画板关键】历史笔迹
+	// 历史笔迹 history: 存的是 DrawReq 的 protobuf 二进制 body（不含MsgHead）
 	// 暂存所有画画的指令，新用户进来时要把这些发给他，否则他看到的是白板
 	std::vector<std::string> _history;
+
+	// 防止房间画太久内存爆
+	static constexpr size_t MAX_HISTORY_OPS = 10000;	// 最大保存的笔迹数
 };

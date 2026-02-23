@@ -54,6 +54,19 @@ void CSession::Start()
 void CSession::Send(const std::string& msg, short msg_id)
 {
 	if (_b_close) return;
+	if (msg.size() > 0xFFFF)
+	{
+		std::cout << "[CSession] Send too large, drop. size=" << msg.size()
+			<< " msg_id=" << msg_id << std::endl;
+		return;
+	}
+
+	if (msg.size() > 30000)
+	{
+		std::cout << "[CSession] huge send size=" << msg.size()
+			<< " msg_id=" << msg_id << std::endl;
+	}
+
 	//构造发送节点，自动处理大小端打包
 	auto send_node = std::make_shared<SendNode>(msg.c_str(), msg.length(), msg_id);
 
@@ -112,15 +125,17 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
 				return;
 			}
 
+			bool need_continue = false;		//锁内标记是否继续写，防止资源竞争
 			// 写完一个包，弹出
 			{
 				std::lock_guard<std::mutex> lock(_send_mutex);
 				_send_queue.pop();
-				// 如果还有，继续写
-				if (!_send_queue.empty())
-				{
-					HandleWrite(boost::system::error_code(), self);
-				}
+				need_continue = !_send_queue.empty();
+			}
+			// 如果还有，继续写
+			if (need_continue)
+			{
+				HandleWrite(boost::system::error_code(), self);
 			}
 		});
 }
@@ -227,9 +242,39 @@ void CSession::ReadBody(short msg_id, short msg_len)
 
 				//广播发给其他人
 				std::string rawBinary(recv_node->_data, recv_node->_cur_len);
+
+				//--写入房间内存 history,记录： 
+				// - Pen/Eraser: START + MOVE(flush) + END , - 几何图形: START + END（MOVE 是预览，不进 history）
+				{
+					const auto shape = drawReq.shape();	// 图形类型
+					const auto cmd = drawReq.cmd();		// 命令类型
+
+					const bool is_pen_like = (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER);
+					bool should_record = false;			//标记是否应该复现
+
+					if (is_pen_like)
+					{
+						// 笔迹需要 MOVE 才能复现曲线
+						should_record = (cmd == message::CMD_START ||
+							cmd == message::CMD_MOVE ||
+							cmd == message::CMD_END);
+					}
+					else
+					{
+						// 几何：只回放最终结果
+						should_record = (cmd == message::CMD_START ||
+							cmd == message::CMD_END);
+					}
+					if (should_record)	//需要复现，添加到历史记录 (笔迹类型都需要，图形类型不需要MOVE，MOVE是预览)
+					{
+						room->AppendHistory(rawBinary);
+					}
+				}
+
+				// 正常广播给其他人（不回显给自己）
 				room->Broadcast(rawBinary, ID_DRAW_RSP, _uid);
 
-				ReadHead();
+				ReadHead();	//读取下一个包头
 				return;
 			}
 			// 慢通道：业务逻辑 (登录、加入房间)，扔进队列
