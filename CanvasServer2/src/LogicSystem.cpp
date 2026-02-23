@@ -49,7 +49,7 @@ void LogicSystem::PostMsgToQue(std::shared_ptr<LogicNode> msg)
 
 void LogicSystem::DealMsg()
 {
-    while (true)    // 死循环,处理需要发送的消息
+    while (true)    // 死循环,处理消息
     {
         std::unique_lock<std::mutex> lock(_mutex);
         _cond.wait(lock, [this](){

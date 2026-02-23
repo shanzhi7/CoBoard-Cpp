@@ -10,23 +10,35 @@
    - NeedRedirect 自动切服（跨 CanvasServer 路由）
    - 成员加入/离开广播
    - 在线用户列表实时同步（UI 已修复重复/残留问题）
+   - 房间历史回放（已实现，内存级）：
+     - CanvasServer 维护 Room::_history（绘画操作序列）
+     - 新用户加入房间自动回放历史笔迹
+     - 断线重连后重新 Join 可恢复画布状态（避免白板）
+
 4. 绘画同步（已稳定）：
    - START / MOVE / END 三阶段同步
    - Pen/Eraser 支持增量点同步（path_points）
    - 几何图形（Rect/Oval/Line）实时 MOVE 预览
+   - 服务端快通道转发（ID_DRAW_REQ → ID_DRAW_RSP）
+   - 高频绘画数据不进入 LogicQueue，降低延迟与锁竞争
+
 5. 带宽优化：
    - 画笔/橡皮擦 16ms 定时器节流 + 批量发送
    - 单包最大点数限制（防止大包突刺）
+
 6. 断线重连与会话恢复（已实现）：
    - 监听 QTcpSocket::disconnected 自动进入重连流程
    - 指数退避重连（200ms → 500ms → 1s → 2s → 5s 上限）
    - 自动 CanvasLogin（Token 鉴权）
    - 自动重新 Join 上次房间（支持 NeedRedirect 二次切服）
    - 重连成功后自动恢复 Canvas 界面
+   - 配合 Room::_history 回放，实现画布状态恢复（弱一致）
+
 7. 服务端重启恢复（关键工程优化）：
    - JoinRoom 支持 Lazy Load 房间
    - 当 RoomMgr 内存不存在房间时，从 Redis 读取 room_info 自动恢复
    - 解决「服务器重启后无法回到房间」问题
+
 8. UI 稳定性修复：
    - 断线后自动返回 Lobby 并提示“正在重连”
    - Canvas resetScene 清理残留图元与用户列表
@@ -35,13 +47,17 @@
 **后续开发计划（Roadmap）**
 
 - **优先级 1：协作核心体验（高价值）**
-  1. 历史回放（History）：
-     - 先实现 CanvasServer 内存 `Room::_history`
-     - 新用户入房自动回放历史笔迹
-     - 后续扩展到 Redis 持久化（服务重启可恢复绘画）
+   1. 历史回放（History）：
+   - 已完成：CanvasServer 内存级 Room::_history
+   - 已支持：新用户入房自动回放历史绘画数据
+   - 已支持：断线重连后重新 Join 恢复画布状态
+   - 待优化：历史操作序列 Seq 化（解决 Join 期间的绘画一致性问题）
+   - 后续扩展：Redis 持久化（服务重启可恢复完整绘画记录）
+
   2. CMD_CLEAR（清屏）：
      - 定义协议并广播清屏指令
      - 客户端同步 resetScene()
+
   3. CMD_UNDO（撤销）：
      - 按 item_id 回滚图元
      - 支持多人协作撤销策略
@@ -61,7 +77,7 @@
      - 手绘图形识别（圆/矩形拟合）
      - 自动矢量化标准图形
 
-     ## 稳定性设计（项目亮点）
+## 稳定性设计（项目亮点）
 
 1. 控制面 + 数据面分离：
    - Gate/Logic 负责鉴权与路由（控制面）
@@ -81,6 +97,18 @@
    - 增量点同步（path_points）
    - 16ms 批量 flush 降低带宽占用
    - 单包点数上限防止拥塞突刺
+
+5. 实时协作状态同步设计（核心难点）：
+   - 服务端维护房间级操作历史（Room::_history）
+   - 新用户加入房间时先回放历史操作，再接收实时广播
+   - 绘画数据采用操作流（DrawReq）而非最终位图同步，降低带宽占用
+   - 快通道（Draw）与慢通道（Join/Login）分离，避免高频数据阻塞业务线程
+
+6. Asio 并发安全优化（工程级修复）：
+   - 修复多线程下同一 socket 并发 async_write 导致的崩溃问题
+   - 发送队列 + executor 串行化写链（post 到 socket executor）
+   - 避免 IOCP 未定义行为（Undefined Behavior）
+   - 提升高并发绘画广播稳定性
 
 
 **关键结构与协议说明（用于后续协作开发）**
