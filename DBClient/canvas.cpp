@@ -10,6 +10,7 @@
 #include <QJsonDocument>
 #include <QByteArray>
 #include <QColorDialog>
+#include <QScrollBar>
 
 Canvas::Canvas(QWidget *parent)
     : QMainWindow(parent)
@@ -59,6 +60,11 @@ Canvas::Canvas(QWidget *parent)
     connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
     connect(_paintScene, &PaintScene::sigStrokeMove,  this, &Canvas::slot_onStrokeMove);
     connect(_paintScene, &PaintScene::sigStrokeEnd,   this, &Canvas::slot_onStrokeEnd);
+
+    //连接接收群聊消息
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_chat_received,this,&Canvas::slot_onChatReceived);
+    connect(ui->input_edit,&QLineEdit::returnPressed,this,&Canvas::slot_onSendChatClicked);
+    connect(ui->send_btn,&QPushButton::clicked,this,&Canvas::slot_onSendChatClicked);
 
     // TcpMgr -> Canvas (接收广播)
     connect(TcpMgr::getInstance().get(), &TcpMgr::sig_draw_broadcast,
@@ -566,12 +572,46 @@ void Canvas::slot_onDrawBroadcast(QByteArray data)
     if (!req.ParseFromArray(data.data(), data.size()))
         return;
 
-    // 正常来说服务器会 exclude sender，所以这里一般不会收到自己
-    // 但加个保险也行：
+    //不收自己发送的
     int myUid = UserMgr::getInstance()->getMyInfo()->_id;
     if (req.uid() == myUid) return;
 
     _paintScene->applyRemoteDraw(req);  //调用applyRemoteDraw处理
+}
+
+// 接收群聊消息槽函数
+void Canvas::slot_onChatReceived(int uid, const QString &name, const QString &avatarUrl, const QString &roomId, const QString &content, qulonglong ts)
+{
+    QString safe = content.toHtmlEscaped();
+    ui->chat_textBrowser->append(QString("<b>%1</b>(%2): %3")
+                             .arg(name)
+                             .arg(uid)
+                             .arg(safe));
+    // 自动滚到底部
+    auto* bar = ui->chat_textBrowser->verticalScrollBar();
+    bar->setValue(bar->maximum());
+}
+
+//发送消息槽函数
+void Canvas::slot_onSendChatClicked()
+{
+    QString text = ui->input_edit->text().trimmed();
+    if (text.isEmpty()) return;
+
+    message::ChatReq req;
+    req.set_uid(UserMgr::getInstance()->getUid());                 // uid
+    req.set_room_id(_room_info->id.toStdString());                 // room_id
+    req.set_content(text.toStdString());
+    req.set_client_ts(QDateTime::currentMSecsSinceEpoch());        // 时间戳
+
+    std::string out;
+    if (!req.SerializeToString(&out)) return;
+
+    QByteArray bytes(out.data(), (int)out.size());
+
+
+    TcpMgr::getInstance()->sig_send_data(ReqId::ID_CHAT_REQ,bytes);      // 发送给服务器
+    ui->input_edit->clear();
 }
 
 void Canvas::flushStrokePoints(const QString& uuid, bool force)

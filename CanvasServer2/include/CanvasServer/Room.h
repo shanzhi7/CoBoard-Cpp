@@ -31,8 +31,11 @@ public:
 	void BroadcastUserEnter(std::shared_ptr<CSession> session);		//广播用户进入
 	void BroadcastUserLeave(int uid);								//广播用户离开
 
-	//获取房间成员快照
+	//获取房间成员信息快照
 	std::vector<message::UserInfo> GetMemberSnapshot();
+	
+	//获取房间成员session快照
+	std::vector<std::shared_ptr<CSession>> GetMemberSessionSnapshot(int exclude_uid = 0);
 
 	// --画板历史(存内存)--
 	void AppendHistory(const std::string& raw_drawreq);	// 保存一条可回放的操作

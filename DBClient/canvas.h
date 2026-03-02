@@ -47,6 +47,14 @@ private slots:
 
     void slot_onDrawBroadcast(QByteArray data);   // 收到服务器广播
 
+    //接收消息处理函数
+    void slot_onChatReceived(int uid, const QString& name,
+                            const QString& avatarUrl,
+                            const QString& roomId,
+                            const QString& content,
+                             qulonglong ts);
+    void slot_onSendChatClicked();               //发送消息按钮槽函数
+
 private:
     Ui::Canvas *ui;
     QLabel *statusDot;                              // 状态栏标签

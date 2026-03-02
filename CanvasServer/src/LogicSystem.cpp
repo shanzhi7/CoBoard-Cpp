@@ -10,8 +10,15 @@
 #include <iostream>
 #include <random>
 
+static inline uint64_t NowMs()  // 获取当前时间戳
+{
+    using namespace std::chrono;
+    return (uint64_t)duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
+}
+
+
 // 辅助函数：生成 6 位随机数
-std::string GenRandomId()
+static inline std::string GenRandomId()
 {
     static std::random_device rd;
     static std::mt19937 gen(rd());
@@ -99,6 +106,10 @@ void LogicSystem::RegisterCallBacks()
 
     //注册加入房间
     _fun_callbacks[ID_JOIN_ROOM_REQ] = std::bind(&LogicSystem::HandleJoinRoom, this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+    //注册群聊消息
+    _fun_callbacks[ID_CHAT_REQ] = std::bind(&LogicSystem::HandleChat, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //不需要注册 ID_DRAW_REQ (画画请求)
@@ -417,4 +428,72 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     }
 
     std::cout << "Join Success! User[" << uid << "] entered Room[" << room_id << "]" << std::endl;
+}
+
+void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+    message::ChatReq req;
+    if (!req.ParseFromString(msg_data))
+    {
+        std::cout << "[HandleChat] Parse failed\n";
+        return;
+    }
+
+    const int sess_uid = session->GetUserId();
+    if (sess_uid == 0)
+    {
+        std::cout << "[HandleChat] rejected: not logged in\n";
+        return;
+    }
+
+    // 防伪造：req.uid 必须等于 session uid
+    if ((int)req.uid() != sess_uid)
+    {
+        std::cout << "[HandleChat] uid mismatch, Close. sess=" << sess_uid
+            << " req=" << req.uid() << "\n";
+        session->Close();
+        return;
+    }
+
+    auto room = session->GetRoomLocked(); // 获取房间指针
+    if (!room)
+    {
+        std::cout << "[HandleChat] rejected: not in room\n";
+        return;
+    }
+
+    // 串房间校验
+    if (!req.room_id().empty() && req.room_id() != room->GetRoomId())
+    {
+        std::cout << "[HandleChat] room_id mismatch, Close. sess_room=" << room->GetRoomId()
+            << " req_room=" << req.room_id() << "\n";
+        session->Close();
+        return;
+    }
+
+    // 基本防刷屏：长度限制
+    const auto& content = req.content();
+    if (content.empty() || content.size() > 500)
+    {
+        std::cout << "[HandleChat] rejected: invalid length=" << content.size() << "\n";
+        return;
+    }
+
+    message::ChatRsp rsp;
+    rsp.set_uid(sess_uid);
+    rsp.set_name(session->GetName());
+    rsp.set_avatar_url(session->GetAvatarUrl());
+    rsp.set_room_id(room->GetRoomId());
+    rsp.set_content(content);
+    rsp.set_server_ts(NowMs());
+
+    std::string out;
+    if (!rsp.SerializeToString(&out))
+    {
+        std::cout << "[HandleChat] Serialize failed\n";
+        return;
+    }
+
+    // 回显给自己（客户端只写一个显示逻辑）
+    room->Broadcast(out, ID_CHAT_RSP, /*exclude_uid=*/0);
 }

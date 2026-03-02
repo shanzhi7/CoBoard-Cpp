@@ -369,3 +369,7 @@ std::string CSession::GetAvatarUrl()
 {
 	return this->_avatar_url;
 }
+std::shared_ptr<Room> CSession::GetRoomLocked()
+{
+    return this->_room.lock();
+}

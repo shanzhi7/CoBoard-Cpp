@@ -269,3 +269,20 @@ message DrawReq {
     }
     repeated Point path_points = 12; 
 }
+
+//--群聊--
+message ChatReq {
+  uint64 uid = 1;
+  string room_id = 2;     // 做串房间校验
+  string content = 3;
+  uint64 client_ts = 4;
+}
+
+message ChatRsp {
+  uint64 uid = 1;
+  string name = 2;
+  string avatar_url = 3;
+  string room_id = 4;
+  string content = 5;
+  uint64 server_ts = 6;
+}

@@ -135,8 +135,6 @@ void Room::Leave(int uid)
                 << ". Total: " << _sessions.size() << std::endl;
             b_removed = true;
 
-            //todo...
-            //通知其他用户，更新客户端ui
         }
     }   // 锁自动释放
 
@@ -151,25 +149,16 @@ void Room::Leave(int uid)
 
 void Room::Broadcast(const std::string& data, int msg_id, int exclude_uid)
 { 
-    std::lock_guard<std::mutex> lock(_mutex);
-
-    //todo...(后续阶段)：房间历史记录
-        // 现在先不存，先把实时同步跑通
-    // if (msg_id == ID_DRAW_RSP) { ... }
+    auto sessions = GetMemberSessionSnapshot(exclude_uid);     //获取快照(除自己),避免锁外操作
 
     // 遍历发送
-    for (auto& pair : _sessions)
+    for (auto& session : sessions)
     {
-        int target_uid = pair.first;
-        auto target_session = pair.second;
-
-        // 跳过发送者自己 (因为他本地已经画出来了，不需要服务器回显)
-        if (target_uid == exclude_uid) continue;
-        if (!target_session) continue;
-        if (target_session->IsClosed()) continue;
+        if (!session || session->IsClosed()) 
+            continue;
 
         // 发送
-        target_session->Send(data, msg_id);
+        session->Send(data, msg_id);
     }
 }
 
@@ -232,6 +221,31 @@ std::vector<message::UserInfo> Room::GetMemberSnapshot()
         member_list.emplace_back(user_info);
     }
     return member_list;
+}
+
+// 实现：获取房间内所有成员的Session快照（复制一份，防止期间有 添加/删除 引起的线程安全）
+std::vector<std::shared_ptr<CSession>> Room::GetMemberSessionSnapshot(int exclude_uid)
+{
+    std::vector<std::shared_ptr<CSession>> session_list;
+
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        session_list.reserve(_sessions.size());
+
+        for (const auto& [uid, session] : _sessions)
+        {
+            if (uid == exclude_uid)
+            {
+                continue;
+            }
+            if (!session)
+            {
+                continue;
+            }
+            session_list.emplace_back(session); //拷贝指针,保证锁外安全使用
+        }
+    }
+    return session_list;
 }
 
 //获取房间ID

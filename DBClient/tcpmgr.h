@@ -69,6 +69,14 @@ signals:
     void sig_go_lobby(QString tip);                                     //断线后回到大厅并且提示
     void sig_resume_join_finish(std::shared_ptr<RoomInfo> room_info);   //掉线恢复 Join 成功 (用于切回canvas)
 
+    // 接收群聊消息信号
+    void sig_chat_received(int uid,
+                           const QString& name,
+                           const QString& avatarUrl,
+                           const QString& roomId,
+                           const QString& content,
+                           qulonglong serverTs);
+
 
 public slots:
     void slot_tcp_connect(ServerInfo si);                               //用于发起tcp连接请求
