@@ -509,6 +509,76 @@ struct DrawReq_PointDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DrawReq_PointDefaultTypeInternal _DrawReq_Point_default_instance_;
 
+inline constexpr ChatRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : name_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        avatar_url_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        content_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{::uint64_t{0u}},
+        server_ts_{::uint64_t{0u}},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ChatRsp::ChatRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ChatRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ChatRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ChatRspDefaultTypeInternal() {}
+  union {
+    ChatRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ChatRspDefaultTypeInternal _ChatRsp_default_instance_;
+
+inline constexpr ChatReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        content_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{::uint64_t{0u}},
+        client_ts_{::uint64_t{0u}},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ChatReq::ChatReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ChatReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ChatReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ChatReqDefaultTypeInternal() {}
+  union {
+    ChatReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ChatReqDefaultTypeInternal _ChatReq_default_instance_;
+
 inline constexpr UserJoinRoomBroadcast::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -837,6 +907,32 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.current_x_),
         PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.current_y_),
         PROTOBUF_FIELD_OFFSET(::message::DrawReq, _impl_.path_points_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::ChatReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::ChatReq, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatReq, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatReq, _impl_.content_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatReq, _impl_.client_ts_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.name_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.avatar_url_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.content_),
+        PROTOBUF_FIELD_OFFSET(::message::ChatRsp, _impl_.server_ts_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -860,6 +956,8 @@ static const ::_pbi::MigrationSchema
         {180, -1, -1, sizeof(::message::UpdateAvatarRsp)},
         {190, -1, -1, sizeof(::message::DrawReq_Point)},
         {200, -1, -1, sizeof(::message::DrawReq)},
+        {220, -1, -1, sizeof(::message::ChatReq)},
+        {232, -1, -1, sizeof(::message::ChatRsp)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserInfo_default_instance_._instance,
@@ -881,6 +979,8 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UpdateAvatarRsp_default_instance_._instance,
     &::message::_DrawReq_Point_default_instance_._instance,
     &::message::_DrawReq_default_instance_._instance,
+    &::message::_ChatReq_default_instance_._instance,
+    &::message::_ChatRsp_default_instance_._instance,
 };
 const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -922,51 +1022,56 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "art_y\030\t \001(\002\022\021\n\tcurrent_x\030\n \001(\002\022\021\n\tcurren"
     "t_y\030\013 \001(\002\022+\n\013path_points\030\014 \003(\0132\026.message"
     ".DrawReq.Point\032\035\n\005Point\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030"
-    "\002 \001(\002*\217\004\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\017\n\nErr"
-    "or_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpi"
-    "red\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPasswdErr\020"
-    "\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016PasswdUpFailed"
-    "\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021\n\014TokenInvalid\020"
-    "\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021Se"
-    "rverInternalErr\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010Mys"
-    "qlErr\020\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserNotExist"
-    "\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022\n\rFriendOffline"
-    "\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022\025\n\020RoomCreateFa"
-    "iled\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020RoomAlread"
-    "yExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\023\n\016RoomJoinFail"
-    "ed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\r\n\010NotOwner\020\226\010\022\021\n\014"
-    "NeedRedirect\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UNKNOWN\020"
-    "\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022"
-    "\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014I"
-    "D_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007*a\n\007Dra"
-    "wCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010"
-    "CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n"
-    "\tCMD_CLEAR\020\005*o\n\tShapeType\022\021\n\rSHAPE_UNKNO"
-    "WN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nS"
-    "HAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ERA"
-    "SER\020\0052P\n\rVarifyService\022\?\n\rGetVarifyCode\022"
-    "\025.message.GetVarifyReq\032\025.message.GetVari"
-    "fyRsp\"\0002\313\002\n\014LogicService\022<\n\014RegisterUser"
-    "\022\024.message.RegisterReq\032\024.message.Registe"
-    "rRsp\"\000\022G\n\rResetPassword\022\031.message.ResetP"
-    "asswordReq\032\031.message.ResetPasswordRsp\"\000\022"
-    "-\n\005Login\022\021.message.LoginReq\032\021.message.Lo"
-    "ginRsp\022A\n\013VerifyToken\022\027.message.VerifyTo"
-    "kenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014Upd"
-    "ateAvatar\022\030.message.UpdateAvatarReq\032\030.me"
-    "ssage.UpdateAvatarRspb\006proto3"
+    "\002 \001(\002\"K\n\007ChatReq\022\013\n\003uid\030\001 \001(\004\022\017\n\007room_id"
+    "\030\002 \001(\t\022\017\n\007content\030\003 \001(\t\022\021\n\tclient_ts\030\004 \001"
+    "(\004\"m\n\007ChatRsp\022\013\n\003uid\030\001 \001(\004\022\014\n\004name\030\002 \001(\t"
+    "\022\022\n\navatar_url\030\003 \001(\t\022\017\n\007room_id\030\004 \001(\t\022\017\n"
+    "\007content\030\005 \001(\t\022\021\n\tserver_ts\030\006 \001(\004*\217\004\n\nEr"
+    "rorCodes\022\013\n\007SUCCESS\020\000\022\017\n\nError_Json\020\351\007\022\016"
+    "\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpired\020\353\007\022\022\n\rVa"
+    "rifyCodeErr\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rEmailN"
+    "otMatch\020\357\007\022\023\n\016PasswdUpFailed\020\360\007\022\022\n\rPassw"
+    "dInvalid\020\361\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\nUidInv"
+    "alid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021ServerInternal"
+    "Err\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016\n\t"
+    "UserExist\020\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n\rAlrea"
+    "dyFriend\020\374\007\022\022\n\rFriendOffline\020\375\007\022\023\n\016Targe"
+    "tUserBusy\020\376\007\022\025\n\020RoomCreateFailed\020\220\010\022\021\n\014R"
+    "oomNotExist\020\221\010\022\025\n\020RoomAlreadyExist\020\222\010\022\r\n"
+    "\010RoomFull\020\223\010\022\023\n\016RoomJoinFailed\020\224\010\022\016\n\tNot"
+    "InRoom\020\225\010\022\r\n\010NotOwner\020\226\010\022\021\n\014NeedRedirect"
+    "\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UNKNOWN\020\000\022\021\n\014ID_LOGI"
+    "N_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW_R"
+    "EQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014ID_CLEAR_REQ\020"
+    "\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007*a\n\007DrawCmd\022\017\n\013CMD_"
+    "UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010CMD_MOVE\020\002\022\013"
+    "\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005"
+    "*o\n\tShapeType\022\021\n\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAP"
+    "E_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022"
+    "\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ERASER\020\0052P\n\rVar"
+    "ifyService\022\?\n\rGetVarifyCode\022\025.message.Ge"
+    "tVarifyReq\032\025.message.GetVarifyRsp\"\0002\313\002\n\014"
+    "LogicService\022<\n\014RegisterUser\022\024.message.R"
+    "egisterReq\032\024.message.RegisterRsp\"\000\022G\n\rRe"
+    "setPassword\022\031.message.ResetPasswordReq\032\031"
+    ".message.ResetPasswordRsp\"\000\022-\n\005Login\022\021.m"
+    "essage.LoginReq\032\021.message.LoginRsp\022A\n\013Ve"
+    "rifyToken\022\027.message.VerifyTokenReq\032\027.mes"
+    "sage.VerifyTokenRsp\"\000\022B\n\014UpdateAvatar\022\030."
+    "message.UpdateAvatarReq\032\030.message.Update"
+    "AvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    2829,
+    3017,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
     nullptr,
     0,
-    19,
+    21,
     schemas,
     file_default_instances,
     TableStruct_message_2eproto::offsets,
@@ -6660,6 +6765,712 @@ void DrawReq::InternalSwap(DrawReq* PROTOBUF_RESTRICT other) {
 }
 
 ::google::protobuf::Metadata DrawReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ChatReq::_Internal {
+ public:
+};
+
+ChatReq::ChatReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.ChatReq)
+}
+inline PROTOBUF_NDEBUG_INLINE ChatReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::ChatReq& from_msg)
+      : room_id_(arena, from.room_id_),
+        content_(arena, from.content_),
+        _cached_size_{0} {}
+
+ChatReq::ChatReq(
+    ::google::protobuf::Arena* arena,
+    const ChatReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ChatReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, uid_),
+           offsetof(Impl_, client_ts_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::client_ts_));
+
+  // @@protoc_insertion_point(copy_constructor:message.ChatReq)
+}
+inline PROTOBUF_NDEBUG_INLINE ChatReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        content_(arena),
+        _cached_size_{0} {}
+
+inline void ChatReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           0,
+           offsetof(Impl_, client_ts_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::client_ts_));
+}
+ChatReq::~ChatReq() {
+  // @@protoc_insertion_point(destructor:message.ChatReq)
+  SharedDtor(*this);
+}
+inline void ChatReq::SharedDtor(MessageLite& self) {
+  ChatReq& this_ = static_cast<ChatReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.content_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* ChatReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) ChatReq(arena);
+}
+constexpr auto ChatReq::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ChatReq),
+                                            alignof(ChatReq));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull ChatReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_ChatReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &ChatReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<ChatReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &ChatReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<ChatReq>(), &ChatReq::ByteSizeLong,
+            &ChatReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(ChatReq, _impl_._cached_size_),
+        false,
+    },
+    &ChatReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* ChatReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 38, 2> ChatReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::ChatReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint64 client_ts = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ChatReq, _impl_.client_ts_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.client_ts_)}},
+    // uint64 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ChatReq, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.uid_)}},
+    // string room_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.room_id_)}},
+    // string content = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.content_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint64 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // string room_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string content = 3;
+    {PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.content_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 client_ts = 4;
+    {PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.client_ts_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\17\0\7\7\0\0\0\0"
+    "message.ChatReq"
+    "room_id"
+    "content"
+  }},
+};
+
+PROTOBUF_NOINLINE void ChatReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.ChatReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.content_.ClearToEmpty();
+  ::memset(&_impl_.uid_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.client_ts_) -
+      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.client_ts_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* ChatReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const ChatReq& this_ = static_cast<const ChatReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* ChatReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const ChatReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.ChatReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // uint64 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+                1, this_._internal_uid(), target);
+          }
+
+          // string room_id = 2;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatReq.room_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string content = 3;
+          if (!this_._internal_content().empty()) {
+            const std::string& _s = this_._internal_content();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatReq.content");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          // uint64 client_ts = 4;
+          if (this_._internal_client_ts() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+                4, this_._internal_client_ts(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.ChatReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t ChatReq::ByteSizeLong(const MessageLite& base) {
+          const ChatReq& this_ = static_cast<const ChatReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t ChatReq::ByteSizeLong() const {
+          const ChatReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.ChatReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 2;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string content = 3;
+            if (!this_._internal_content().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_content());
+            }
+            // uint64 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+                  this_._internal_uid());
+            }
+            // uint64 client_ts = 4;
+            if (this_._internal_client_ts() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+                  this_._internal_client_ts());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void ChatReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ChatReq*>(&to_msg);
+  auto& from = static_cast<const ChatReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.ChatReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_content().empty()) {
+    _this->_internal_set_content(from._internal_content());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  if (from._internal_client_ts() != 0) {
+    _this->_impl_.client_ts_ = from._impl_.client_ts_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ChatReq::CopyFrom(const ChatReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.ChatReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ChatReq::InternalSwap(ChatReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.content_, &other->_impl_.content_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.client_ts_)
+      + sizeof(ChatReq::_impl_.client_ts_)
+      - PROTOBUF_FIELD_OFFSET(ChatReq, _impl_.uid_)>(
+          reinterpret_cast<char*>(&_impl_.uid_),
+          reinterpret_cast<char*>(&other->_impl_.uid_));
+}
+
+::google::protobuf::Metadata ChatReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ChatRsp::_Internal {
+ public:
+};
+
+ChatRsp::ChatRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.ChatRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE ChatRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::ChatRsp& from_msg)
+      : name_(arena, from.name_),
+        avatar_url_(arena, from.avatar_url_),
+        room_id_(arena, from.room_id_),
+        content_(arena, from.content_),
+        _cached_size_{0} {}
+
+ChatRsp::ChatRsp(
+    ::google::protobuf::Arena* arena,
+    const ChatRsp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ChatRsp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, uid_),
+           offsetof(Impl_, server_ts_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::server_ts_));
+
+  // @@protoc_insertion_point(copy_constructor:message.ChatRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE ChatRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : name_(arena),
+        avatar_url_(arena),
+        room_id_(arena),
+        content_(arena),
+        _cached_size_{0} {}
+
+inline void ChatRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           0,
+           offsetof(Impl_, server_ts_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::server_ts_));
+}
+ChatRsp::~ChatRsp() {
+  // @@protoc_insertion_point(destructor:message.ChatRsp)
+  SharedDtor(*this);
+}
+inline void ChatRsp::SharedDtor(MessageLite& self) {
+  ChatRsp& this_ = static_cast<ChatRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.name_.Destroy();
+  this_._impl_.avatar_url_.Destroy();
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.content_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* ChatRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) ChatRsp(arena);
+}
+constexpr auto ChatRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ChatRsp),
+                                            alignof(ChatRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull ChatRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_ChatRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &ChatRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<ChatRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &ChatRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<ChatRsp>(), &ChatRsp::ByteSizeLong,
+            &ChatRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_._cached_size_),
+        false,
+    },
+    &ChatRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* ChatRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 0, 52, 2> ChatRsp::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::ChatRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // uint64 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ChatRsp, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.uid_)}},
+    // string name = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.name_)}},
+    // string avatar_url = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.avatar_url_)}},
+    // string room_id = 4;
+    {::_pbi::TcParser::FastUS1,
+     {34, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.room_id_)}},
+    // string content = 5;
+    {::_pbi::TcParser::FastUS1,
+     {42, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.content_)}},
+    // uint64 server_ts = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ChatRsp, _impl_.server_ts_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.server_ts_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // uint64 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+    // string name = 2;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.name_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string avatar_url = 3;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.avatar_url_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string room_id = 4;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string content = 5;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.content_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint64 server_ts = 6;
+    {PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.server_ts_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+  }},
+  // no aux_entries
+  {{
+    "\17\0\4\12\7\7\0\0"
+    "message.ChatRsp"
+    "name"
+    "avatar_url"
+    "room_id"
+    "content"
+  }},
+};
+
+PROTOBUF_NOINLINE void ChatRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.ChatRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.name_.ClearToEmpty();
+  _impl_.avatar_url_.ClearToEmpty();
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.content_.ClearToEmpty();
+  ::memset(&_impl_.uid_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.server_ts_) -
+      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.server_ts_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* ChatRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const ChatRsp& this_ = static_cast<const ChatRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* ChatRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const ChatRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.ChatRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // uint64 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+                1, this_._internal_uid(), target);
+          }
+
+          // string name = 2;
+          if (!this_._internal_name().empty()) {
+            const std::string& _s = this_._internal_name();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatRsp.name");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string avatar_url = 3;
+          if (!this_._internal_avatar_url().empty()) {
+            const std::string& _s = this_._internal_avatar_url();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatRsp.avatar_url");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          // string room_id = 4;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatRsp.room_id");
+            target = stream->WriteStringMaybeAliased(4, _s, target);
+          }
+
+          // string content = 5;
+          if (!this_._internal_content().empty()) {
+            const std::string& _s = this_._internal_content();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ChatRsp.content");
+            target = stream->WriteStringMaybeAliased(5, _s, target);
+          }
+
+          // uint64 server_ts = 6;
+          if (this_._internal_server_ts() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+                6, this_._internal_server_ts(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.ChatRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t ChatRsp::ByteSizeLong(const MessageLite& base) {
+          const ChatRsp& this_ = static_cast<const ChatRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t ChatRsp::ByteSizeLong() const {
+          const ChatRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.ChatRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string name = 2;
+            if (!this_._internal_name().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_name());
+            }
+            // string avatar_url = 3;
+            if (!this_._internal_avatar_url().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_avatar_url());
+            }
+            // string room_id = 4;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string content = 5;
+            if (!this_._internal_content().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_content());
+            }
+            // uint64 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+                  this_._internal_uid());
+            }
+            // uint64 server_ts = 6;
+            if (this_._internal_server_ts() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+                  this_._internal_server_ts());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void ChatRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ChatRsp*>(&to_msg);
+  auto& from = static_cast<const ChatRsp&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.ChatRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_name().empty()) {
+    _this->_internal_set_name(from._internal_name());
+  }
+  if (!from._internal_avatar_url().empty()) {
+    _this->_internal_set_avatar_url(from._internal_avatar_url());
+  }
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_content().empty()) {
+    _this->_internal_set_content(from._internal_content());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  if (from._internal_server_ts() != 0) {
+    _this->_impl_.server_ts_ = from._impl_.server_ts_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ChatRsp::CopyFrom(const ChatRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.ChatRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ChatRsp::InternalSwap(ChatRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.name_, &other->_impl_.name_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.avatar_url_, &other->_impl_.avatar_url_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.content_, &other->_impl_.content_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.server_ts_)
+      + sizeof(ChatRsp::_impl_.server_ts_)
+      - PROTOBUF_FIELD_OFFSET(ChatRsp, _impl_.uid_)>(
+          reinterpret_cast<char*>(&_impl_.uid_),
+          reinterpret_cast<char*>(&other->_impl_.uid_));
+}
+
+::google::protobuf::Metadata ChatRsp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

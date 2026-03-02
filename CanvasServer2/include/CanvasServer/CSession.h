@@ -23,6 +23,7 @@ public:
 	int GetUserId();									// 获取用户id
 	std::string GetName();								// 获取用户名
 	std::string GetAvatarUrl();							// 获取用户头像
+	std::shared_ptr<Room> GetRoomLocked();					// 获取房间
 	bool IsClosed();									// 判断是否关闭
 
 	// 绑定房间 (使用 weak_ptr 防止循环引用)
@@ -46,7 +47,7 @@ private:
 	int _uid;								// 用户id
 	std::string _name;						// 用户名
 	std::string _avatar_url;				// 用户头像
-	std::atomic<bool> _b_close;							// 是否关闭
+	std::atomic<bool> _b_close;				// 是否关闭
 
 	// 头部缓存
 	MsgHead _head_buffer;

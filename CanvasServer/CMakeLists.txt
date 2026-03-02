@@ -73,7 +73,7 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 "include/CanvasServer/Room.h"
 "src/Room.cpp"
 "include/CanvasServer/RoomMgr.h"
-"src/RoomMgr.cpp" "include/CanvasServer/message.pb.h")
+"src/RoomMgr.cpp" )
 
 # 5.1 头文件路径
 target_include_directories(CanvasServer PRIVATE

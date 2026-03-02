@@ -397,6 +397,26 @@ void TcpMgr::initHandlers()
     _handlers.insert(ReqId::ID_DRAW_RSP,[this](ReqId,int,QByteArray data){
         emit sig_draw_broadcast(data);  //发送广播信号
     });
+
+    // 注册收到群聊消息
+    _handlers.insert(ReqId::ID_CHAT_RSP,[this](ReqId,int,QByteArray data){
+        message::ChatRsp rsp;
+        if(!rsp.ParseFromArray(data.data(),data.size()))
+        {
+            qDebug() << "解析 UserLeaveRoomBroadcast 失败";
+            return;
+        }
+
+        // 发送接收群聊消息信号
+        emit sig_chat_received(
+            (int)rsp.uid(),
+            QString::fromStdString(rsp.name()),
+            QString::fromStdString(rsp.avatar_url()),
+            QString::fromStdString(rsp.room_id()),
+            QString::fromStdString(rsp.content()),
+            (qulonglong)rsp.server_ts()
+            );
+    });
 }
 
 void TcpMgr::handleMsg(ReqId id, int len, QByteArray data)

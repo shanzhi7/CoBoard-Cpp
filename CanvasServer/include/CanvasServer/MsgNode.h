@@ -30,8 +30,8 @@ public:
         }
     }
 
-    uint16_t  _cur_len;
-    uint16_t  _total_len;
+    uint16_t  _cur_len;         // 当前已接收的长度
+    uint16_t  _total_len;       // 消息总长度 (期望长度),SendNode里意思不同
     char* _data;
 };
 

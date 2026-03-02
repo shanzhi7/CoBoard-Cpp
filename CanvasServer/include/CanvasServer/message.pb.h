@@ -53,6 +53,12 @@ struct TableStruct_message_2eproto {
 extern const ::google::protobuf::internal::DescriptorTable
     descriptor_table_message_2eproto;
 namespace message {
+class ChatReq;
+struct ChatReqDefaultTypeInternal;
+extern ChatReqDefaultTypeInternal _ChatReq_default_instance_;
+class ChatRsp;
+struct ChatRspDefaultTypeInternal;
+extern ChatRspDefaultTypeInternal _ChatRsp_default_instance_;
 class DrawReq;
 struct DrawReqDefaultTypeInternal;
 extern DrawReqDefaultTypeInternal _DrawReq_default_instance_;
@@ -3832,6 +3838,518 @@ class DrawReq_Point final : public ::google::protobuf::Message
 };
 // -------------------------------------------------------------------
 
+class ChatRsp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ChatRsp) */ {
+ public:
+  inline ChatRsp() : ChatRsp(nullptr) {}
+  ~ChatRsp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ChatRsp* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ChatRsp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ChatRsp(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ChatRsp(const ChatRsp& from) : ChatRsp(nullptr, from) {}
+  inline ChatRsp(ChatRsp&& from) noexcept
+      : ChatRsp(nullptr, std::move(from)) {}
+  inline ChatRsp& operator=(const ChatRsp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ChatRsp& operator=(ChatRsp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ChatRsp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ChatRsp* internal_default_instance() {
+    return reinterpret_cast<const ChatRsp*>(
+        &_ChatRsp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 20;
+  friend void swap(ChatRsp& a, ChatRsp& b) { a.Swap(&b); }
+  inline void Swap(ChatRsp* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ChatRsp* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ChatRsp* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ChatRsp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ChatRsp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ChatRsp& from) { ChatRsp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ChatRsp* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ChatRsp"; }
+
+ protected:
+  explicit ChatRsp(::google::protobuf::Arena* arena);
+  ChatRsp(::google::protobuf::Arena* arena, const ChatRsp& from);
+  ChatRsp(::google::protobuf::Arena* arena, ChatRsp&& from) noexcept
+      : ChatRsp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kNameFieldNumber = 2,
+    kAvatarUrlFieldNumber = 3,
+    kRoomIdFieldNumber = 4,
+    kContentFieldNumber = 5,
+    kUidFieldNumber = 1,
+    kServerTsFieldNumber = 6,
+  };
+  // string name = 2;
+  void clear_name() ;
+  const std::string& name() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_name(Arg_&& arg, Args_... args);
+  std::string* mutable_name();
+  PROTOBUF_NODISCARD std::string* release_name();
+  void set_allocated_name(std::string* value);
+
+  private:
+  const std::string& _internal_name() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_name(
+      const std::string& value);
+  std::string* _internal_mutable_name();
+
+  public:
+  // string avatar_url = 3;
+  void clear_avatar_url() ;
+  const std::string& avatar_url() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_avatar_url(Arg_&& arg, Args_... args);
+  std::string* mutable_avatar_url();
+  PROTOBUF_NODISCARD std::string* release_avatar_url();
+  void set_allocated_avatar_url(std::string* value);
+
+  private:
+  const std::string& _internal_avatar_url() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_avatar_url(
+      const std::string& value);
+  std::string* _internal_mutable_avatar_url();
+
+  public:
+  // string room_id = 4;
+  void clear_room_id() ;
+  const std::string& room_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_id(Arg_&& arg, Args_... args);
+  std::string* mutable_room_id();
+  PROTOBUF_NODISCARD std::string* release_room_id();
+  void set_allocated_room_id(std::string* value);
+
+  private:
+  const std::string& _internal_room_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_id(
+      const std::string& value);
+  std::string* _internal_mutable_room_id();
+
+  public:
+  // string content = 5;
+  void clear_content() ;
+  const std::string& content() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_content(Arg_&& arg, Args_... args);
+  std::string* mutable_content();
+  PROTOBUF_NODISCARD std::string* release_content();
+  void set_allocated_content(std::string* value);
+
+  private:
+  const std::string& _internal_content() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_content(
+      const std::string& value);
+  std::string* _internal_mutable_content();
+
+  public:
+  // uint64 uid = 1;
+  void clear_uid() ;
+  ::uint64_t uid() const;
+  void set_uid(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_uid() const;
+  void _internal_set_uid(::uint64_t value);
+
+  public:
+  // uint64 server_ts = 6;
+  void clear_server_ts() ;
+  ::uint64_t server_ts() const;
+  void set_server_ts(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_server_ts() const;
+  void _internal_set_server_ts(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ChatRsp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      3, 6, 0,
+      52, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ChatRsp& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr name_;
+    ::google::protobuf::internal::ArenaStringPtr avatar_url_;
+    ::google::protobuf::internal::ArenaStringPtr room_id_;
+    ::google::protobuf::internal::ArenaStringPtr content_;
+    ::uint64_t uid_;
+    ::uint64_t server_ts_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ChatReq final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ChatReq) */ {
+ public:
+  inline ChatReq() : ChatReq(nullptr) {}
+  ~ChatReq() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ChatReq* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ChatReq));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ChatReq(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ChatReq(const ChatReq& from) : ChatReq(nullptr, from) {}
+  inline ChatReq(ChatReq&& from) noexcept
+      : ChatReq(nullptr, std::move(from)) {}
+  inline ChatReq& operator=(const ChatReq& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ChatReq& operator=(ChatReq&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ChatReq& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ChatReq* internal_default_instance() {
+    return reinterpret_cast<const ChatReq*>(
+        &_ChatReq_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 19;
+  friend void swap(ChatReq& a, ChatReq& b) { a.Swap(&b); }
+  inline void Swap(ChatReq* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ChatReq* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ChatReq* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ChatReq>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ChatReq& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ChatReq& from) { ChatReq::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ChatReq* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ChatReq"; }
+
+ protected:
+  explicit ChatReq(::google::protobuf::Arena* arena);
+  ChatReq(::google::protobuf::Arena* arena, const ChatReq& from);
+  ChatReq(::google::protobuf::Arena* arena, ChatReq&& from) noexcept
+      : ChatReq(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kRoomIdFieldNumber = 2,
+    kContentFieldNumber = 3,
+    kUidFieldNumber = 1,
+    kClientTsFieldNumber = 4,
+  };
+  // string room_id = 2;
+  void clear_room_id() ;
+  const std::string& room_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_id(Arg_&& arg, Args_... args);
+  std::string* mutable_room_id();
+  PROTOBUF_NODISCARD std::string* release_room_id();
+  void set_allocated_room_id(std::string* value);
+
+  private:
+  const std::string& _internal_room_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_id(
+      const std::string& value);
+  std::string* _internal_mutable_room_id();
+
+  public:
+  // string content = 3;
+  void clear_content() ;
+  const std::string& content() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_content(Arg_&& arg, Args_... args);
+  std::string* mutable_content();
+  PROTOBUF_NODISCARD std::string* release_content();
+  void set_allocated_content(std::string* value);
+
+  private:
+  const std::string& _internal_content() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_content(
+      const std::string& value);
+  std::string* _internal_mutable_content();
+
+  public:
+  // uint64 uid = 1;
+  void clear_uid() ;
+  ::uint64_t uid() const;
+  void set_uid(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_uid() const;
+  void _internal_set_uid(::uint64_t value);
+
+  public:
+  // uint64 client_ts = 4;
+  void clear_client_ts() ;
+  ::uint64_t client_ts() const;
+  void set_client_ts(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_client_ts() const;
+  void _internal_set_client_ts(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ChatReq)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      2, 4, 0,
+      38, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ChatReq& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr room_id_;
+    ::google::protobuf::internal::ArenaStringPtr content_;
+    ::uint64_t uid_;
+    ::uint64_t client_ts_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
 class UserJoinRoomBroadcast final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:message.UserJoinRoomBroadcast) */ {
  public:
@@ -7168,6 +7686,390 @@ inline ::google::protobuf::RepeatedPtrField<::message::DrawReq_Point>*
 DrawReq::_internal_mutable_path_points() {
   ::google::protobuf::internal::TSanRead(&_impl_);
   return &_impl_.path_points_;
+}
+
+// -------------------------------------------------------------------
+
+// ChatReq
+
+// uint64 uid = 1;
+inline void ChatReq::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = ::uint64_t{0u};
+}
+inline ::uint64_t ChatReq::uid() const {
+  // @@protoc_insertion_point(field_get:message.ChatReq.uid)
+  return _internal_uid();
+}
+inline void ChatReq::set_uid(::uint64_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.ChatReq.uid)
+}
+inline ::uint64_t ChatReq::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void ChatReq::_internal_set_uid(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string room_id = 2;
+inline void ChatReq::clear_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.ClearToEmpty();
+}
+inline const std::string& ChatReq::room_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatReq.room_id)
+  return _internal_room_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatReq::set_room_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatReq.room_id)
+}
+inline std::string* ChatReq::mutable_room_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_id();
+  // @@protoc_insertion_point(field_mutable:message.ChatReq.room_id)
+  return _s;
+}
+inline const std::string& ChatReq::_internal_room_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_id_.Get();
+}
+inline void ChatReq::_internal_set_room_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(value, GetArena());
+}
+inline std::string* ChatReq::_internal_mutable_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_id_.Mutable( GetArena());
+}
+inline std::string* ChatReq::release_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatReq.room_id)
+  return _impl_.room_id_.Release();
+}
+inline void ChatReq::set_allocated_room_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_id_.IsDefault()) {
+    _impl_.room_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatReq.room_id)
+}
+
+// string content = 3;
+inline void ChatReq::clear_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.ClearToEmpty();
+}
+inline const std::string& ChatReq::content() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatReq.content)
+  return _internal_content();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatReq::set_content(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatReq.content)
+}
+inline std::string* ChatReq::mutable_content() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_content();
+  // @@protoc_insertion_point(field_mutable:message.ChatReq.content)
+  return _s;
+}
+inline const std::string& ChatReq::_internal_content() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.content_.Get();
+}
+inline void ChatReq::_internal_set_content(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.Set(value, GetArena());
+}
+inline std::string* ChatReq::_internal_mutable_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.content_.Mutable( GetArena());
+}
+inline std::string* ChatReq::release_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatReq.content)
+  return _impl_.content_.Release();
+}
+inline void ChatReq::set_allocated_content(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.content_.IsDefault()) {
+    _impl_.content_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatReq.content)
+}
+
+// uint64 client_ts = 4;
+inline void ChatReq::clear_client_ts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.client_ts_ = ::uint64_t{0u};
+}
+inline ::uint64_t ChatReq::client_ts() const {
+  // @@protoc_insertion_point(field_get:message.ChatReq.client_ts)
+  return _internal_client_ts();
+}
+inline void ChatReq::set_client_ts(::uint64_t value) {
+  _internal_set_client_ts(value);
+  // @@protoc_insertion_point(field_set:message.ChatReq.client_ts)
+}
+inline ::uint64_t ChatReq::_internal_client_ts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.client_ts_;
+}
+inline void ChatReq::_internal_set_client_ts(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.client_ts_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ChatRsp
+
+// uint64 uid = 1;
+inline void ChatRsp::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = ::uint64_t{0u};
+}
+inline ::uint64_t ChatRsp::uid() const {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.uid)
+  return _internal_uid();
+}
+inline void ChatRsp::set_uid(::uint64_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.ChatRsp.uid)
+}
+inline ::uint64_t ChatRsp::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void ChatRsp::_internal_set_uid(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string name = 2;
+inline void ChatRsp::clear_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.ClearToEmpty();
+}
+inline const std::string& ChatRsp::name() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.name)
+  return _internal_name();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatRsp::set_name(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatRsp.name)
+}
+inline std::string* ChatRsp::mutable_name() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_name();
+  // @@protoc_insertion_point(field_mutable:message.ChatRsp.name)
+  return _s;
+}
+inline const std::string& ChatRsp::_internal_name() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.name_.Get();
+}
+inline void ChatRsp::_internal_set_name(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.Set(value, GetArena());
+}
+inline std::string* ChatRsp::_internal_mutable_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.name_.Mutable( GetArena());
+}
+inline std::string* ChatRsp::release_name() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatRsp.name)
+  return _impl_.name_.Release();
+}
+inline void ChatRsp::set_allocated_name(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.name_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.name_.IsDefault()) {
+    _impl_.name_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatRsp.name)
+}
+
+// string avatar_url = 3;
+inline void ChatRsp::clear_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.ClearToEmpty();
+}
+inline const std::string& ChatRsp::avatar_url() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.avatar_url)
+  return _internal_avatar_url();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatRsp::set_avatar_url(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatRsp.avatar_url)
+}
+inline std::string* ChatRsp::mutable_avatar_url() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_avatar_url();
+  // @@protoc_insertion_point(field_mutable:message.ChatRsp.avatar_url)
+  return _s;
+}
+inline const std::string& ChatRsp::_internal_avatar_url() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.avatar_url_.Get();
+}
+inline void ChatRsp::_internal_set_avatar_url(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.Set(value, GetArena());
+}
+inline std::string* ChatRsp::_internal_mutable_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.avatar_url_.Mutable( GetArena());
+}
+inline std::string* ChatRsp::release_avatar_url() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatRsp.avatar_url)
+  return _impl_.avatar_url_.Release();
+}
+inline void ChatRsp::set_allocated_avatar_url(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.avatar_url_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.avatar_url_.IsDefault()) {
+    _impl_.avatar_url_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatRsp.avatar_url)
+}
+
+// string room_id = 4;
+inline void ChatRsp::clear_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.ClearToEmpty();
+}
+inline const std::string& ChatRsp::room_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.room_id)
+  return _internal_room_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatRsp::set_room_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatRsp.room_id)
+}
+inline std::string* ChatRsp::mutable_room_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_id();
+  // @@protoc_insertion_point(field_mutable:message.ChatRsp.room_id)
+  return _s;
+}
+inline const std::string& ChatRsp::_internal_room_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_id_.Get();
+}
+inline void ChatRsp::_internal_set_room_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(value, GetArena());
+}
+inline std::string* ChatRsp::_internal_mutable_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_id_.Mutable( GetArena());
+}
+inline std::string* ChatRsp::release_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatRsp.room_id)
+  return _impl_.room_id_.Release();
+}
+inline void ChatRsp::set_allocated_room_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_id_.IsDefault()) {
+    _impl_.room_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatRsp.room_id)
+}
+
+// string content = 5;
+inline void ChatRsp::clear_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.ClearToEmpty();
+}
+inline const std::string& ChatRsp::content() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.content)
+  return _internal_content();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ChatRsp::set_content(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ChatRsp.content)
+}
+inline std::string* ChatRsp::mutable_content() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_content();
+  // @@protoc_insertion_point(field_mutable:message.ChatRsp.content)
+  return _s;
+}
+inline const std::string& ChatRsp::_internal_content() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.content_.Get();
+}
+inline void ChatRsp::_internal_set_content(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.Set(value, GetArena());
+}
+inline std::string* ChatRsp::_internal_mutable_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.content_.Mutable( GetArena());
+}
+inline std::string* ChatRsp::release_content() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ChatRsp.content)
+  return _impl_.content_.Release();
+}
+inline void ChatRsp::set_allocated_content(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.content_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.content_.IsDefault()) {
+    _impl_.content_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ChatRsp.content)
+}
+
+// uint64 server_ts = 6;
+inline void ChatRsp::clear_server_ts() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.server_ts_ = ::uint64_t{0u};
+}
+inline ::uint64_t ChatRsp::server_ts() const {
+  // @@protoc_insertion_point(field_get:message.ChatRsp.server_ts)
+  return _internal_server_ts();
+}
+inline void ChatRsp::set_server_ts(::uint64_t value) {
+  _internal_set_server_ts(value);
+  // @@protoc_insertion_point(field_set:message.ChatRsp.server_ts)
+}
+inline ::uint64_t ChatRsp::_internal_server_ts() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.server_ts_;
+}
+inline void ChatRsp::_internal_set_server_ts(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.server_ts_ = value;
 }
 
 #ifdef __GNUC__
