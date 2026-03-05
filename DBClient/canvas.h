@@ -30,6 +30,9 @@ public:
 protected:
     virtual bool eventFilter(QObject* watched,QEvent* event) override;          //事件过滤器
 
+signals:
+    void sig_return_lobby();                                                    //返回大厅信号
+
 public slots:
     void slot_creat_room_finish(std::shared_ptr<RoomInfo>);                     //创建房间完成槽函数
     void slot_join_room_finish(std::shared_ptr<RoomInfo>);                      //加入房间完成槽函数
@@ -54,6 +57,8 @@ private slots:
                             const QString& content,
                              qulonglong ts);
     void slot_onSendChatClicked();               //发送消息按钮槽函数
+
+    void on_return_btn_clicked();                //返回大厅槽函数
 
 private:
     Ui::Canvas *ui;

@@ -73,7 +73,6 @@ QGraphicsView, QTreeWidget, QListWidget, QTextBrowser, QLineEdit {
 
 /* ================= 3. 中间画板 (Canvas) ================= */
 QGraphicsView {
-    background-color: #f0f0f0;			/* 灰色背景*/
     /* 【视觉重心】边框颜色加深 */
     border: 1px solid #c0c4cc; 
     border-radius: 6px;
@@ -312,6 +311,22 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
         <number>0</number>
        </property>
        <item>
+        <widget class="QPushButton" name="return_btn">
+         <property name="maximumSize">
+          <size>
+           <width>30</width>
+           <height>30</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">border-image: url(:/res/return.png);</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="file_btn">
          <property name="maximumSize">
           <size>
@@ -439,6 +454,16 @@ QDockWidget::close-button:pressed, QDockWidget::float-button:pressed {
        </property>
        <property name="autoExclusive">
         <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="line_tool">
+       <property name="styleSheet">
+        <string notr="true">border-image: url(:/res/line.png);</string>
+       </property>
+       <property name="text">
+        <string/>
        </property>
       </widget>
      </item>

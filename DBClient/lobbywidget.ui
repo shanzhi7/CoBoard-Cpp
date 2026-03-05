@@ -196,6 +196,13 @@ QPushButton:pressed {
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="retRoom_btn">
+       <property name="text">
+        <string>返回房间</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="verticalSpacer">
        <property name="orientation">
         <enum>Qt::Vertical</enum>

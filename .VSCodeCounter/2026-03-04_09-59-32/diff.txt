@@ -1,0 +1,55 @@
+Date : 2026-03-04 09:59:32
+Directory : e:\qt_project\SyncCanvas
+Total : 20 files,  428 codes, 18 comments, 85 blanks, all 531 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| C++      |         19 |        409 |         18 |         76 |        503 |
+| Markdown |          1 |         19 |          0 |          9 |         28 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++---------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                      | files      | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                         |         20 |        428 |         18 |         85 |        531 |
+| . (Files)                                                                 |          1 |         19 |          0 |          9 |         28 |
+| CanvasServer                                                              |          7 |        175 |          5 |         32 |        212 |
+| CanvasServer2                                                             |          7 |        175 |          5 |         32 |        212 |
+| CanvasServer2\include                                                     |          4 |         10 |          4 |          4 |         18 |
+| CanvasServer2\include\CanvasServer                                        |          4 |         10 |          4 |          4 |         18 |
+| CanvasServer2\src                                                         |          3 |        165 |          1 |         28 |        194 |
+| CanvasServer\include                                                      |          4 |         10 |          4 |          4 |         18 |
+| CanvasServer\include\CanvasServer                                         |          4 |         10 |          4 |          4 |         18 |
+| CanvasServer\src                                                          |          3 |        165 |          1 |         28 |        194 |
+| DBClient                                                                  |          5 |         59 |          8 |         12 |         79 |
++---------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++---------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                  | language | code       | comment    | blank      | total      |
++---------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\CSession.h    | C++      |          1 |          0 |          0 |          1 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\LogicSystem.h | C++      |          2 |          1 |          1 |          4 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\Room.h        | C++      |          5 |          3 |          3 |         11 |
+| e:\qt_project\SyncCanvas\CanvasServer2\include\CanvasServer\const.h       | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\CSession.cpp                   | C++      |         38 |          5 |          6 |         49 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\LogicSystem.cpp                | C++      |         62 |          5 |         12 |         79 |
+| e:\qt_project\SyncCanvas\CanvasServer2\src\Room.cpp                       | C++      |         65 |         -9 |         10 |         66 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\CSession.h     | C++      |          1 |          0 |          0 |          1 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\LogicSystem.h  | C++      |          2 |          1 |          1 |          4 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\Room.h         | C++      |          5 |          3 |          3 |         11 |
+| e:\qt_project\SyncCanvas\CanvasServer\include\CanvasServer\const.h        | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\CSession.cpp                    | C++      |         38 |          5 |          6 |         49 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\LogicSystem.cpp                 | C++      |         62 |          5 |         12 |         79 |
+| e:\qt_project\SyncCanvas\CanvasServer\src\Room.cpp                        | C++      |         65 |         -9 |         10 |         66 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.cpp                              | C++      |         29 |          3 |          8 |         40 |
+| e:\qt_project\SyncCanvas\DBClient\canvas.h                                | C++      |          6 |          1 |          1 |          8 |
+| e:\qt_project\SyncCanvas\DBClient\global.h                                | C++      |          2 |          0 |          0 |          2 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.cpp                              | C++      |         16 |          3 |          2 |         21 |
+| e:\qt_project\SyncCanvas\DBClient\tcpmgr.h                                | C++      |          6 |          1 |          1 |          8 |
+| e:\qt_project\SyncCanvas\README.md                                        | Markdown |         19 |          0 |          9 |         28 |
+| Total                                                                     |          |        428 |         18 |         85 |        531 |
++---------------------------------------------------------------------------+----------+------------+------------+------------+------------+

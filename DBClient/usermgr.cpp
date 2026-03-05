@@ -5,7 +5,7 @@
 #include <QDir>
 
 UserMgr::UserMgr()
-    :token(""),_my_info(nullptr)
+    :token(""),_my_info(nullptr),isHaveRoom(false)
 {
     _netMgr = new QNetworkAccessManager(this);  //初始化http管理对象
 }
@@ -30,6 +30,11 @@ QString UserMgr::getName()
     return this->_my_info->_name;
 }
 
+bool UserMgr::IsHaveRoom()
+{
+    return this->isHaveRoom;
+}
+
 
 void UserMgr::setToken(QString &token)
 {
@@ -44,6 +49,11 @@ void UserMgr::setMyInfo(std::shared_ptr<UserInfo> userInfo)
 void UserMgr::setAvatar(QString avatar)
 {
     this->_my_info->_avatar = avatar;
+}
+
+void UserMgr::setIsHaveRoom(bool f)
+{
+    this->isHaveRoom = f;
 }
 
 void UserMgr::loadAvatar(const QString &url, QLabel *label)

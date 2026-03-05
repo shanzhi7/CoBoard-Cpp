@@ -163,6 +163,12 @@ void LobbyWidget::initHandles_map()
 
 void LobbyWidget::slot_create_clicked()
 {
+    bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
+    if(isInRoom)
+    {
+        TipWidget::showTip(ui->draw_label,"你已经在房间内，无法创建房间！");
+        return;
+    }
     NewRoomDialog dlg(this);
     if(dlg.exec() == QDialog::Accepted) //点击的是创建按钮
     {
@@ -175,6 +181,7 @@ void LobbyWidget::slot_create_clicked()
         auto info = UserMgr::getInstance()->getMyInfo();    //房主id
         json_obj["width"] = canvasSize.width();   //画布尺寸
         json_obj["height"] = canvasSize.height();
+        qDebug()<<"canvasSize:"<<canvasSize.width()<<" x "<<canvasSize.height();
 
         if (info)
         {
@@ -194,6 +201,12 @@ void LobbyWidget::slot_create_clicked()
 
 void LobbyWidget::slot_join_clicked()
 {
+    bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
+    if(isInRoom)
+    {
+        TipWidget::showTip(ui->draw_label,"你已经在房间内，无法创建房间！");
+        return;
+    }
     JoinRoomDialog dlg(this);
     if(dlg.exec() == QDialog::Accepted)
     {
@@ -307,5 +320,17 @@ void LobbyWidget::slot_lobby_mod_finish(ReqId reqid, QString res, ErrorCodes err
 void LobbyWidget::slot_go_lobby(QString tip)
 {
     TipWidget::showTip(ui->draw_label,tip);
+}
+
+
+void LobbyWidget::on_retRoom_btn_clicked()
+{
+    bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
+    if(!isInRoom)
+    {
+        TipWidget::showTip(ui->draw_label,"您未加入任何房间");
+        return;
+    }
+    emit sig_returnRoom();
 }
 
