@@ -28,10 +28,12 @@ public:
     int getUid();
     QString getAvatar();
     QString getName();
+    bool IsHaveRoom();
 
     void setToken(QString& token);
     void setMyInfo(std::shared_ptr<UserInfo> userInfo);
     void setAvatar(QString avatar);
+    void setIsHaveRoom(bool f);
 
     void loadAvatar(const QString& url,QLabel* label);              //从OSS或本地加载头像
     void loadAvatar(const QString& url,QTreeWidgetItem* item);      //加载头像
@@ -40,6 +42,7 @@ private:
     std::shared_ptr<UserInfo> _my_info;         //当前客户端用户信息
     QString token;
     QNetworkAccessManager* _netMgr;             //Qhttp管理类
+    bool isHaveRoom;
 };
 
 #endif // USERMGR_H

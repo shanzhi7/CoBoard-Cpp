@@ -11,5 +11,7 @@
         <file>res/shape_oval.png</file>
         <file>res/shape_rect.png</file>
         <file>res/pen_width.png</file>
+        <file>res/line.png</file>
+        <file>res/return.png</file>
     </qresource>
 </RCC>

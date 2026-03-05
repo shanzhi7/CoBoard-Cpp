@@ -36,6 +36,7 @@ private:
 signals:
     void sig_switchCanvas(std::shared_ptr<RoomInfo> room_info);             //发送切换画布页面 create
     void sig_switchCanvas_join(std::shared_ptr<RoomInfo> room_info);        //发送切换画布页面 join
+    void sig_returnRoom();                                                  //返回房间信号
 
 private slots:
     void slot_create_clicked();                                             //点击创建房间窗口
@@ -48,6 +49,7 @@ private slots:
 
     void slot_lobby_mod_finish(ReqId reqid,QString res,ErrorCodes err);     //http请求完成槽函数
     void slot_go_lobby(QString tip);                                        //收到tcpmgr发来的掉线通知
+    void on_retRoom_btn_clicked();                                          //返回房间按钮槽函数
 };
 
 #endif // LOBBYWIDGET_H

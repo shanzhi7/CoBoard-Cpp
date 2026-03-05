@@ -86,6 +86,12 @@ MainWindow::MainWindow(QWidget *parent)
     //lobby join房间 切换 canvas页面
     connect(lobby_widget,&LobbyWidget::sig_switchCanvas_join,this,&MainWindow::slotSwitchCanvasJoin);
 
+    //连接房间返回大厅
+    connect(canvas,&Canvas::sig_return_lobby,this,&MainWindow::slotSwitchLobbyFromCanvas);
+
+    //连接大厅返回房间
+    connect(lobby_widget,&LobbyWidget::sig_returnRoom,this,&MainWindow::slotLobbyReturnRoom);
+
     //断线: 回到大厅
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_go_lobby,this,[this](QString tip){
         canvas->resetForReconnect();
@@ -315,6 +321,23 @@ void MainWindow::slotSwitchCanvasJoin(std::shared_ptr<RoomInfo> room_info)
 {
     canvas->setRoomInfo(room_info);
     canvas->slot_join_room_finish(room_info);
+    canvas->show();
+    this->hide();
+}
+
+void MainWindow::slotSwitchLobbyFromCanvas()
+{
+    this->show();
+    canvas->hide();
+}
+
+void MainWindow::slotLobbyReturnRoom()
+{
+    bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
+    if(!isInRoom)
+    {
+        return;
+    }
     canvas->show();
     this->hide();
 }

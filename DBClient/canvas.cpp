@@ -237,12 +237,20 @@ void Canvas::initToolBtn()
 {
     _toolGroup = new QButtonGroup(this);
 
+    //开启所有工具按钮的 Checkable 属性
+    ui->pen_tool->setCheckable(true);
+    ui->eraser_tool->setCheckable(true);
+    ui->line_tool->setCheckable(true);
+    ui->rect_tool->setCheckable(true);
+    ui->oval_tool->setCheckable(true);
+
     //设置互斥
     _toolGroup->setExclusive(true);
 
     //把按钮加进去，分配ID
     _toolGroup->addButton(ui->pen_tool,Shape_Pen);
     _toolGroup->addButton(ui->eraser_tool,Shape_Eraser);
+    _toolGroup->addButton(ui->line_tool,Shape_Line);
     _toolGroup->addButton(ui->rect_tool,Shape_Rect);
     _toolGroup->addButton(ui->oval_tool,Shape_Oval);
 
@@ -298,6 +306,7 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     //添加自己到 treeWidgetItem
     std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();
     addUser(my_info->_id,my_info->_name + "(房主)",my_info->_avatar);                          // 添加用户
+    UserMgr::getInstance()->setIsHaveRoom(true);
 
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start(16);
@@ -314,6 +323,7 @@ void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
     statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;");  // 绿色圆点
 
     std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();      // 获取个人信息
+    UserMgr::getInstance()->setIsHaveRoom(true);
 
     //添加房间内其他用户到 treeWidgetItem
     const QList<UserInfo>& members= room_info->members;
@@ -675,5 +685,12 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
         if (!force) // true: (END),false: (16ms time)
             break;
     }
+}
+
+
+
+void Canvas::on_return_btn_clicked()    //返回大厅
+{
+    emit sig_return_lobby();            //发送信号给mainWindow接收
 }
 
