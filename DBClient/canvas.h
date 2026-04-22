@@ -86,6 +86,7 @@ private:
 
     void initCanvasUi();        //初始化ui界面
     void initToolBtn();         //初始化tool按钮
+    void applyRoomCanvasSize();                                           // 按房间信息应用画布尺寸
     void initMemberContextMenu();                                          // 初始化成员列表右键菜单
     void showMemberContextMenu(const QPoint& pos);                         // 显示房主授权菜单
     void addUser(int uid,QString name,QString avatar_url);                      // 添加用户

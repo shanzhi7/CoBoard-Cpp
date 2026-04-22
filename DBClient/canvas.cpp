@@ -93,6 +93,7 @@ Canvas::~Canvas()
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
     this->_room_info = room_info;
+    applyRoomCanvasSize();
     refreshRoomCollaborationState();
 }
 
@@ -201,7 +202,7 @@ void Canvas::initCanvasUi()
 
     //初始化 paintScene(begin)
     _paintScene = new PaintScene(this);
-    _paintScene->setSceneRect(0, 0, 5000, 5000);        //大小
+    _paintScene->setSceneRect(0, 0, 5000, 5000);        // 默认占位尺寸，进入房间后会按房间信息重新设置
     _paintScene->setBackgroundBrush(Qt::white);         //背景白色
     ui->graphicsView->setScene(_paintScene);            //为view设置舞台
     ui->graphicsView->setRenderHint(QPainter::Antialiasing);    //设置渲染质量，让线条抗锯齿（更平滑，不带狗牙）
@@ -286,6 +287,19 @@ void Canvas::initToolBtn()
     QPixmap originMap(":/res/pen.png");
     ui->pen_tool->setIcon(QIcon(originMap));
 
+}
+
+void Canvas::applyRoomCanvasSize()
+{
+    if (!_paintScene || !_room_info)
+        return;
+
+    // 创建/加入房间成功后，使用服务端返回的房间画布尺寸覆盖初始化占位尺寸。
+    if (_room_info->width <= 0 || _room_info->height <= 0)
+        return;
+
+    _paintScene->setSceneRect(0, 0, _room_info->width, _room_info->height);
+    ui->graphicsView->ensureVisible(0, 0, 10, 10);
 }
 
 void Canvas::initMemberContextMenu()
