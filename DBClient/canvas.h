@@ -26,6 +26,7 @@ public:
     ~Canvas();
 
     void setRoomInfo(std::shared_ptr<RoomInfo> room_info);                      //设置房间信息
+    void enterOfflineMode();                                                    //进入离线画板模式
     void resetForReconnect();                                                   //断线回大厅时调用
 protected:
     virtual bool eventFilter(QObject* watched,QEvent* event) override;          //事件过滤器

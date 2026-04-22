@@ -97,6 +97,43 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
     refreshRoomCollaborationState();
 }
 
+void Canvas::enterOfflineMode()
+{
+    // 离线模式复用同一套 PaintScene 绘图能力，但不创建房间、不连接服务器。
+    _pendingPointsByUuid.clear();
+    if (_strokeFlushTimer)
+        _strokeFlushTimer->stop();
+
+    _userItemMap.clear();
+    if (ui && ui->treeWidget)
+        ui->treeWidget->clear();
+
+    if (_paintScene)
+    {
+        _paintScene->resetScene();
+        _paintScene->setEditable(true);
+    }
+
+    _room_info = std::make_shared<RoomInfo>();
+    _room_info->id = QStringLiteral("offline");
+    _room_info->name = QStringLiteral("离线画板");
+    _room_info->width = 1920;
+    _room_info->height = 1080;
+    _room_info->connected = false;
+    _room_info->is_owner = true;
+    _room_info->can_edit = true;
+    _room_info->offline = true;
+
+    applyRoomCanvasSize();
+
+    ui->title_label->setText(QStringLiteral("离线画板"));
+    if (statusDot)
+    {
+        statusDot->setText(QStringLiteral("● 离线模式 / 可编辑"));
+        statusDot->setStyleSheet("color: #4CAF50; font-size: 12px; padding-right: 10px;");
+    }
+}
+
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
     // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
@@ -577,6 +614,7 @@ static int32_t ToArgbInt(const QColor& c)   //Qt颜色转 int
 void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width)
 {
     if (!_room_info) return;
+    if (_room_info->offline) return;    // 离线模式只本地绘制，不发送 START 网络包
 
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())    // flush启动定时器
         _strokeFlushTimer->start(16);
@@ -623,6 +661,7 @@ void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor
 void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
 {
     if (!_room_info) return;
+    if (_room_info->offline) return;    // 离线模式只本地绘制，不发送 MOVE 网络包
 
     const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
                             type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
@@ -679,6 +718,7 @@ void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
 void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
 {
     if (!_room_info) return;
+    if (_room_info->offline) return;    // 离线模式只本地绘制，不发送 END 网络包
 
     const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
                             type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
@@ -715,6 +755,9 @@ void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
 //收到绘画广播
 void Canvas::slot_onDrawBroadcast(QByteArray data)
 {
+    if (_room_info && _room_info->offline)
+        return;
+
     message::DrawReq req;
     if (!req.ParseFromArray(data.data(), data.size()))
         return;
@@ -744,6 +787,13 @@ void Canvas::slot_onSendChatClicked()
 {
     QString text = ui->input_edit->text().trimmed();
     if (text.isEmpty()) return;
+    if (!_room_info) return;
+    if (_room_info->offline)
+    {
+        // 离线模式没有房间会话，先保留输入框内容，提醒用户当前不走网络聊天。
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("离线模式暂不支持房间聊天"));
+        return;
+    }
 
     message::ChatReq req;
     req.set_uid(UserMgr::getInstance()->getUid());                 // uid
@@ -763,6 +813,9 @@ void Canvas::slot_onSendChatClicked()
 
 void Canvas::flushStrokePoints(const QString& uuid, bool force)
 {
+    if (_room_info && _room_info->offline)
+        return;
+
     auto iterator = _pendingPointsByUuid.find(uuid);
     if (iterator == _pendingPointsByUuid.end())
         return;
@@ -828,5 +881,9 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
 
 void Canvas::on_return_btn_clicked()    //返回大厅
 {
+    // 离线画板没有大厅房间状态，返回时直接清空本地画布和离线房间信息。
+    if (_room_info && _room_info->offline)
+        resetForReconnect();
+
     emit sig_return_lobby();            //发送信号给mainWindow接收
 }

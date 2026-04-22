@@ -1,39 +1,39 @@
 # Summary
 
-Date : 2026-02-06 20:59:42
+Date : 2026-04-22 20:23:55
 
 Directory e:\\qt_project\\SyncCanvas
 
-Total : 145 files,  9989 codes, 1401 comments, 1876 blanks, all 13266 lines
+Total : 147 files,  12268 codes, 1608 comments, 2368 blanks, all 16244 lines
 
 Summary / [Details](details.md) / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
 ## Languages
 | language | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| C++ | 121 | 8,115 | 1,317 | 1,692 | 11,124 |
+| C++ | 123 | 10,205 | 1,524 | 2,141 | 13,870 |
 | JSON | 7 | 1,010 | 0 | 8 | 1,018 |
-| CMake | 5 | 544 | 0 | 99 | 643 |
+| CMake | 5 | 547 | 0 | 99 | 646 |
+| Markdown | 3 | 254 | 0 | 59 | 313 |
 | JavaScript | 6 | 171 | 56 | 35 | 262 |
 | Batch | 3 | 81 | 28 | 26 | 135 |
-| Markdown | 3 | 68 | 0 | 16 | 84 |
 
 ## Directories
 | path | files | code | comment | blank | total |
 | :--- | ---: | ---: | ---: | ---: | ---: |
-| . | 145 | 9,989 | 1,401 | 1,876 | 13,266 |
-| . (Files) | 1 | 4 | 0 | 1 | 5 |
-| CanvasServer | 26 | 1,814 | 255 | 345 | 2,414 |
+| . | 147 | 12,268 | 1,608 | 2,368 | 16,244 |
+| . (Files) | 1 | 190 | 0 | 44 | 234 |
+| CanvasServer | 26 | 2,239 | 272 | 430 | 2,941 |
 | CanvasServer (Files) | 3 | 250 | 9 | 32 | 291 |
-| CanvasServer2 | 26 | 1,817 | 255 | 343 | 2,415 |
+| CanvasServer2 | 26 | 2,240 | 272 | 427 | 2,939 |
 | CanvasServer2 (Files) | 3 | 251 | 9 | 30 | 290 |
-| CanvasServer2\\include | 13 | 430 | 73 | 102 | 605 |
-| CanvasServer2\\include\\CanvasServer | 13 | 430 | 73 | 102 | 605 |
-| CanvasServer2\\src | 10 | 1,136 | 173 | 211 | 1,520 |
-| CanvasServer\\include | 13 | 430 | 73 | 102 | 605 |
-| CanvasServer\\include\\CanvasServer | 13 | 430 | 73 | 102 | 605 |
-| CanvasServer\\src | 10 | 1,134 | 173 | 211 | 1,518 |
-| DBClient | 40 | 2,759 | 548 | 735 | 4,042 |
+| CanvasServer2\\include | 13 | 456 | 79 | 109 | 644 |
+| CanvasServer2\\include\\CanvasServer | 13 | 456 | 79 | 109 | 644 |
+| CanvasServer2\\src | 10 | 1,533 | 184 | 288 | 2,005 |
+| CanvasServer\\include | 13 | 456 | 79 | 109 | 644 |
+| CanvasServer\\include\\CanvasServer | 13 | 456 | 79 | 109 | 644 |
+| CanvasServer\\src | 10 | 1,533 | 184 | 289 | 2,006 |
+| DBClient | 42 | 4,004 | 721 | 1,015 | 5,740 |
 | GateServer | 24 | 1,641 | 168 | 242 | 2,051 |
 | GateServer (Files) | 4 | 257 | 10 | 32 | 299 |
 | GateServer\\include | 11 | 414 | 50 | 86 | 550 |

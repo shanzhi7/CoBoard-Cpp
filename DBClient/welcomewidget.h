@@ -22,6 +22,7 @@ private:
 
 signals:
     void switchLogin();         //切换登录窗口信号
+    void switchOfflineCanvas(); //切换离线画板信号
 };
 
 #endif // WELCOMEWIDGET_H
