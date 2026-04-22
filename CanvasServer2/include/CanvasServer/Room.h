@@ -4,6 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <memory>
+#include <unordered_set>
 #include <iostream>
 #include "CanvasServer/message.pb.h"
 
@@ -20,6 +21,11 @@ public:
 
 	void SetRoomInfo(const std::string& name, int owner_uid);	//设置房间信息
 	int GetOwnerUid() const;									//获取房主ID
+	bool IsOwner(int uid) const;								//判断是否为房主
+	bool HasMember(int uid) const;							//判断用户是否在当前房间
+	bool CanEdit(int uid) const;							//判断用户是否有画板编辑权限
+	bool GrantEdit(int uid);								//授权用户编辑画板
+	bool RevokeEdit(int uid);							//取消用户编辑权限
 
 	void Join(std::shared_ptr<CSession> session);				//加入房间
 	void Leave(int uid);										//用户离开
@@ -47,8 +53,9 @@ private:
 	std::string _name;
     int _owner_uid = 0;
 
-	std::mutex _mutex;		//// 互斥锁：保护 _sessions 和 _history
+	mutable std::mutex _mutex;		// 互斥锁：保护 _sessions、_history 和房间状态
 	std::map<int, std::shared_ptr<CSession>> _sessions;	// 房间内的用户列表: UID -> Session
+	std::unordered_set<int> _editable_users;			//被房主授权可编辑画板的用户集合
 
 	// 历史笔迹 history: 存的是 DrawReq 的 protobuf 二进制 body（不含MsgHead）
 	// 暂存所有画画的指令，新用户进来时要把这些发给他，否则他看到的是白板

@@ -42,6 +42,12 @@ private:
 	// 群聊消息
     void HandleChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
+	// 授权用户编辑画板
+	void HandleGrantEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+
+	// 取消用户编辑权限
+	void HandleRevokeEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
+
 	std::thread _work_thread;							// 工作线程,用于回复客户端
 	std::queue<std::shared_ptr<LogicNode>> _msg_queue;	// 消息队列，存放session与recvNode
 	std::mutex _mutex;

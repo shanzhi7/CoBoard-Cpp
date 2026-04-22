@@ -196,6 +196,40 @@ message UserLeaveRoomBroadcast {
     string reason = 2;      // 离开原因
 }
 
+// --- 房间编辑权限相关 ---
+message GrantEditReq {
+    int32 operator_uid = 1; // 发起授权的用户，必须是房主
+    string room_id = 2;
+    int32 target_uid = 3;   // 被授权编辑的用户
+}
+
+message GrantEditRsp {
+    int32 error = 1;
+    string room_id = 2;
+    int32 target_uid = 3;
+    bool can_edit = 4;
+}
+
+message RevokeEditReq {
+    int32 operator_uid = 1; // 发起取消授权的用户，必须是房主
+    string room_id = 2;
+    int32 target_uid = 3;   // 被取消编辑权限的用户
+}
+
+message RevokeEditRsp {
+    int32 error = 1;
+    string room_id = 2;
+    int32 target_uid = 3;
+    bool can_edit = 4;
+}
+
+message PermissionChangedBroadcast {
+    string room_id = 1;
+    int32 target_uid = 2;
+    bool can_edit = 3;
+    int32 operator_uid = 4;
+}
+
 // 更新头像请求
 message UpdateAvatarReq {
     int32 uid = 1;

@@ -11,6 +11,8 @@
 #include <QByteArray>
 #include <QColorDialog>
 #include <QScrollBar>
+#include <QMenu>
+#include <QAction>
 
 Canvas::Canvas(QWidget *parent)
     : QMainWindow(parent)
@@ -43,7 +45,10 @@ Canvas::Canvas(QWidget *parent)
 
 
     initCanvasUi();
+    if (_paintScene)
+        _paintScene->setEditable(false);
     initToolBtn();  //初始化toolbtn
+    initMemberContextMenu();
 
     // 为整个程序安装事件过滤器
     qApp->installEventFilter(this);
@@ -55,6 +60,9 @@ Canvas::Canvas(QWidget *parent)
 
     //连接新用户离开房间信号槽函数
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_user_left,this,&Canvas::slot_user_leaved);
+
+    //连接房间编辑权限变更广播
+    connect(TcpMgr::getInstance().get(),&TcpMgr::sig_permission_changed,this,&Canvas::slot_permission_changed);
 
     // PaintScene -> Canvas (发送)
     connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
@@ -85,6 +93,7 @@ Canvas::~Canvas()
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
     this->_room_info = room_info;
+    refreshRoomCollaborationState();
 }
 
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
@@ -98,7 +107,10 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
 
     // 3) 清空画面
     if (_paintScene)
+    {
+        _paintScene->setEditable(false);
         _paintScene->resetScene();
+    }
 
     // 4) 清空用户列表 UI + map
     _userItemMap.clear();
@@ -108,6 +120,8 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     }
 
     // 5) 清空房间信息
+    if (_room_info)
+        _room_info->connected = false;
     _room_info.reset();
 }
 
@@ -130,8 +144,17 @@ bool Canvas::eventFilter(QObject *watched, QEvent *event)
     // 只关心鼠标按下
     if (event->type() == QEvent::MouseButtonPress)
     {
+        // 全局事件过滤器会收到 QMenu 的点击事件。
+        // 这里只处理成员列表本身，避免右键菜单里的 QAction 第一次点击被成员列表逻辑干扰。
+        if (watched != ui->treeWidget && watched != ui->treeWidget->viewport())
+            return QMainWindow::eventFilter(watched, event);
 
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+
+        // 右键用于成员列表授权菜单，不走左键选择/反选逻辑。
+        if (mouseEvent->button() == Qt::RightButton)
+            return false;
+
         QPoint globalPos = mouseEvent->globalPos();
 
         // 计算 TreeWidget 的区域
@@ -265,6 +288,51 @@ void Canvas::initToolBtn()
 
 }
 
+void Canvas::initMemberContextMenu()
+{
+    // 成员列表右键菜单只作为房主授权入口；普通成员不会弹出菜单。
+    ui->treeWidget->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(ui->treeWidget, &QWidget::customContextMenuRequested,
+            this, &Canvas::showMemberContextMenu);
+}
+
+void Canvas::showMemberContextMenu(const QPoint& pos)
+{
+    if (!_room_info || !_room_info->is_owner)
+        return;
+
+    QTreeWidgetItem* item = ui->treeWidget->itemAt(pos);
+    if (!item)
+        return;
+
+    bool ok = false;
+    const int targetUid = item->data(0, Qt::UserRole).toInt(&ok);
+    if (!ok || targetUid == 0)
+        return;
+
+    const int currentUid = UserMgr::getInstance()->getUid();
+    if (targetUid == currentUid)
+        return;
+
+    QMenu menu(this);
+    QAction* grantAction = menu.addAction(QStringLiteral("授权编辑"));
+    QAction* revokeAction = menu.addAction(QStringLiteral("取消编辑权限"));
+
+    QAction* selectedAction = menu.exec(ui->treeWidget->viewport()->mapToGlobal(pos));
+    if (selectedAction == grantAction)
+    {
+        // 发送授权请求，最终是否生效以服务端校验和广播为准。
+        TcpMgr::getInstance()->slot_grant_edit(_room_info->id, targetUid);
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("已发送授权编辑请求"));
+    }
+    else if (selectedAction == revokeAction)
+    {
+        // 发送取消授权请求，目标用户收到广播后会切回只读。
+        TcpMgr::getInstance()->slot_revoke_edit(_room_info->id, targetUid);
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("已发送取消编辑权限请求"));
+    }
+}
+
 void Canvas::addUser(int uid, QString name, QString avatar_url) //添加用户
 {
     // 已存在：更新，不新增
@@ -294,18 +362,61 @@ void Canvas::leaveUser(int uid) //移除用户
 }
 
 
+void Canvas::refreshRoomCollaborationState()    // 刷新房间协作状态
+{
+    if (!_room_info)
+        return;
+
+    const int currentUid = UserMgr::getInstance()->getUid();    //获取当前客户端用户id
+    _room_info->connected = true;                               //设置已经连接到房间
+    _room_info->is_owner = (currentUid != 0 && currentUid == _room_info->owner_uid);    //是否为房主
+
+    // 第一版默认只有房主可编辑，后续房主授权时只需要扩展这里的判断。
+    _room_info->can_edit = _room_info->is_owner;
+
+    if (_paintScene)
+        _paintScene->setEditable(_room_info->can_edit);     //设置画布是否可编辑状态
+
+    if (statusDot)  //设置状态栏
+    {
+        const QString stateText = _room_info->can_edit
+                                      ? QStringLiteral("● 已连接 / 可编辑")
+                                      : QStringLiteral("● 已连接 / 只读");
+        statusDot->setText(stateText);
+        statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;");
+    }
+}
+
+QString Canvas::formatMemberDisplayName(const UserInfo& info) const // 格式化成员显示名
+{
+    QString displayName = info._name;
+    if (!_room_info)
+        return displayName;
+
+    const int currentUid = UserMgr::getInstance()->getUid();
+    if (info._id == currentUid)
+        displayName += QStringLiteral(" (我)");
+    if (info._id == _room_info->owner_uid)
+        displayName += QStringLiteral(" (房主)");
+    return displayName;
+}
+
 void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
-    TipWidget::showTip(ui->graphicsView,"创建房间成功");
+    _room_info = room_info;
+    refreshRoomCollaborationState();
+
+    TipWidget::showTip(ui->graphicsView, QStringLiteral("创建房间成功"));
     QString room_name = room_info->name;
     QString room_id = room_info->id;
-    ui->title_label->setText(room_name + "-房间号:" + room_id);
-    statusDot->setText("● 已连接");
-    statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;"); // 绿色圆点
+    ui->title_label->setText(room_name + QStringLiteral("-房间号:") + room_id);
 
-    //添加自己到 treeWidgetItem
     std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();
-    addUser(my_info->_id,my_info->_name + "(房主)",my_info->_avatar);                          // 添加用户
+    UserInfo selfInfo;
+    selfInfo._id = my_info->_id;
+    selfInfo._name = my_info->_name;
+    selfInfo._avatar = my_info->_avatar;
+    addUser(selfInfo._id, formatMemberDisplayName(selfInfo), selfInfo._avatar);
     UserMgr::getInstance()->setIsHaveRoom(true);
 
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
@@ -315,37 +426,20 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
 
 void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
-    TipWidget::showTip(ui->graphicsView,"创建房间成功");
+    _room_info = room_info;
+    refreshRoomCollaborationState();
+
+    TipWidget::showTip(ui->graphicsView, QStringLiteral("加入房间成功"));
     QString room_name = room_info->name;
     QString room_id = room_info->id;
-    ui->title_label->setText(room_name + "-房间号:" + room_id);
-    statusDot->setText("● 已连接");
-    statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;");  // 绿色圆点
+    ui->title_label->setText(room_name + QStringLiteral("-房间号:") + room_id);
 
-    std::shared_ptr<const UserInfo> my_info = UserMgr::getInstance()->getMyInfo();      // 获取个人信息
     UserMgr::getInstance()->setIsHaveRoom(true);
 
-    //添加房间内其他用户到 treeWidgetItem
     const QList<UserInfo>& members= room_info->members;
     for(int i = 0;i < members.size();i++)
     {
-        std::shared_ptr<UserInfo> member_info = std::make_shared<UserInfo>();
-        member_info->_id = members[i]._id;
-        member_info->_name = members[i]._name;
-        member_info->_avatar = members[i]._avatar;
-        if(member_info->_id == my_info->_id)
-        {
-            addUser(member_info->_id,member_info->_name + " (你)",member_info->_avatar);
-            continue;
-        }
-        else if(member_info->_id == room_info->owner_uid)
-        {
-            addUser(member_info->_id,member_info->_name + " (房主)",member_info->_avatar);
-        }
-        else
-        {
-            addUser(member_info->_id,member_info->_name,member_info->_avatar);
-        }
+        addUser(members[i]._id, formatMemberDisplayName(members[i]), members[i]._avatar);
     }
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start(16);
@@ -376,7 +470,7 @@ void Canvas::slot_user_joined(UserInfo new_info)
     // ---------------------------------------------------------
     // 更新视图层 (View)
     // ---------------------------------------------------------
-    addUser(new_info._id,new_info._name,new_info._avatar);  //添加用户
+    addUser(new_info._id,formatMemberDisplayName(new_info),new_info._avatar);  //添加用户
 }
 
 void Canvas::slot_user_leaved(int uid)
@@ -401,6 +495,35 @@ void Canvas::slot_user_leaved(int uid)
     // 更新视图层 (View & Map)
     // ---------------------------------------------------------
     leaveUser(uid);
+}
+
+void Canvas::slot_permission_changed(int target_uid, bool can_edit)     //权限变更处理函数
+{
+    if (!_room_info)
+        return;
+
+    const int currentUid = UserMgr::getInstance()->getUid();
+    if (target_uid != currentUid)
+        return;
+
+    // 房主始终保留编辑权限；普通成员跟随服务端广播的授权状态。
+    _room_info->can_edit = _room_info->is_owner || can_edit;
+
+    if (_paintScene)
+        _paintScene->setEditable(_room_info->can_edit);
+
+    if (statusDot)
+    {
+        const QString stateText = _room_info->can_edit
+                                      ? QStringLiteral("● 已连接 / 可编辑")
+                                      : QStringLiteral("● 已连接 / 只读");
+        statusDot->setText(stateText);
+        statusDot->setStyleSheet("color: #2ecc71; font-size: 12px; padding-right: 10px;");
+    }
+
+    TipWidget::showTip(ui->graphicsView,
+                       _room_info->can_edit ? QStringLiteral("房主已授权你编辑画板")
+                                            : QStringLiteral("房主已取消你的编辑权限"));
 }
 
 
@@ -693,4 +816,3 @@ void Canvas::on_return_btn_clicked()    //返回大厅
 {
     emit sig_return_lobby();            //发送信号给mainWindow接收
 }
-

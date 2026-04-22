@@ -37,6 +37,9 @@ PaintScene::PaintScene(QObject *parent)
 }
 void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 {
+    if (!_editable)
+        return;
+
     // 只允许左键绘画
     if (event->button() != Qt::LeftButton)
     {
@@ -115,6 +118,9 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
     emit sigCursorPosChanged(event->scenePos());     // 发送鼠标坐标信号
 
+    if (!_editable)
+        return;
+
     if (_currShapeType == Shape_Eraser)//如果是橡皮擦模式，更新光标位置
     {
         updateEraserCursor(event->scenePos());
@@ -178,6 +184,7 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 {
     if (event->button() != Qt::LeftButton) return;
+    if (!_editable) return;
 
     switch (_currShapeType)
     {
@@ -275,13 +282,25 @@ void PaintScene::setShapeType(ShapeType type)
 {
     _currShapeType = type;
     // 控制橡皮擦显隐
-    if (_currShapeType == Shape_Eraser)
+    if (_currShapeType == Shape_Eraser && _editable)
     {
         _eraserCursorItem->show();
     } else
     {
         _eraserCursorItem->hide();
     }
+}
+
+void PaintScene::setEditable(bool editable)
+{
+    _editable = editable;
+    if (!_editable)
+        hideEraserCursor();
+}
+
+bool PaintScene::isEditable() const
+{
+    return _editable;
 }
 
 QColor PaintScene::getPenColor()

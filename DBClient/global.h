@@ -54,6 +54,11 @@ enum ReqId{
     ID_DRAW_RSP = 1019,      // 绘画广播（CanvasServer -> 房间其他人）
     ID_CHAT_REQ = 1020,      // 群聊消息请求
     ID_CHAT_RSP = 1021,      // 群聊消息回包
+    ID_GRANT_EDIT_REQ = 1022,    // 授权编辑请求
+    ID_GRANT_EDIT_RSP = 1023,    // 授权编辑回包
+    ID_REVOKE_EDIT_REQ = 1024,    // 取消编辑权限请求
+    ID_REVOKE_EDIT_RSP = 1025,    // 取消编辑权限回包
+    ID_PERMISSION_CHANGED_BROADCAST = 1026,    // 编辑权限变更广播
 };
 
 enum ErrorCodes{
@@ -80,11 +85,14 @@ struct ServerInfo{
 struct RoomInfo {
     QString id;
     QString name;
-    int owner_uid;
+    int owner_uid = 0;
     QString host; // CanvasServer IP
-    int port;         // CanvasServer Port
+    int port = 0;         // CanvasServer Port
     int width = 1920;
     int height = 1080;
+    bool connected = false;      // 当前客户端是否已连接到该房间
+    bool is_owner = false;       // 当前客户端是否为房主
+    bool can_edit = false;       // 预留给只读模式与房主授权编辑
 
     QList<UserInfo> members;
 };
