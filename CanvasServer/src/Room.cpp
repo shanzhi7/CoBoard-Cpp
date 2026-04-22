@@ -262,5 +262,49 @@ void Room::SetRoomInfo(const std::string& name, int owner_uid)
 }
 int Room::GetOwnerUid() const //获取房主ID
 {
+    std::lock_guard<std::mutex> lock(_mutex);
     return _owner_uid;
+}
+
+bool Room::IsOwner(int uid) const
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    return uid != 0 && uid == _owner_uid;
+}
+
+bool Room::HasMember(int uid) const
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    auto it = _sessions.find(uid);
+    return it != _sessions.end() && it->second && !it->second->IsClosed();
+}
+
+bool Room::CanEdit(int uid) const
+{
+    // 房主天然可编辑；普通成员需要被房主加入授权集合后才可编辑。
+    std::lock_guard<std::mutex> lock(_mutex);
+    return uid != 0 && (uid == _owner_uid || _editable_users.count(uid) > 0);
+}
+
+bool Room::GrantEdit(int uid)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (uid == 0 || uid == _owner_uid)
+        return false;
+
+    auto it = _sessions.find(uid);
+    if (it == _sessions.end() || !it->second || it->second->IsClosed())
+        return false;
+
+    _editable_users.insert(uid);
+    return true;
+}
+
+bool Room::RevokeEdit(int uid)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+    if (uid == 0 || uid == _owner_uid)
+        return false;
+
+    return _editable_users.erase(uid) > 0;
 }

@@ -18,6 +18,8 @@ public:
     void setPenColor(const QColor& color);
     void setPenWidth(int width);
     void setShapeType(ShapeType type);      //设置当前工具
+    void setEditable(bool editable);        //设置权限
+    bool isEditable() const;                //是否有编辑权限
 
     //获取
     QColor getPenColor();
@@ -53,6 +55,7 @@ private:
     // --- 画笔配置 ---
     QColor _penColor;
     int _penWidth;
+    bool _editable = true;       // 是否允许本地鼠标绘制
 
     // 小于这个距离的移动将被忽略，防止抖动和节省流量
     const qreal MIN_DIST_SQ = 4.0;

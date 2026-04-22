@@ -112,6 +112,14 @@ void LogicSystem::RegisterCallBacks()
     _fun_callbacks[ID_CHAT_REQ] = std::bind(&LogicSystem::HandleChat, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
+    //注册授权编辑消息
+    _fun_callbacks[ID_GRANT_EDIT_REQ] = std::bind(&LogicSystem::HandleGrantEdit, this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
+    //注册取消编辑权限消息
+    _fun_callbacks[ID_REVOKE_EDIT_REQ] = std::bind(&LogicSystem::HandleRevokeEdit, this,
+        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+
     //不需要注册 ID_DRAW_REQ (画画请求)
     // 画画请求在 CSession 层直接被拦截转发了，不会进这个队列
 }
@@ -496,4 +504,160 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
 
     // 回显给自己（客户端只写一个显示逻辑）
     room->Broadcast(out, ID_CHAT_RSP, /*exclude_uid=*/0);
+}
+void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+    message::GrantEditReq req;
+    message::GrantEditRsp rsp;
+    rsp.set_error(message::ErrorCodes::Error_Json);
+
+    Defer defer([session, &rsp]() {
+        std::string sendData;
+        if (rsp.SerializeToString(&sendData))
+        {
+            session->Send(sendData, ID_GRANT_EDIT_RSP);
+        }
+    });
+
+    if (!req.ParseFromString(msg_data))
+    {
+        std::cout << "[HandleGrantEdit] Parse failed" << std::endl;
+        return;
+    }
+
+    const int sess_uid = session->GetUserId();
+    if (sess_uid == 0)
+    {
+        rsp.set_error(message::ErrorCodes::LoginErr);
+        return;
+    }
+
+    if (req.operator_uid() != sess_uid)
+    {
+        std::cout << "[HandleGrantEdit] uid mismatch, close. sess=" << sess_uid
+            << " req=" << req.operator_uid() << std::endl;
+        session->Close();
+        return;
+    }
+
+    auto room = session->GetRoomLocked();
+    if (!room)
+    {
+        rsp.set_error(message::ErrorCodes::NotInRoom);
+        return;
+    }
+
+    if (!req.room_id().empty() && req.room_id() != room->GetRoomId())
+    {
+        rsp.set_error(message::ErrorCodes::NotInRoom);
+        return;
+    }
+
+    if (!room->IsOwner(sess_uid))
+    {
+        rsp.set_error(message::ErrorCodes::NotOwner);
+        return;
+    }
+
+    rsp.set_room_id(room->GetRoomId());
+    rsp.set_target_uid(req.target_uid());
+    rsp.set_can_edit(false);
+
+    // 授权编辑：只有房主能把普通成员加入可编辑集合。
+    if (!room->GrantEdit(req.target_uid()))
+    {
+        rsp.set_error(message::ErrorCodes::NotInRoom);
+        return;
+    }
+
+    rsp.set_error(message::ErrorCodes::SUCCESS);
+    rsp.set_can_edit(true);
+
+    message::PermissionChangedBroadcast broadcast;
+    broadcast.set_room_id(room->GetRoomId());
+    broadcast.set_target_uid(req.target_uid());
+    broadcast.set_can_edit(true);
+    broadcast.set_operator_uid(sess_uid);
+
+    std::string out;
+    if (broadcast.SerializeToString(&out))
+    {
+        room->Broadcast(out, ID_PERMISSION_CHANGED_BROADCAST, 0);
+    }
+}
+
+void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
+{
+    message::RevokeEditReq req;
+    message::RevokeEditRsp rsp;
+    rsp.set_error(message::ErrorCodes::Error_Json);
+
+    Defer defer([session, &rsp]() {
+        std::string sendData;
+        if (rsp.SerializeToString(&sendData))
+        {
+            session->Send(sendData, ID_REVOKE_EDIT_RSP);
+        }
+    });
+
+    if (!req.ParseFromString(msg_data))
+    {
+        std::cout << "[HandleRevokeEdit] Parse failed" << std::endl;
+        return;
+    }
+
+    const int sess_uid = session->GetUserId();
+    if (sess_uid == 0)
+    {
+        rsp.set_error(message::ErrorCodes::LoginErr);
+        return;
+    }
+
+    if (req.operator_uid() != sess_uid)
+    {
+        std::cout << "[HandleRevokeEdit] uid mismatch, close. sess=" << sess_uid
+            << " req=" << req.operator_uid() << std::endl;
+        session->Close();
+        return;
+    }
+
+    auto room = session->GetRoomLocked();
+    if (!room)
+    {
+        rsp.set_error(message::ErrorCodes::NotInRoom);
+        return;
+    }
+
+    if (!req.room_id().empty() && req.room_id() != room->GetRoomId())
+    {
+        rsp.set_error(message::ErrorCodes::NotInRoom);
+        return;
+    }
+
+    if (!room->IsOwner(sess_uid))
+    {
+        rsp.set_error(message::ErrorCodes::NotOwner);
+        return;
+    }
+
+    rsp.set_room_id(room->GetRoomId());
+    rsp.set_target_uid(req.target_uid());
+    rsp.set_can_edit(false);
+
+    // 取消授权：只有房主能撤销普通成员的编辑权限。
+    room->RevokeEdit(req.target_uid());
+
+    rsp.set_error(message::ErrorCodes::SUCCESS);
+
+    message::PermissionChangedBroadcast broadcast;
+    broadcast.set_room_id(room->GetRoomId());
+    broadcast.set_target_uid(req.target_uid());
+    broadcast.set_can_edit(false);
+    broadcast.set_operator_uid(sess_uid);
+
+    std::string out;
+    if (broadcast.SerializeToString(&out))
+    {
+        room->Broadcast(out, ID_PERMISSION_CHANGED_BROADCAST, 0);
+    }
 }

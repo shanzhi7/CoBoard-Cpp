@@ -399,6 +399,49 @@ void TcpMgr::initHandlers()
     });
 
     // 注册收到群聊消息
+
+
+    // 注册授权编辑回包
+    _handlers.insert(ReqId::ID_GRANT_EDIT_RSP,[this](ReqId,int,QByteArray data){
+        message::GrantEditRsp rsp;
+        if(!rsp.ParseFromArray(data.data(),data.size()))
+        {
+            qDebug() << "解析 GrantEditRsp 失败";
+            return;
+        }
+        qDebug() << "授权编辑回包, error=" << rsp.error()
+                 << " target=" << rsp.target_uid()
+                 << " can_edit=" << rsp.can_edit();
+    });
+
+    // 注册取消编辑权限回包
+    _handlers.insert(ReqId::ID_REVOKE_EDIT_RSP,[this](ReqId,int,QByteArray data){
+        message::RevokeEditRsp rsp;
+        if(!rsp.ParseFromArray(data.data(),data.size()))
+        {
+            qDebug() << "解析 RevokeEditRsp 失败";
+            return;
+        }
+        qDebug() << "取消编辑权限回包, error=" << rsp.error()
+                 << " target=" << rsp.target_uid()
+                 << " can_edit=" << rsp.can_edit();
+    });
+
+    // 注册编辑权限变更广播
+    _handlers.insert(ReqId::ID_PERMISSION_CHANGED_BROADCAST,[this](ReqId,int,QByteArray data){
+        message::PermissionChangedBroadcast msg;
+        if(!msg.ParseFromArray(data.data(),data.size()))
+        {
+            qDebug() << "解析 PermissionChangedBroadcast 失败";
+            return;
+        }
+
+        qDebug() << "编辑权限变更广播, target=" << msg.target_uid()
+                 << " can_edit=" << msg.can_edit()
+                 << " operator=" << msg.operator_uid();
+        emit sig_permission_changed(msg.target_uid(), msg.can_edit());
+    });
+    // 注册收到群聊消息
     _handlers.insert(ReqId::ID_CHAT_RSP,[this](ReqId,int,QByteArray data){
         message::ChatRsp rsp;
         if(!rsp.ParseFromArray(data.data(),data.size()))
@@ -459,6 +502,30 @@ void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
     //写入body
     block.append(data);
     _socket.write(block);                           //发送数据
+}
+
+void TcpMgr::slot_grant_edit(const QString& room_id, int target_uid)    //授权给别人权限处理函数
+{
+    message::GrantEditReq req;
+    req.set_operator_uid(UserMgr::getInstance()->getUid());     //设置操作者id
+    req.set_room_id(room_id.toStdString());                     //设置房间id
+    req.set_target_uid(target_uid);                             //设置目标id
+
+    std::string out;
+    if (!req.SerializeToString(&out)) return;
+    slot_send_data(ReqId::ID_GRANT_EDIT_REQ, QByteArray::fromStdString(out));
+}
+
+void TcpMgr::slot_revoke_edit(const QString& room_id, int target_uid)       //撤销授权处理函数
+{
+    message::RevokeEditReq req;
+    req.set_operator_uid(UserMgr::getInstance()->getUid());
+    req.set_room_id(room_id.toStdString());
+    req.set_target_uid(target_uid);
+
+    std::string out;
+    if (!req.SerializeToString(&out)) return;
+    slot_send_data(ReqId::ID_REVOKE_EDIT_REQ, QByteArray::fromStdString(out));
 }
 
 void TcpMgr::slot_switch_server(const QString &host, int port,const QString& room_id, int uid)

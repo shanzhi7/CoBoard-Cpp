@@ -39,6 +39,7 @@ public slots:
 private slots:
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
     void slot_user_leaved(int uid);                                            //用户离开槽函数    (广播)
+    void slot_permission_changed(int target_uid, bool can_edit);                //房间编辑权限变更
 
     void on_color_tool_clicked();                                               // color_tool槽函数，选择画笔颜色
     void on_width_tool_clicked();                                               // width_tool槽函数，选择画笔粗细
@@ -85,8 +86,12 @@ private:
 
     void initCanvasUi();        //初始化ui界面
     void initToolBtn();         //初始化tool按钮
+    void initMemberContextMenu();                                          // 初始化成员列表右键菜单
+    void showMemberContextMenu(const QPoint& pos);                         // 显示房主授权菜单
     void addUser(int uid,QString name,QString avatar_url);                      // 添加用户
     void leaveUser(int uid);                                                    // 删除用户
+    void refreshRoomCollaborationState();                                       // 刷新房间协作状态
+    QString formatMemberDisplayName(const UserInfo& info) const;                // 格式化成员显示名
 };
 
 #endif // CANVAS_H

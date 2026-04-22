@@ -222,6 +222,15 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				}
 
 				//解析 protobuf (用于校验 uid 防止伪造)
+				// 服务端权限兜底：客户端只读只是体验层，真正是否允许绘制必须由服务端判断。
+				if (!room->CanEdit(_uid))
+				{
+					std::cout << "[CSession] DrawReq rejected: no edit permission. UID=" << _uid
+						<< " RoomId=" << room->GetRoomId() << std::endl;
+					ReadHead();
+					return;
+				}
+
 				message::DrawReq drawReq;
 				if (!drawReq.ParseFromArray(recv_node->_data, recv_node->_cur_len))
 				{

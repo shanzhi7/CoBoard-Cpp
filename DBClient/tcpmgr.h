@@ -65,6 +65,7 @@ signals:
     void sig_user_left(int uid);                                        //用户离开 (广播)
 
     void sig_draw_broadcast(QByteArray data);                           // 绘画广播 (二进制 DrawReq)
+    void sig_permission_changed(int target_uid, bool can_edit);          // 房间编辑权限变更广播
 
     void sig_go_lobby(QString tip);                                     //断线后回到大厅并且提示
     void sig_resume_join_finish(std::shared_ptr<RoomInfo> room_info);   //掉线恢复 Join 成功 (用于切回canvas)
@@ -81,6 +82,8 @@ signals:
 public slots:
     void slot_tcp_connect(ServerInfo si);                               //用于发起tcp连接请求
     void slot_send_data(ReqId reqid,QByteArray data);                   //用于发送数据给服务器
+    void slot_grant_edit(const QString& room_id, int target_uid);        //房主授权成员编辑
+    void slot_revoke_edit(const QString& room_id, int target_uid);       //房主取消成员编辑权限
     void slot_switch_server(const QString& host,int port,const QString& room_id, int uid);              //重定向连接服务器
     void slot_start_reconnect();                                        // 启动/继续指数退避重连
     void slot_do_reconnect();                                           // 真正执行一次 connectToHost

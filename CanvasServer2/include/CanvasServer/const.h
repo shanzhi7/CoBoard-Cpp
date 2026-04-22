@@ -40,6 +40,11 @@ enum MSG_IDS {
 	ID_DRAW_RSP = 1019,      // 绘画广播（CanvasServer -> 房间其他人）
 	ID_CHAT_REQ = 1020,							//群聊天请求
     ID_CHAT_RSP = 1021,							//群聊天回包
+    ID_GRANT_EDIT_REQ = 1022,    //授权编辑请求
+    ID_GRANT_EDIT_RSP = 1023,    //授权编辑回包
+    ID_REVOKE_EDIT_REQ = 1024,    //取消编辑权限请求
+    ID_REVOKE_EDIT_RSP = 1025,    //取消编辑权限回包
+    ID_PERMISSION_CHANGED_BROADCAST = 1026,    //编辑权限变更广播
 };
 #define MAX_LENGTH 1024*64
 
