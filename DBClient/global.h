@@ -93,6 +93,7 @@ struct RoomInfo {
     bool connected = false;      // 当前客户端是否已连接到该房间
     bool is_owner = false;       // 当前客户端是否为房主
     bool can_edit = false;       // 预留给只读模式与房主授权编辑
+    bool offline = false;        // 离线画板模式：只允许本地绘制，不走网络同步链路
 
     QList<UserInfo> members;
 };

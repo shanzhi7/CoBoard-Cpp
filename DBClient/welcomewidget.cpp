@@ -9,6 +9,8 @@ WelcomeWidget::WelcomeWidget(QWidget *parent)
     ui->setupUi(this);
     //点击多人连接窗口发送切换登录窗口信号
     connect(ui->shared_widget,&HoverWidget::clicked,this,&WelcomeWidget::switchLogin);
+    //点击离线模式窗口，直接进入本地单人画板
+    connect(ui->offline_widget,&HoverWidget::clicked,this,&WelcomeWidget::switchOfflineCanvas);
 
     initIcons();
 }

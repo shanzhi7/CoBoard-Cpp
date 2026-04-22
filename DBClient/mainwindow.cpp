@@ -62,6 +62,9 @@ MainWindow::MainWindow(QWidget *parent)
     //连接点击欢迎页切换登录窗口
     connect(welcome_widget,&WelcomeWidget::switchLogin,this,&MainWindow::slotSwitchLogin);
 
+    //连接点击欢迎页离线模式，直接进入本地画板
+    connect(welcome_widget,&WelcomeWidget::switchOfflineCanvas,this,&MainWindow::slotSwitchOfflineCanvas);
+
     //连接点击返回按钮切换欢迎页面
     connect(login_widget,&LoginWidget::switchWelcome,this,&MainWindow::slotSwitchWelcome);
 
@@ -307,6 +310,14 @@ void MainWindow::slotSwitchLobby()
     setCentralWidget(lobby_widget);
     this->setFixedSize(lobby_widget->size());
     lobby_widget->show();
+}
+
+void MainWindow::slotSwitchOfflineCanvas()
+{
+    // 离线模式不进入登录/大厅流程，直接打开本地单人画板。
+    canvas->enterOfflineMode();
+    canvas->show();
+    this->hide();
 }
 
 void MainWindow::slotSwitchCanvas(std::shared_ptr<RoomInfo> room_info)  //切换画布页面
