@@ -211,12 +211,12 @@ QComboBox::drop-down#canvasSize_cbx {
 }
 
 /* 下拉列表的样式 */
-QComboBox QAbstractItemView#canvasSize_cbx {
+QComboBox#canvasSize_cbx QAbstractItemView {
     background-color: #141b2d; /* 下拉列表背景 */
     border: 1px solid #bba47c; /* 下拉列表边框 */
     color: #ffffff;            /* 下拉列表文字颜色 */
     selection-background-color: #bba47c; /* 选中项背景色 */
-    selection-color: #0c1325;            /* 选中项文字颜色 */
+    selection-color: #ffffff;            /* 选中项文字颜色 */
     outline: none; /* 去掉虚线框 */
 }</string>
           </property>
