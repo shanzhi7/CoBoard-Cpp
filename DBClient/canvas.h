@@ -39,7 +39,7 @@ public slots:
     void slot_join_room_finish(std::shared_ptr<RoomInfo>);                      //加入房间完成槽函数
 private slots:
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
-    void slot_user_leaved(int uid);                                            //用户离开槽函数    (广播)
+    void slot_user_leaved(int uid);                                             //用户离开槽函数    (广播)
     void slot_permission_changed(int target_uid, bool can_edit);                //房间编辑权限变更
 
     void on_color_tool_clicked();                                               // color_tool槽函数，选择画笔颜色

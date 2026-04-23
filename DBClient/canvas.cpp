@@ -267,6 +267,28 @@ void Canvas::initCanvasUi()
     ui->menubar->setVisible(false);                                         //将菜单栏设置为不可见
     ui->file_btn->setMenu(ui->menu_F); // 直接把原来的菜单对象赋给按钮！
 
+    //新建编辑菜单
+    QMenu* editMenu = new QMenu(this);
+
+    //添加册小action，并且限制只有离线模式可以使用
+    QAction* undoAction = editMenu->addAction(QStringLiteral("撤销"));
+    ui->edit_btn->setMenu(editMenu);
+    connect(undoAction, &QAction::triggered, this, [this]() {
+        if (!_room_info || !_room_info->offline)
+        {
+            TipWidget::showTip(ui->graphicsView, QStringLiteral("当前仅支持离线模式撤销"));
+            return;
+        }
+        if (!_paintScene || !_paintScene->canUndoLocal())
+        {
+            TipWidget::showTip(ui->graphicsView, QStringLiteral("没有可撤销的操作"));
+            return;
+        }
+
+        // 第一版只撤销离线本地图元；联机撤销以后需要走服务端校验和广播。
+        _paintScene->undoLastLocalItem();
+    });
+
     //状态栏
     QStatusBar *bar = this->statusBar();    //获取状态栏
     // 左侧：坐标信息 (新建一个 Label)

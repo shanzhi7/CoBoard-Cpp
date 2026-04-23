@@ -2,9 +2,12 @@
 #define PAINTSCENE_H
 
 #include <QGraphicsScene>
+#include <QGraphicsItem>
 #include <QObject>
 #include <QPainterPath>
 #include <QPointF>
+#include <QHash>
+#include <QStack>
 #include "global.h"
 #include "message.pb.h"
 
@@ -30,6 +33,9 @@ public:
     void applyRemoteDraw(const message::DrawReq& req);  //应用远端绘画，收到广播后调用
 
     void resetScene();              //清空所有图元 + 远端缓存
+
+    bool canUndoLocal() const;      //是否存在可撤销的本地图元
+    void undoLastLocalItem();       //撤销最后一个本地图元
 
 protected:
     void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
@@ -64,6 +70,7 @@ private:
     //辅助函数
     void addPointToPath(const QPointF &pos);    // 添加点到路径
     void initNewItem(const QPointF& pos);       // 初始化图元通用逻辑
+    void recordFinishedLocalItem(const QString& itemId, int shape, QGraphicsItem* item); //记录完成的本地图元
 
     // 橡皮擦位置更新逻辑
     void updateEraserCursor(const QPointF& pos);
@@ -83,6 +90,15 @@ private:
         QGraphicsLineItem* lineItem = nullptr;
     };
     QHash<QString, RemoteItem> _remoteItems;
+
+    // 本地图元记录使用 itemId 作为索引，后续联机撤销也可以复用这套映射关系。
+    struct DrawItemRecord {
+        QString itemId;
+        int shape = 0;
+        QGraphicsItem* item = nullptr;
+    };
+    QStack<DrawItemRecord> _localUndoStack;         //本地可撤销图元栈
+    QHash<QString, QGraphicsItem*> _localItems;     //哈希表，uuid-item
 
 signals:
     // --- 网络同步信号 ---
