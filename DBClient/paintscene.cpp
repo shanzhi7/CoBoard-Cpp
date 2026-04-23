@@ -186,6 +186,8 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
     if (event->button() != Qt::LeftButton) return;
     if (!_editable) return;
 
+    QGraphicsItem* finishedItem = nullptr;  // 当前鼠标释放后真正完成的本地图元
+
     switch (_currShapeType)
     {
         case Shape_Pen:
@@ -194,6 +196,7 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
             if (_currPathItem)
             {
                 addPointToPath(event->scenePos()); // 补上最后一点
+                finishedItem = _currPathItem;
                 _currPathItem = nullptr;
             }
             break;
@@ -206,6 +209,7 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
                 // 确保最后形状正确
                 QRectF rect(_startPos, event->scenePos());
                 _currRectItem->setRect(rect.normalized());
+                finishedItem = _currRectItem;
                 _currRectItem = nullptr;
             }
             break;
@@ -217,6 +221,7 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
             {
                 QRectF rect(_startPos, event->scenePos());
                 _currOvalItem->setRect(rect.normalized());
+                finishedItem = _currOvalItem;
                 _currOvalItem = nullptr;
             }
             break;
@@ -227,11 +232,14 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
             {
                 // 确保最后形状正确
                 _currLineItem->setLine(QLineF(_startPos, event->scenePos()));
+                finishedItem = _currLineItem;
                 _currLineItem = nullptr;
             }
             break;
         }
     }
+
+    recordFinishedLocalItem(_currUuid, (int)_currShapeType, finishedItem);  //入栈
 
     emit sigStrokeEnd(_currUuid, (int)_currShapeType, event->scenePos());   //发送网络信号
     _currUuid = "";
@@ -319,6 +327,39 @@ void PaintScene::hideEraserCursor()
     {
         _eraserCursorItem->hide();
     }
+}
+
+bool PaintScene::canUndoLocal() const
+{
+    return !_localUndoStack.isEmpty();
+}
+
+void PaintScene::undoLastLocalItem()    //撤销栈顶图元
+{
+    while (!_localUndoStack.isEmpty())
+    {
+        DrawItemRecord record = _localUndoStack.pop();
+        QGraphicsItem* item = record.item;
+        _localItems.remove(record.itemId);
+
+        // resetScene/clear 之后旧指针可能已经失效，正常流程会先清空栈；这里再做一层保护。
+        if (!item || item->scene() != this)
+            continue;
+
+        removeItem(item);
+        delete item;
+        return;
+    }
+}
+
+void PaintScene::recordFinishedLocalItem(const QString& itemId, int shape, QGraphicsItem* item)
+{
+    if (itemId.isEmpty() || !item)
+        return;
+
+    // 记录 itemId -> item 的关系，后续联机撤销可以直接复用 itemId 做协议字段。
+    _localItems.insert(itemId, item);
+    _localUndoStack.push(DrawItemRecord{itemId, shape, item});
 }
 
 static QColor ColorFromArgbInt(int32_t argb)    //将颜色转为Qt颜色
@@ -445,6 +486,8 @@ void PaintScene::resetScene()
 
     // 清空远端 item 缓存（否则下一次 applyRemoteDraw 可能继续复用旧状态）
     _remoteItems.clear();
+    _localUndoStack.clear();
+    _localItems.clear();
 
     // 清空当前正在画的本地状态（避免半笔残留）
     _currUuid.clear();
