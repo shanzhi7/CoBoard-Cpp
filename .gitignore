@@ -74,6 +74,11 @@ yarn-error.log*
 DBClient/build/
 GateServer/out/
 VerifyServer/.VSCodeCounter/
+.agents/
+AGENTS.md
+ANGENTS.md
+导学-SyncCanvas.md
+面经-SyncCanvas.md
 
 # --- 敏感配置文件 ---
 config.ini
