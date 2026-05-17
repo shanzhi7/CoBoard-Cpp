@@ -13,6 +13,9 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QAction>
+#include <QDateTime>
+#include <QElapsedTimer>
+#include <QtMath>
 
 Canvas::Canvas(QWidget *parent)
     : QMainWindow(parent)
@@ -142,6 +145,11 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
 
     // 2) 清空待发送点缓存
     _pendingPointsByUuid.clear();
+
+    // 2.5) 重置延迟测量统计
+    _latencySamples.clear();
+    _latencySum = 0;
+    _latencyCount = 0;
 
     // 3) 清空画面
     if (_paintScene)
@@ -667,6 +675,7 @@ void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor
     req.set_start_y(startPos.y());
     req.set_current_x(startPos.x());
     req.set_current_y(startPos.y());
+    req.set_send_timestamp_ms(static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()));  //发送当前时间戳
 
     std::string binaryData;
     if (!req.SerializeToString(&binaryData)) return;
@@ -707,6 +716,7 @@ void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
     req.set_shape(static_cast<message::ShapeType>(type));
     req.set_current_x(currentPos.x());
     req.set_current_y(currentPos.y());
+    req.set_send_timestamp_ms(static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()));  //发送当前时间戳（几何图形）
 
     std::string binaryData;
     if (!req.SerializeToString(&binaryData))
@@ -767,6 +777,7 @@ void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
     req.set_shape(static_cast<message::ShapeType>(type));
     req.set_current_x(endPos.x());
     req.set_current_y(endPos.y());
+    req.set_send_timestamp_ms(static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()));  //发送当前时间戳
 
     std::string binaryData;
     if (!req.SerializeToString(&binaryData)) return;
@@ -787,6 +798,45 @@ void Canvas::slot_onDrawBroadcast(QByteArray data)
     //不收自己发送的
     int myUid = UserMgr::getInstance()->getMyInfo()->_id;
     if (req.uid() == myUid) return;
+
+    // ===== 延迟测量 =====
+    if (req.send_timestamp_ms() > 0)
+    {
+        quint64 now = QDateTime::currentMSecsSinceEpoch();      //当前时间戳
+        qint64 latency = now - static_cast<qint64>(req.send_timestamp_ms());    //延迟，现在 - 发送
+
+        // 丢弃明显异常值（时钟不同步等导致的负数或超大值）
+        if (latency >= 0 && latency < 10000)
+        {
+            _latencySamples.append(latency);
+            _latencySum += latency;
+            _latencyCount++;
+
+            // 每收到 100 个采样，打印一次统计
+            if (_latencyCount % 100 == 0)
+            {
+                // 计算 P50 / P99
+                QList<qint64> sorted = _latencySamples;
+                std::sort(sorted.begin(), sorted.end());
+                qint64 p50 = sorted[sorted.size() / 2];
+                qint64 p99 = sorted[static_cast<int>(sorted.size() * 0.99)];
+                double avg = static_cast<double>(_latencySum) / _latencyCount;
+
+                qDebug() << "========== 绘画同步延迟统计 ==========";
+                qDebug() << "  采样数:" << _latencyCount;
+                qDebug() << "  平均延迟:" << QString::number(avg, 'f', 1) << "ms";
+                qDebug() << "  P50:" << p50 << "ms";
+                qDebug() << "  P99:" << p99 << "ms";
+                qDebug() << "  最小:" << sorted.first() << "ms";
+                qDebug() << "  最大:" << sorted.last() << "ms";
+                qDebug() << "=====================================";
+
+                // 保留最近 1000 个样本，避免内存无限增长
+                if (_latencySamples.size() > 1000)
+                    _latencySamples = _latencySamples.mid(_latencySamples.size() - 500);
+            }
+        }
+    }
 
     _paintScene->applyRemoteDraw(req);  //调用applyRemoteDraw处理
 }
@@ -870,6 +920,8 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
         const QPointF& lastPoint = pendingStroke.points[pointsToSend - 1];
         req.set_current_x(lastPoint.x());
         req.set_current_y(lastPoint.y());
+
+        req.set_send_timestamp_ms(static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()));  //发送当前时间戳
 
         // 批量塞入 path_points
         req.mutable_path_points()->Reserve(pointsToSend);

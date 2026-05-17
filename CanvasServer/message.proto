@@ -223,7 +223,7 @@ message RevokeEditRsp {
     bool can_edit = 4;
 }
 
-message PermissionChangedBroadcast {        // 权限变更广播
+message PermissionChangedBroadcast {
     string room_id = 1;
     int32 target_uid = 2;
     bool can_edit = 3;
@@ -302,6 +302,9 @@ message DrawReq {
         float y = 2;
     }
     repeated Point path_points = 12; 
+
+    // --- 延迟测量 ---
+    uint64 send_timestamp_ms = 13;  // 发送方时间戳（毫秒），用于单向延迟测量
 }
 
 //--群聊--

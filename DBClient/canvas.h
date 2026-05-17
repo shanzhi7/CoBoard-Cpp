@@ -84,6 +84,10 @@ private:
 
     void flushStrokePoints(const QString& uuid, bool force); // force=true: 立即把剩余点发出去
 
+    // ===== 延迟测量 =====
+    QList<qint64> _latencySamples;   // 延迟采样值
+    qint64 _latencySum = 0;          // 延迟总和
+    int _latencyCount = 0;           // 采样计数
 
     void initCanvasUi();        //初始化ui界面
     void initToolBtn();         //初始化tool按钮
