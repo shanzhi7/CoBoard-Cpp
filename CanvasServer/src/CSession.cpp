@@ -36,7 +36,7 @@ CSession::CSession(boost::asio::io_context& io_context)
 {
 	boost::uuids::uuid a_uuid = boost::uuids::random_generator()();
 	_session_id = boost::uuids::to_string(a_uuid);
-	memset(&_head_buffer, 0, sizeof(MsgHead));	//³õÊ¼»¯Í·²¿»º³åÇø
+	memset(&_head_buffer, 0, sizeof(MsgHead));	//ï¿½ï¿½Ê¼ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 }
 
 CSession::~CSession()
@@ -46,11 +46,11 @@ CSession::~CSession()
 
 void CSession::Start()
 {
-	// Æô¶¯¶ÁÈ¡Ñ­»·
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Ñ­ï¿½ï¿½
 	ReadHead();
 }
 
-//·¢ËÍÂß¼­£¬Ïß³Ì°²È«
+//ï¿½ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ß³Ì°ï¿½È«
 void CSession::Send(const std::string& msg, short msg_id)
 {
 	if (_b_close) return;
@@ -67,15 +67,15 @@ void CSession::Send(const std::string& msg, short msg_id)
 			<< " msg_id=" << msg_id << std::endl;
 	}
 
-	//¹¹Ôì·¢ËÍ½Úµã£¬×Ô¶¯´¦Àí´óÐ¡¶Ë´ò°ü
+	//ï¿½ï¿½ï¿½ì·¢ï¿½Í½Úµã£¬ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð¡ï¿½Ë´ï¿½ï¿½
 	auto send_node = std::make_shared<SendNode>(msg.c_str(), msg.length(), msg_id);
 
-	//¼ÓËøÈë¶Ó
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	bool b_need_start_write = false;
 	{
 		std::lock_guard<std::mutex> lock(_send_mutex);
 		_send_queue.push(send_node);
-		// Èç¹ûµ±Ç°Ã»ÓÐÕýÔÚ½øÐÐµÄÐ´²Ù×÷£¬ÔòÐèÒª´¥·¢
+		// ï¿½ï¿½ï¿½ï¿½ï¿½Ç°Ã»ï¿½ï¿½ï¿½ï¿½ï¿½Ú½ï¿½ï¿½Ðµï¿½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½
 		if (_send_queue.size() == 1)
 		{
 			b_need_start_write = true;
@@ -83,10 +83,10 @@ void CSession::Send(const std::string& msg, short msg_id)
 
 	}
 
-	// ´¥·¢Òì²½Ð´
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ì²½Ð´
 	if (b_need_start_write)
 	{
-		// Ê¹ÓÃ post È·±£ HandleWrite ÔÚ socket ËùÔÚµÄ IO Ïß³ÌÖ´ÐÐ
+		// Ê¹ï¿½ï¿½ post È·ï¿½ï¿½ HandleWrite ï¿½ï¿½ socket ï¿½ï¿½ï¿½Úµï¿½ IO ï¿½ß³ï¿½Ö´ï¿½ï¿½
 		auto self = shared_from_this();
 		boost::asio::post(_socket.get_executor(), [this, self]() {
 			HandleWrite(boost::system::error_code(), self);
@@ -98,12 +98,12 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
 {
 	if (error)
 	{
-		std::cout << "¡¾CSesssion:¡¿Write Error: " << error.message() << std::endl;
+		std::cout << "ï¿½ï¿½CSesssion:ï¿½ï¿½Write Error: " << error.message() << std::endl;
 		Close();
 		return;
 	}
 
-	//»ñÈ¡¶ÓÍ·Êý¾Ý
+	//ï¿½ï¿½È¡ï¿½ï¿½Í·ï¿½ï¿½ï¿½ï¿½
 	std::shared_ptr<SendNode> msg_node;
 	{
 		std::lock_guard<std::mutex> lock(_send_mutex);
@@ -114,32 +114,32 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
         msg_node = _send_queue.front();
 	}
 
-	//Ö´ÐÐÒì²½Ð´²Ù×÷·¢ËÍÊý¾Ý
+	//Ö´ï¿½ï¿½ï¿½ì²½Ð´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	boost::asio::async_write(_socket,
 		boost::asio::buffer(msg_node->_data, msg_node->_total_len),
 		[this, self, msg_node](const boost::system::error_code& ec, std::size_t)
 		{
 			if (ec)
 			{
-				HandleWrite(ec, self); // ×ª·¢´íÎó
+				HandleWrite(ec, self); // ×ªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				return;
 			}
 
-			bool need_continue = false;		//ËøÄÚ±ê¼ÇÊÇ·ñ¼ÌÐøÐ´£¬·ÀÖ¹×ÊÔ´¾ºÕù
-			// Ð´ÍêÒ»¸ö°ü£¬µ¯³ö
+			bool need_continue = false;		//ï¿½ï¿½ï¿½Ú±ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½Ð´ï¿½ï¿½ï¿½ï¿½Ö¹ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½
+			// Ð´ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			{
 				std::lock_guard<std::mutex> lock(_send_mutex);
 				_send_queue.pop();
 				need_continue = !_send_queue.empty();
 			}
-			// Èç¹û»¹ÓÐ£¬¼ÌÐøÐ´
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ï¿½ï¿½ï¿½Ð´
 			if (need_continue)
 			{
 				HandleWrite(boost::system::error_code(), self);
 			}
 		});
 }
-//¶ÁÈ¡Í·²¿
+//ï¿½ï¿½È¡Í·ï¿½ï¿½
 void CSession::ReadHead()
 {
 	if (_b_close)
@@ -154,38 +154,38 @@ void CSession::ReadHead()
 		{
 			if (ec)
 			{
-				// ¶Ô¶Ë¹Ø±Õ»òÍøÂç´íÎó
+				// ï¿½Ô¶Ë¹Ø±Õ»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				Close();
 				return;
 			}
 
-			// ½âÎöÍ·²¿ (ÍøÂçÐò -> Ö÷»úÐò)
+			// ï¿½ï¿½ï¿½ï¿½Í·ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -> ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 			short msg_id = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_id);
 			short msg_len = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_len);
 
-			// ¼òµ¥Ð£Ñé
+			// ï¿½ï¿½Ð£ï¿½ï¿½
 			if (msg_len > MAX_LENGTH || msg_len < 0)
 			{
-				std::cout << "¡¾ReadHead¡¿Invalid msg length: " << msg_len << std::endl;
+				std::cout << "ï¿½ï¿½ReadHeadï¿½ï¿½Invalid msg length: " << msg_len << std::endl;
 				Close();
 				return;
 			}
 
-			// ¶Á Body
+			// ï¿½ï¿½ Body
 			ReadBody(msg_id, msg_len);
 		});
 }
 
-//¶ÁÈ¡±ä³¤ Body(Ö±½Ó¶ÁÈë RecvNode)
+//ï¿½ï¿½È¡ï¿½ä³¤ Body(Ö±ï¿½Ó¶ï¿½ï¿½ï¿½ RecvNode)
 void CSession::ReadBody(short msg_id, short msg_len)
 { 
 	if (_b_close) return;
 	auto self = shared_from_this();
 
-	//ÉêÇëÄÚ´æ
+	//ï¿½ï¿½ï¿½ï¿½ï¿½Ú´ï¿½
 	auto recv_node = std::make_shared<RecvNode>(msg_len, msg_id);
 
-	//Ö±½ÓÐ´Èë½ÚµãÄÚ´æ
+	//Ö±ï¿½ï¿½Ð´ï¿½ï¿½Úµï¿½ï¿½Ú´ï¿½
 	boost::asio::async_read(_socket,
 		boost::asio::buffer(recv_node->_data, msg_len),
 		[this, self, recv_node, msg_id](const boost::system::error_code& ec, std::size_t bytes_transferred)
@@ -196,33 +196,34 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				return;
 			}
 
-			// ÉèÖÃÊµ¼Ê³¤¶È
+			// ï¿½ï¿½ï¿½ï¿½Êµï¿½Ê³ï¿½ï¿½ï¿½
 			recv_node->_cur_len = bytes_transferred;
-			recv_node->_data[recv_node->_cur_len] = '\0';	// ½áÊø·û
-			std::cout << "revc msgid is :" << msg_id << std::endl;
+			recv_node->_data[recv_node->_cur_len] = '\0';	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+			if (msg_id != ID_DRAW_REQ)
+				std::cout << "revc msgid is :" << msg_id << std::endl;
 
-			// ºËÐÄ·ÖÁ÷Âß¼­£º¿ìÂý·ÖÀë
+			// ï¿½ï¿½ï¿½Ä·ï¿½ï¿½ï¿½ï¿½ß¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 			// 
-			// ¿ìÍ¨µÀ£º¸ßÆµ»æ»­Êý¾Ý£¬²»½ø LogicQueue£¬Ö±½Ó¹ã²¥
+			// ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æµï¿½æ»­ï¿½ï¿½ï¿½Ý£ï¿½ï¿½ï¿½ï¿½ï¿½ LogicQueueï¿½ï¿½Ö±ï¿½Ó¹ã²¥
 			if (msg_id == ID_DRAW_REQ)
 			{
-				if (_uid == 0) //»ù´¡Ð£Ñé£º±ØÐëµÇÂ¼
+				if (_uid == 0) //ï¿½ï¿½ï¿½ï¿½Ð£ï¿½é£ºï¿½ï¿½ï¿½ï¿½ï¿½Â¼
 				{
 					std::cout << "[CSession] DrawReq rejected: not logged in. SessionId=" << _session_id << std::endl;
 					ReadHead();
 					return;
 				}
 
-				auto room = _room.lock();	//weak ptrÉý¼¶
-				if (!room)	//±ØÐëÒÑ¾­¼ÓÈë·¿¼ä
+				auto room = _room.lock();	//weak ptrï¿½ï¿½ï¿½ï¿½
+				if (!room)	//ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ë·¿ï¿½ï¿½
 				{
 					std::cout << "[CSession] DrawReq rejected: not in room. UID=" << _uid << std::endl;
 					ReadHead();
 					return;
 				}
 
-				//½âÎö protobuf (ÓÃÓÚÐ£Ñé uid ·ÀÖ¹Î±Ôì)
-				// ·þÎñ¶ËÈ¨ÏÞ¶µµ×£º¿Í»§¶ËÖ»¶ÁÖ»ÊÇÌåÑé²ã£¬ÕæÕýÊÇ·ñÔÊÐí»æÖÆ±ØÐëÓÉ·þÎñ¶ËÅÐ¶Ï¡£
+				//ï¿½ï¿½ï¿½ï¿½ protobuf (ï¿½ï¿½ï¿½ï¿½Ð£ï¿½ï¿½ uid ï¿½ï¿½Ö¹Î±ï¿½ï¿½)
+				// ï¿½ï¿½ï¿½ï¿½ï¿½È¨ï¿½Þ¶ï¿½ï¿½×£ï¿½ï¿½Í»ï¿½ï¿½ï¿½Ö»ï¿½ï¿½Ö»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ã£¬ï¿½ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ±ï¿½ï¿½ï¿½ï¿½É·ï¿½ï¿½ï¿½ï¿½ï¿½Ð¶Ï¡ï¿½
 				if (!room->CanEdit(_uid))
 				{
 					std::cout << "[CSession] DrawReq rejected: no edit permission. UID=" << _uid
@@ -239,54 +240,54 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				//·ÀÖ¹Î±Ôì£ºreq.uid ±ØÐëµÈÓÚ session uid
+				//ï¿½ï¿½Ö¹Î±ï¿½ì£ºreq.uid ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ session uid
 				if (drawReq.uid() != _uid)
 				{
 					std::cout << "[CSession] DrawReq uid mismatch! SessionUID=" << _uid
 						<< " ReqUID=" << drawReq.uid() << " -> Close()" << std::endl;
-					// ¡°°²È«ÓÅÏÈ¡±Ö±½Ó¶Ï¿ªÁ¬½Ó
+					// ï¿½ï¿½ï¿½ï¿½È«ï¿½ï¿½ï¿½È¡ï¿½Ö±ï¿½Ó¶Ï¿ï¿½ï¿½ï¿½ï¿½ï¿½
 					Close();
 					return;
 				}
 
-				//¹ã²¥·¢¸øÆäËûÈË
+				//ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 				std::string rawBinary(recv_node->_data, recv_node->_cur_len);
 
-				//--Ð´Èë·¿¼äÄÚ´æ history,¼ÇÂ¼£º 
-				// - Pen/Eraser: START + MOVE(flush) + END , - ¼¸ºÎÍ¼ÐÎ: START + END£¨MOVE ÊÇÔ¤ÀÀ£¬²»½ø history£©
+				//--Ð´ï¿½ë·¿ï¿½ï¿½ï¿½Ú´ï¿½ history,ï¿½ï¿½Â¼ï¿½ï¿½ 
+				// - Pen/Eraser: START + MOVE(flush) + END , - ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ï¿½: START + ENDï¿½ï¿½MOVE ï¿½ï¿½Ô¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ historyï¿½ï¿½
 				{
-					const auto shape = drawReq.shape();	// Í¼ÐÎÀàÐÍ
-					const auto cmd = drawReq.cmd();		// ÃüÁîÀàÐÍ
+					const auto shape = drawReq.shape();	// Í¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+					const auto cmd = drawReq.cmd();		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 
 					const bool is_pen_like = (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER);
-					bool should_record = false;			//±ê¼ÇÊÇ·ñÓ¦¸Ã¸´ÏÖ
+					bool should_record = false;			//ï¿½ï¿½ï¿½ï¿½Ç·ï¿½Ó¦ï¿½Ã¸ï¿½ï¿½ï¿½
 
 					if (is_pen_like)
 					{
-						// ±Ê¼£ÐèÒª MOVE ²ÅÄÜ¸´ÏÖÇúÏß
+						// ï¿½Ê¼ï¿½ï¿½ï¿½Òª MOVE ï¿½ï¿½ï¿½Ü¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 						should_record = (cmd == message::CMD_START ||
 							cmd == message::CMD_MOVE ||
 							cmd == message::CMD_END);
 					}
 					else
 					{
-						// ¼¸ºÎ£ºÖ»»Ø·Å×îÖÕ½á¹û
+						// ï¿½ï¿½ï¿½Î£ï¿½Ö»ï¿½Ø·ï¿½ï¿½ï¿½ï¿½Õ½ï¿½ï¿½
 						should_record = (cmd == message::CMD_START ||
 							cmd == message::CMD_END);
 					}
-					if (should_record)	//ÐèÒª¸´ÏÖ£¬Ìí¼Óµ½ÀúÊ·¼ÇÂ¼ (±Ê¼£ÀàÐÍ¶¼ÐèÒª£¬Í¼ÐÎÀàÐÍ²»ÐèÒªMOVE£¬MOVEÊÇÔ¤ÀÀ)
+					if (should_record)	//ï¿½ï¿½Òªï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½Óµï¿½ï¿½ï¿½Ê·ï¿½ï¿½Â¼ (ï¿½Ê¼ï¿½ï¿½ï¿½ï¿½Í¶ï¿½ï¿½ï¿½Òªï¿½ï¿½Í¼ï¿½ï¿½ï¿½ï¿½ï¿½Í²ï¿½ï¿½ï¿½ÒªMOVEï¿½ï¿½MOVEï¿½ï¿½Ô¤ï¿½ï¿½)
 					{
 						room->AppendHistory(rawBinary);
 					}
 				}
 
-				// Õý³£¹ã²¥¸øÆäËûÈË£¨²»»ØÏÔ¸ø×Ô¼º£©
+				// ï¿½ï¿½ï¿½ï¿½ï¿½ã²¥ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ë£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ô¸ï¿½ï¿½Ô¼ï¿½ï¿½ï¿½
 				room->Broadcast(rawBinary, ID_DRAW_RSP, _uid);
 
-				ReadHead();	//¶ÁÈ¡ÏÂÒ»¸ö°üÍ·
+				ReadHead();	//ï¿½ï¿½È¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½Í·
 				return;
 			}
-			// ÂýÍ¨µÀ£ºÒµÎñÂß¼­ (µÇÂ¼¡¢¼ÓÈë·¿¼ä)£¬ÈÓ½ø¶ÓÁÐ
+			// ï¿½ï¿½Í¨ï¿½ï¿½ï¿½ï¿½Òµï¿½ï¿½ï¿½ß¼ï¿½ (ï¿½ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ë·¿ï¿½ï¿½)ï¿½ï¿½ï¿½Ó½ï¿½ï¿½ï¿½ï¿½ï¿½
 			else
 			{
 				LogicSystem::getInstance()->PostMsgToQue(
@@ -294,16 +295,16 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				);
 			}
 
-			// ¼ÌÐø¶ÁÈ¡ÏÂÒ»¸ö°ü
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½
 			ReadHead();
 		});
 }
 
-//×ÊÔ´ÇåÀí
+//ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½
 void CSession::Close()
 { 
-	// atomic exchange »á½« _b_close ÉèÎª true£¬²¢·µ»ØÖ®Ç°µÄÖµ
-		// Èç¹ûÖ®Ç°ÒÑ¾­ÊÇ true£¬ËµÃ÷±ðµÄÏß³ÌÕýÔÚ¹Ø£¬ÎÒ¾ÍÖ±½Ó·µ»Ø
+	// atomic exchange ï¿½á½« _b_close ï¿½ï¿½Îª trueï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö®Ç°ï¿½ï¿½Öµ
+		// ï¿½ï¿½ï¿½Ö®Ç°ï¿½Ñ¾ï¿½ï¿½ï¿½ trueï¿½ï¿½Ëµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ß³ï¿½ï¿½ï¿½ï¿½Ú¹Ø£ï¿½ï¿½Ò¾ï¿½Ö±ï¿½Ó·ï¿½ï¿½ï¿½
 	bool expected = false;
 	if (!_b_close.compare_exchange_strong(expected, true))
 	{
@@ -311,20 +312,20 @@ void CSession::Close()
 	}
 
 
-	// ´Ó SessionMgr ÒÆ³ý (·ÀÖ¹ LogicServer ÌßÈËÊ±ÕÒ²»µ½)
+	// ï¿½ï¿½ SessionMgr ï¿½Æ³ï¿½ (ï¿½ï¿½Ö¹ LogicServer ï¿½ï¿½ï¿½ï¿½Ê±ï¿½Ò²ï¿½ï¿½ï¿½)
 	if (_uid != 0)
 	{
 		SessionMgr::getInstance()->RemoveSession(_uid);
 	}
 
-	// ´Ó·¿¼äÒÆ³ý (Í¨Öª·¿¼äÀïµÄÆäËûÈË)
+	// ï¿½Ó·ï¿½ï¿½ï¿½ï¿½Æ³ï¿½ (Í¨Öªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	if (auto room = _room.lock())
 	{
 		room->Leave(_uid);
 	}
 
 
-	// ¹Ø±Õ socket
+	// ï¿½Ø±ï¿½ socket
 	boost::system::error_code ec;
 	_socket.close(ec);
 
