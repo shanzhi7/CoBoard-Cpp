@@ -46,6 +46,13 @@ Canvas::Canvas(QWidget *parent)
 
     _strokeFlushTimer->start();
 
+    // 远端绘画刷新缓冲：网络包到达可能有抖动，但 UI 绘制尽量保持固定节奏。
+    // 16ms 约等于 60 FPS，额外引入的显示延迟通常在 0~16ms 之间；
+    // 如果公网仍然卡顿，可以把这里调成 25 或 33，用更高延迟换更平滑的画面。
+    _remoteDrawTimer = new QTimer(this);
+    _remoteDrawTimer->setInterval(16);
+    connect(_remoteDrawTimer, &QTimer::timeout, this, &Canvas::flushRemoteDrawQueue);
+    _remoteDrawTimer->start();
 
     initCanvasUi();
     if (_paintScene)
@@ -96,6 +103,11 @@ Canvas::~Canvas()
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
     this->_room_info = room_info;
+    _remoteDrawQueue.clear();
+    if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
+        _strokeFlushTimer->start();
+    if (_remoteDrawTimer && !_remoteDrawTimer->isActive())
+        _remoteDrawTimer->start();
     applyRoomCanvasSize();
     refreshRoomCollaborationState();
 }
@@ -104,8 +116,11 @@ void Canvas::enterOfflineMode()
 {
     // 离线模式复用同一套 PaintScene 绘图能力，但不创建房间、不连接服务器。
     _pendingPointsByUuid.clear();
+    _remoteDrawQueue.clear();
     if (_strokeFlushTimer)
         _strokeFlushTimer->stop();
+    if (_remoteDrawTimer)
+        _remoteDrawTimer->stop();
 
     _userItemMap.clear();
     if (ui && ui->treeWidget)
@@ -142,9 +157,12 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
     if (_strokeFlushTimer)
         _strokeFlushTimer->stop();
+    if (_remoteDrawTimer)
+        _remoteDrawTimer->stop();
 
     // 2) 清空待发送点缓存
     _pendingPointsByUuid.clear();
+    _remoteDrawQueue.clear();
 
     // 2.5) 重置延迟测量统计
     _latencySamples.clear();
@@ -805,6 +823,17 @@ void Canvas::slot_onDrawBroadcast(QByteArray data)
         quint64 now = QDateTime::currentMSecsSinceEpoch();      //当前时间戳
         qint64 latency = now - static_cast<qint64>(req.send_timestamp_ms());    //延迟，现在 - 发送
 
+        // if (_latencyCount < 20 || _latencyCount % 100 == 0)
+        // {
+        //     qDebug() << "[Latency raw]"
+        //              << "send=" << req.send_timestamp_ms()
+        //              << "now=" << now
+        //              << "latency=" << latency
+        //              << "uid=" << req.uid()
+        //              << "cmd=" << req.cmd()
+        //              << "shape=" << req.shape();
+        // }
+
         // 丢弃明显异常值（时钟不同步等导致的负数或超大值）
         if (latency >= 0 && latency < 10000)
         {
@@ -838,7 +867,44 @@ void Canvas::slot_onDrawBroadcast(QByteArray data)
         }
     }
 
-    _paintScene->applyRemoteDraw(req);  //调用applyRemoteDraw处理
+    // 不直接绘制，而是先进入远端绘画队列。
+    // 原因：公网下包到达不稳定，可能 80ms 没包、随后连续到好几个包；
+    // 如果这里立刻 applyRemoteDraw，会在 UI 上表现为“停一下、突然跳一段”。
+    // 入队后由 flushRemoteDrawQueue() 按固定节奏应用，视觉上会更平滑。
+    _remoteDrawQueue.enqueue(req);
+}
+
+void Canvas::flushRemoteDrawQueue()
+{
+    if (!_paintScene)
+        return;
+    if (_room_info && _room_info->offline)
+    {
+        _remoteDrawQueue.clear();
+        return;
+    }
+
+    // 每帧最多处理的包数。这个值太小会导致队列越积越多，太大又会退化成“一批包一次性画完”。
+    // 4 包/帧是一个比较保守的起点：正常网络下足够跟上，公网抖动时也能避免 UI 线程瞬间处理太多 setPath。
+    int maxPacketsThisFrame = 4;
+
+    // 如果公网突然抖动导致积压很多包，临时增加本帧处理量，避免队列越排越长。
+    // 这里仍然限制最大值，防止某一帧处理过多图元导致 UI 卡住。
+    if (_remoteDrawQueue.size() > 30)
+    {
+        maxPacketsThisFrame = 12;
+    }
+    else if (_remoteDrawQueue.size() > 12)
+    {
+        maxPacketsThisFrame = 8;
+    }
+
+    int handled = 0;
+    while (!_remoteDrawQueue.isEmpty() && handled < maxPacketsThisFrame)
+    {
+        _paintScene->applyRemoteDraw(_remoteDrawQueue.dequeue());
+        ++handled;
+    }
 }
 
 // 接收群聊消息槽函数

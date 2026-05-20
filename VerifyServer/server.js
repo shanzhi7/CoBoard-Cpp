@@ -3,7 +3,7 @@
 const grpc = require('@grpc/grpc-js')
 const message_proto = require('./proto')
 const const_module = require('./const')
-const {v4: uuidv4} = require('uuid')
+const { randomUUID } = require('crypto')
 const emailModule = require('./email')
 const redis_module = require('./redis')
 
@@ -14,11 +14,11 @@ async function GetVarifyCode(call, callback)    //声明async内部才能调用a
     try{
         let query_request = await redis_module.GetRedis(const_module.code_prefix + call.request.email);
         console.log("query_request is",query_request)
-        let = uniqueId = query_request;
+        let uniqueId = query_request;
         if(query_request == null)
         {
              //获取验证码
-            const uuid = uuidv4().replace(/-/g, ''); // 去除所有连字符
+            const uuid = randomUUID().replace(/-/g, ''); // 去除所有连字符
             uniqueId = uuid.substring(0, 6);  // 截取前6位
 
             //将验证码设置到redis里

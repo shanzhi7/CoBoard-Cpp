@@ -77,12 +77,22 @@ VerifyServer/.VSCodeCounter/
 .agents/
 AGENTS.md
 ANGENTS.md
+configs/
+docker/
+docker-compose.yml
 导学-SyncCanvas.md
 面经-SyncCanvas.md
 docker-deploy.md
 
 # --- 敏感配置文件 ---
+.env
 config.ini
+
+# --- Docker 镜像压缩包 ---
+*.tar
+*.tar.gz
+*.tgz
+*.zip
 
 # --- 【例外】Qt客户端的配置不需要保密，强制追踪 ---
 !QtClient/config.ini

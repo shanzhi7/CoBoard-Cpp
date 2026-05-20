@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QHash>
 #include <QVector>
+#include <QQueue>
 
 namespace Ui {
 class Canvas;
@@ -83,6 +84,14 @@ private:
     QHash<QString, PendingStrokePoints> _pendingPointsByUuid;   // 存储uuid对应的 PendingStrokePoints 待处理点
 
     void flushStrokePoints(const QString& uuid, bool force); // force=true: 立即把剩余点发出去
+
+    // ====== 远端绘画接收缓冲 ======
+    // 公网环境下，TCP 包可能不是均匀到达，而是“停一下、来一批”。
+    // 如果收到一包就立刻 setPath/setRect，接收端画面会出现一段一段跳动。
+    // 这里先把远端 DrawReq 放入队列，再用固定间隔批量应用，用少量额外显示延迟换取更稳定的视觉刷新。
+    QTimer* _remoteDrawTimer = nullptr;          // 固定刷新远端绘画的定时器
+    QQueue<message::DrawReq> _remoteDrawQueue;  // 等待应用到 PaintScene 的远端绘画包
+    void flushRemoteDrawQueue();                // 按固定节奏应用远端绘画包
 
     // ===== 延迟测量 =====
     QList<qint64> _latencySamples;   // 延迟采样值

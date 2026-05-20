@@ -1,0 +1,38 @@
+# 构建目录
+**/build/
+**/out/
+**/bin/
+**/debug/
+**/release/
+
+# IDE 文件
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+
+# Git
+.git/
+
+# Node.js
+**/node_modules/
+
+# Docker 部署文件（不需要进镜像）
+docker/
+
+# 文档和图片
+docs/
+*.md
+*.png
+
+# Windows 特定文件
+*.exe
+*.dll
+*.pdb
+*.ilk
+
+# 敏感配置（运行时挂载）
+**/config.ini
+**/config.json
+.env
+configs/prod/

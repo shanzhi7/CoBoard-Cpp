@@ -10,6 +10,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
 {
     //连接成功
     QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
+        _socket.setSocketOption(QAbstractSocket::LowDelayOption, 1);
         qDebug()<<"连接到 Server！";
 
         if(!_pending_room_id.isEmpty()) //检查是否有“重定向后的加入房间”任务
@@ -65,7 +66,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
                 //读取消息id和长度
                 stream >> _message_id >> _message_len;
                 _buffer = _buffer.mid(sizeof(quint16) * 2);
-                qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
+                //qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
 
             }
 
@@ -80,7 +81,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
 
             //消息体足够，解析处理
             QByteArray messageBody = _buffer.mid(0,_message_len);
-            qDebug() << "Received body:" << messageBody;
+            //qDebug() << "Received body:" << messageBody;
 
             handleMsg(ReqId(_message_id),_message_len,messageBody);
 

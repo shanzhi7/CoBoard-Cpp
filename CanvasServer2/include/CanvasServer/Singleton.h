@@ -8,6 +8,8 @@
 * @date         2025/09/26
 * @history
 ***********************************************************************************/
+#include <iostream>
+#include <memory>
 #include <mutex>
 
 template<typename T>

@@ -8,9 +8,7 @@
 #include <sw/redis++/redis++.h>
 // 3. JsonCpp
 #include <json/json.h>
-// 4. MySQL
-#include <mysql/jdbc.h> 
-// 5. gRPC
+// 4. gRPC
 #include <grpcpp/grpcpp.h>
 #include <memory>
 #include "GateServer/GateServer.h"

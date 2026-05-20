@@ -6,10 +6,20 @@ if(POLICY CMP0091)
 endif()
 
 # 1. 工具链设置
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE AND CMAKE_HOST_WIN32)
     set(CMAKE_TOOLCHAIN_FILE "D:/cppsoft/vcpkg-new/scripts/buildsystems/vcpkg.cmake")
 endif()
-set(VCPKG_TARGET_TRIPLET "x64-windows-static")
+if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+    if(CMAKE_HOST_WIN32)
+        set(VCPKG_TARGET_TRIPLET "x64-windows-static")
+    else()
+        set(VCPKG_TARGET_TRIPLET "x64-linux")
+    endif()
+endif()
+set(BUILD_SHARED_LIBS OFF)
+if(UNIX AND NOT APPLE)
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+endif()
 
 project ("GateServer")
 
@@ -20,7 +30,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 3. 宏定义 (MySQL必需)
 add_definitions(-DSTATIC_CONCPP)
-add_definitions(-DNOMINMAX)
+if(WIN32)
+    add_definitions(-DNOMINMAX)
+endif()
 
 # 4. 找库
 find_package(hiredis CONFIG REQUIRED)
@@ -28,10 +40,10 @@ find_package(redis++ CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Boost REQUIRED COMPONENTS filesystem system)
-find_package(unofficial-mysql-connector-cpp CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(Protobuf CONFIG REQUIRED)
 find_package(absl CONFIG REQUIRED)
+find_package(Threads REQUIRED)
 # MySQL Connector 的依赖（静态链接必需）
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -81,9 +93,6 @@ target_link_libraries(GateServer PRIVATE
     Boost::filesystem
     Boost::system
 
-    # MySQL Connector/C++ (JDBC API + 静态链接依赖)
-    unofficial::mysql-connector-cpp::connector-jdbc
-    unofficial::mysql-connector-cpp::connector
     OpenSSL::SSL
     OpenSSL::Crypto
     ZLIB::ZLIB
@@ -99,21 +108,29 @@ target_link_libraries(GateServer PRIVATE
     absl::base
     absl::synchronization
     absl::strings
+    Threads::Threads
+)
 
+if(WIN32)
+    target_link_libraries(GateServer PRIVATE
     # Windows 系统库（静态链接必需）
     ws2_32
     dnsapi
     secur32
     crypt32
     bcrypt
-)
+    )
+elseif(UNIX AND NOT APPLE)
+    target_link_options(GateServer PRIVATE -static -static-libgcc -static-libstdc++)
+    target_link_libraries(GateServer PRIVATE ${CMAKE_DL_LIBS} resolv)
+endif()
 
 # ---------------------------------------------------------
 # 自动复制配置文件到构建目录
 # ---------------------------------------------------------
 
 # 1. 确保构建目标存在 (假设你的可执行文件叫 GateServer)
-if(TARGET GateServer)
+if(TARGET GateServer AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/config.ini")
     add_custom_command(TARGET GateServer POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_CURRENT_SOURCE_DIR}/config.ini"      # 源文件路径
