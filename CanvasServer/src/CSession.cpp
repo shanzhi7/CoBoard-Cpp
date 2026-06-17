@@ -1,6 +1,6 @@
-#include "CanvasServer/CSession.h"
+﻿#include "CanvasServer/CSession.h"
 #include "CanvasServer/Room.h"
-#include "CanvasServer/LogicSystem.h" 
+#include "CanvasServer/LogicSystem.h"
 #include "CanvasServer/SessionMgr.h"
 #include "CanvasServer/const.h"
 #include "CanvasServer/message.pb.h"
@@ -36,7 +36,7 @@ CSession::CSession(boost::asio::io_context& io_context)
 {
 	boost::uuids::uuid a_uuid = boost::uuids::random_generator()();
 	_session_id = boost::uuids::to_string(a_uuid);
-	memset(&_head_buffer, 0, sizeof(MsgHead));	//��ʼ��ͷ��������
+	memset(&_head_buffer, 0, sizeof(MsgHead));	//初始化头部缓冲区
 }
 
 CSession::~CSession()
@@ -46,11 +46,11 @@ CSession::~CSession()
 
 void CSession::Start()
 {
-	// ������ȡѭ��
+	// 启动读取循环
 	ReadHead();
 }
 
-//�����߼����̰߳�ȫ
+//发送逻辑，线程安全
 void CSession::Send(const std::string& msg, short msg_id)
 {
 	if (_b_close) return;
@@ -67,15 +67,15 @@ void CSession::Send(const std::string& msg, short msg_id)
 			<< " msg_id=" << msg_id << std::endl;
 	}
 
-	//���췢�ͽڵ㣬�Զ�������С�˴��
+	//创建发送节点，自动处理大小端打包
 	auto send_node = std::make_shared<SendNode>(msg.c_str(), msg.length(), msg_id);
 
-	//�������
+	//加锁入队
 	bool b_need_start_write = false;
 	{
 		std::lock_guard<std::mutex> lock(_send_mutex);
 		_send_queue.push(send_node);
-		// �����ǰû�����ڽ��е�д����������Ҫ����
+		// 如果当前没有正在进行的写操作，则需要触发
 		if (_send_queue.size() == 1)
 		{
 			b_need_start_write = true;
@@ -83,10 +83,10 @@ void CSession::Send(const std::string& msg, short msg_id)
 
 	}
 
-	// �����첽д
+	// 触发异步写
 	if (b_need_start_write)
 	{
-		// ʹ�� post ȷ�� HandleWrite �� socket ���ڵ� IO �߳�ִ��
+		// 使用 post 确保 HandleWrite 在 socket 所在的 IO 线程执行
 		auto self = shared_from_this();
 		boost::asio::post(_socket.get_executor(), [this, self]() {
 			HandleWrite(boost::system::error_code(), self);
@@ -98,12 +98,12 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
 {
 	if (error)
 	{
-		std::cout << "��CSesssion:��Write Error: " << error.message() << std::endl;
+		std::cout << "【CSesssion:】Write Error: " << error.message() << std::endl;
 		Close();
 		return;
 	}
 
-	//��ȡ��ͷ����
+	//获取队头数据
 	std::shared_ptr<SendNode> msg_node;
 	{
 		std::lock_guard<std::mutex> lock(_send_mutex);
@@ -114,32 +114,32 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
         msg_node = _send_queue.front();
 	}
 
-	//ִ���첽д������������
+	//执行异步写操作发送数据
 	boost::asio::async_write(_socket,
 		boost::asio::buffer(msg_node->_data, msg_node->_total_len),
 		[this, self, msg_node](const boost::system::error_code& ec, std::size_t)
 		{
 			if (ec)
 			{
-				HandleWrite(ec, self); // ת������
+				HandleWrite(ec, self); // 转发错误
 				return;
 			}
 
-			bool need_continue = false;		//���ڱ���Ƿ����д����ֹ��Դ����
-			// д��һ����������
+			bool need_continue = false;		//标记是否还有写操作，避免重复触发
+			// 写完一个包，弹出
 			{
 				std::lock_guard<std::mutex> lock(_send_mutex);
 				_send_queue.pop();
 				need_continue = !_send_queue.empty();
 			}
-			// ������У�����д
+			// 如果还有，继续写
 			if (need_continue)
 			{
 				HandleWrite(boost::system::error_code(), self);
 			}
 		});
 }
-//��ȡͷ��
+//读取头部
 void CSession::ReadHead()
 {
 	if (_b_close)
@@ -154,38 +154,38 @@ void CSession::ReadHead()
 		{
 			if (ec)
 			{
-				// �Զ˹رջ��������
+				// 对端关闭或网络错误
 				Close();
 				return;
 			}
 
-			// ����ͷ�� (������ -> ������)
+			// 解析头部 (网络序 -> 主机序)
 			short msg_id = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_id);
 			short msg_len = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_len);
 
-			// ��У��
+			// 简单校验
 			if (msg_len > MAX_LENGTH || msg_len < 0)
 			{
-				std::cout << "��ReadHead��Invalid msg length: " << msg_len << std::endl;
+				std::cout << "【ReadHead】Invalid msg length: " << msg_len << std::endl;
 				Close();
 				return;
 			}
 
-			// �� Body
+			// 读 Body
 			ReadBody(msg_id, msg_len);
 		});
 }
 
-//��ȡ�䳤 Body(ֱ�Ӷ��� RecvNode)
+//读取变长 Body(直接读入 RecvNode)
 void CSession::ReadBody(short msg_id, short msg_len)
-{ 
+{
 	if (_b_close) return;
 	auto self = shared_from_this();
 
-	//�����ڴ�
+	//申请内存
 	auto recv_node = std::make_shared<RecvNode>(msg_len, msg_id);
 
-	//ֱ��д��ڵ��ڴ�
+	//直接写入节点内存
 	boost::asio::async_read(_socket,
 		boost::asio::buffer(recv_node->_data, msg_len),
 		[this, self, recv_node, msg_id](const boost::system::error_code& ec, std::size_t bytes_transferred)
@@ -196,34 +196,34 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				return;
 			}
 
-			// ����ʵ�ʳ���
+			// 设置实际长度
 			recv_node->_cur_len = bytes_transferred;
-			recv_node->_data[recv_node->_cur_len] = '\0';	// ������
+			recv_node->_data[recv_node->_cur_len] = '\0';	// 结束符
 			if (msg_id != ID_DRAW_REQ)
 				std::cout << "revc msgid is :" << msg_id << std::endl;
 
-			// ���ķ����߼�����������
-			// 
-			// ��ͨ������Ƶ�滭���ݣ����� LogicQueue��ֱ�ӹ㲥
+			// 核心分流逻辑：快慢分离
+			//
+			// 快通道：高频绘画数据，不进 LogicQueue，直接广播
 			if (msg_id == ID_DRAW_REQ)
 			{
-				if (_uid == 0) //����У�飺�����¼
+				if (_uid == 0) //身份校验：未登录
 				{
 					std::cout << "[CSession] DrawReq rejected: not logged in. SessionId=" << _session_id << std::endl;
 					ReadHead();
 					return;
 				}
 
-				auto room = _room.lock();	//weak ptr����
-				if (!room)	//�����Ѿ����뷿��
+				auto room = _room.lock();	//weak ptr获取
+				if (!room)	//用户还没加入房间
 				{
 					std::cout << "[CSession] DrawReq rejected: not in room. UID=" << _uid << std::endl;
 					ReadHead();
 					return;
 				}
 
-				//���� protobuf (����У�� uid ��ֹα��)
-				// �����Ȩ�޶��ף��ͻ���ֻ��ֻ������㣬�����Ƿ��������Ʊ����ɷ�����жϡ�
+				//解析 protobuf (服务端校验 uid 防止伪造)
+				// 做了权限兜底：客户端虽然只有画布可见，但是否有编辑权由服务端判断。
 				if (!room->CanEdit(_uid))
 				{
 					std::cout << "[CSession] DrawReq rejected: no edit permission. UID=" << _uid
@@ -240,54 +240,54 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				//��ֹα�죺req.uid ������� session uid
+				//防止伪造：req.uid 必须等于 session uid
 				if (drawReq.uid() != _uid)
 				{
 					std::cout << "[CSession] DrawReq uid mismatch! SessionUID=" << _uid
 						<< " ReqUID=" << drawReq.uid() << " -> Close()" << std::endl;
-					// ����ȫ���ȡ�ֱ�ӶϿ�����
+					// 出于安全考虑，直接断开连接
 					Close();
 					return;
 				}
 
-				//�㲥����������
+				//广播给其他人
 				std::string rawBinary(recv_node->_data, recv_node->_cur_len);
 
-				//--д�뷿���ڴ� history,��¼�� 
-				// - Pen/Eraser: START + MOVE(flush) + END , - ����ͼ��: START + END��MOVE ��Ԥ�������� history��
+				//--写入房间内存 history,记录用
+				// - Pen/Eraser: START + MOVE(flush) + END , - 其他图形: START + END（MOVE 不预览、不写 history）
 				{
-					const auto shape = drawReq.shape();	// ͼ������
-					const auto cmd = drawReq.cmd();		// ��������
+					const auto shape = drawReq.shape();	// 图形类型
+					const auto cmd = drawReq.cmd();		// 命令类型
 
 					const bool is_pen_like = (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER);
-					bool should_record = false;			//����Ƿ�Ӧ�ø���
+					bool should_record = false;			//标记是否应该记录
 
 					if (is_pen_like)
 					{
-						// �ʼ���Ҫ MOVE ���ܸ�������
+						// 画笔需要 MOVE 才能更新路径
 						should_record = (cmd == message::CMD_START ||
 							cmd == message::CMD_MOVE ||
 							cmd == message::CMD_END);
 					}
 					else
 					{
-						// ���Σ�ֻ�ط����ս��
+						// 其他图形，只放行最终结果
 						should_record = (cmd == message::CMD_START ||
 							cmd == message::CMD_END);
 					}
-					if (should_record)	//��Ҫ���֣����ӵ���ʷ��¼ (�ʼ����Ͷ���Ҫ��ͼ�����Ͳ���ҪMOVE��MOVE��Ԥ��)
+					if (should_record)	//需要记录，添加到历史记录 (画笔和图形都要，图形类不需要MOVE，MOVE是预览)
 					{
 						room->AppendHistory(rawBinary);
 					}
 				}
 
-				// �����㲥�������ˣ������Ը��Լ���
+				// 除了发消息的人，其他人转发给自己
 				room->Broadcast(rawBinary, ID_DRAW_RSP, _uid);
 
-				ReadHead();	//��ȡ��һ����ͷ
+				ReadHead();	//读取下一个消息头
 				return;
 			}
-			// ��ͨ����ҵ���߼� (��¼�����뷿��)���ӽ�����
+			// 慢通道：业务逻辑 (登录、加入房间)，扔进队列
 			else
 			{
 				LogicSystem::getInstance()->PostMsgToQue(
@@ -295,16 +295,16 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				);
 			}
 
-			// ������ȡ��һ����
+			// 继续读取下一个包
 			ReadHead();
 		});
 }
 
-//��Դ����
+//资源清理
 void CSession::Close()
-{ 
-	// atomic exchange �Ὣ _b_close ��Ϊ true��������֮ǰ��ֵ
-		// ���֮ǰ�Ѿ��� true��˵������߳����ڹأ��Ҿ�ֱ�ӷ���
+{
+	// atomic exchange 会将 _b_close 设为 true，并返回之前的值
+		// 如果之前已经是 true，说明别的线程正在关，我就直接返回
 	bool expected = false;
 	if (!_b_close.compare_exchange_strong(expected, true))
 	{
@@ -312,20 +312,20 @@ void CSession::Close()
 	}
 
 
-	// �� SessionMgr �Ƴ� (��ֹ LogicServer ����ʱ�Ҳ���)
+	// 从 SessionMgr 移除 (防止 LogicServer 踢人时找不到)
 	if (_uid != 0)
 	{
 		SessionMgr::getInstance()->RemoveSession(_uid);
 	}
 
-	// �ӷ����Ƴ� (֪ͨ�������������)
+	// 从房间移除 (通知房间里的其他人)
 	if (auto room = _room.lock())
 	{
 		room->Leave(_uid);
 	}
 
 
-	// �ر� socket
+	// 关闭 socket
 	boost::system::error_code ec;
 	_socket.close(ec);
 
