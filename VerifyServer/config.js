@@ -16,7 +16,15 @@ let redis_port = config.redis.port;
 let redis_passwd = config.redis.passwd;
 let code_prefix = "code_";
 
+//livekit配置
+const livekit_url = config.livekit.url;
+const livekit_api_key = config.livekit.api_key;
+const livekit_api_secret = config.livekit.api_secret;
+
 //导出内容
 module.exports = {email_pass, email_user,
      mysql_host, mysql_port,redis_host,
-      redis_port, redis_passwd, code_prefix}
+     redis_port, redis_passwd, code_prefix,
+     livekit_url,
+     livekit_api_key,
+     livekit_api_secret}

@@ -24,14 +24,14 @@ class LogicSystem :public Singleton<LogicSystem>
 public:
 
 	~LogicSystem() {};
-	bool HandleGet(std::string path, std::shared_ptr<HttpConnection> con);				//´¦ÀígetÇëÇó
-	bool HandlePost(std::string path, std::shared_ptr<HttpConnection> con);				//´¦ÀípostÇëÇó
-	void RegGet(std::string url, HttpHandler handler);									//×¢²ágetÇëÇó
-	void RegPost(std::string url, HttpHandler handler);									//×¢²ápostÇëÇó
+	bool HandleGet(std::string path, std::shared_ptr<HttpConnection> con);				//å¤„ç†getè¯·æ±‚
+	bool HandlePost(std::string path, std::shared_ptr<HttpConnection> con);				//å¤„ç†postè¯·æ±‚
+	void RegGet(std::string url, HttpHandler handler);									//æ³¨å†Œgetè¯·æ±‚
+	void RegPost(std::string url, HttpHandler handler);									//æ³¨å†Œpostè¯·æ±‚
 
 private:
 
 	LogicSystem();
-	std::map<std::string, HttpHandler> _post_handlers;		//´æ´¢postÇëÇó´¦Àíº¯Êı
-	std::map<std::string, HttpHandler> _get_handlers;		//´æ´¢getÇëÇó´¦Àíº¯Êı
+	std::map<std::string, HttpHandler> _post_handlers;		//å­˜å‚¨postè¯·æ±‚å¤„ç†å‡½æ•°
+	std::map<std::string, HttpHandler> _get_handlers;		//å­˜å‚¨getè¯·æ±‚å¤„ç†å‡½æ•°
 };

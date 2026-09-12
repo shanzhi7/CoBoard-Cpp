@@ -4,13 +4,13 @@
 AsioIOServicePool::AsioIOServicePool(std::size_t size) :_ioServices(size),
 _workGuards(size), _nextIOService(0)
 {
-	//½«IOService°ó¶¨µ½WorkGuard,Ê¹µÃIOServiceÔÚÃ»ÓĞÈÎÎñÊ±²»»á×Ô¶¯ÍË³ö
+	//å°†IOServiceç»‘å®šåˆ°WorkGuard,ä½¿å¾—IOServiceåœ¨æ²¡æœ‰ä»»åŠ¡æ—¶ä¸ä¼šè‡ªåŠ¨é€€å‡º
 	for (size_t i = 0; i < size; i++)
 	{
 		_workGuards[i] = std::unique_ptr<WorkGuard>(new WorkGuard(_ioServices[i].get_executor()));
 	}
 
-	//±éÀúioservice,´´½¨¶àÏß³Ì,Ã¿¸öÏß³ÌÄÚ²¿Æô¶¯ioservice
+	//éå†ioservice,åˆ›å»ºå¤šçº¿ç¨‹,æ¯ä¸ªçº¿ç¨‹å†…éƒ¨å¯åŠ¨ioservice
 	for (std::size_t i = 0; i < size; i++)
 	{
 		_threads.push_back(std::thread([this, i]() {
@@ -37,14 +37,14 @@ IOService& AsioIOServicePool::GetIOService()
 
 void AsioIOServicePool::Stop()
 {
-	//È¡Ïûworkguard,ÈÃio_contextÄÜ×Ô¶¯ÍË³örun()
+	//å–æ¶ˆworkguard,è®©io_contextèƒ½è‡ªåŠ¨é€€å‡ºrun()
 	for (auto& workGuard : _workGuards)
 	{
 		workGuard->get_executor().context().stop();
-		workGuard->reset(); // ÊÍ·Å keep-alive
+		workGuard->reset(); // é‡Šæ”¾ keep-alive
 	}
 
-	// È·±£ io_context ×Ô¼ºÒ² stop µô£¨·ÀÖ¹ÓĞÆäËû×èÈûÈÎÎñ£©
+	// ç¡®ä¿ io_context è‡ªå·±ä¹Ÿ stop æ‰ï¼ˆé˜²æ­¢æœ‰å…¶ä»–é˜»å¡ä»»åŠ¡ï¼‰
 	//for (auto& ioc : _ioServices)
 	//{
 	//	ioc.stop();

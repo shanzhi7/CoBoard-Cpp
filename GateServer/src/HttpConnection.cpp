@@ -12,9 +12,9 @@ boost::asio::ip::tcp::socket& HttpConnection::GetSocket()
 }
 void HttpConnection::PreParseGetParam()
 {
-	// ÌáÈ¡ URI  
+	// æå– URI
 	auto uri = _request.target();
-	// ²éÕÒ²éÑ¯×Ö·û´®µÄ¿ªÊ¼Î»ÖÃ£¨¼´ '?' µÄÎ»ÖÃ£©  
+	// æŸ¥æ‰¾æŸ¥è¯¢å­—ç¬¦ä¸²çš„å¼€å§‹ä½ç½®ï¼ˆå³ '?' çš„ä½ç½®ï¼‰
 	auto query_pos = uri.find('?');
 	if (query_pos == std::string::npos)
 	{
@@ -33,13 +33,13 @@ void HttpConnection::PreParseGetParam()
 		size_t eq_pos = pair.find('=');
 		if (eq_pos != std::string::npos)
 		{
-			key = UrlDecode(pair.substr(0, eq_pos)); // ¼ÙÉèÓĞ url_decode º¯ÊıÀ´´¦ÀíURL½âÂë  
+			key = UrlDecode(pair.substr(0, eq_pos)); // å‡è®¾æœ‰ url_decode å‡½æ•°æ¥å¤„ç†URLè§£ç 
 			value = UrlDecode(pair.substr(eq_pos + 1));
 			_get_params[key] = value;
 		}
 		query_string.erase(0, pos + 1);
 	}
-	// ´¦Àí×îºóÒ»¸ö²ÎÊı¶Ô£¨Èç¹ûÃ»ÓĞ & ·Ö¸ô·û£©  
+	// å¤„ç†æœ€åä¸€ä¸ªå‚æ•°å¯¹ï¼ˆå¦‚æœæ²¡æœ‰ & åˆ†éš”ç¬¦ï¼‰
 	if (!query_string.empty())
 	{
 		size_t eq_pos = query_string.find('=');
@@ -54,7 +54,7 @@ void HttpConnection::WriteResponse()
 {
 	auto self(shared_from_this());
 
-	_response.content_length(_response.body().size());		//ÉèÖÃcontent-length
+	_response.content_length(_response.body().size());		//è®¾ç½®content-length
 	boost::beast::http::async_write(
 		_socket,
 		_response,
@@ -64,37 +64,37 @@ void HttpConnection::WriteResponse()
 			{
 				if (ec)
 				{
-					//·¢Éú´íÎó
-					std::cout << "//HttpConnection::WriteResponse() ´íÎó: " << ec.message() << std::endl;
+					//å‘ç”Ÿé”™è¯¯
+					std::cout << "//HttpConnection::WriteResponse() é”™è¯¯: " << ec.message() << std::endl;
 					return;
 				}
-				boost::ignore_unused(bytes_transferred);	//ÆÁ±ÎÎ´Ê¹ÓÃ±äÁ¿¾¯¸æ
+				boost::ignore_unused(bytes_transferred);	//å±è”½æœªä½¿ç”¨å˜é‡è­¦å‘Š
 				self->_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ec);
-				self->deadline_.cancel();					//Í£Ö¹¶¨Ê±Æ÷
+				self->deadline_.cancel();					//åœæ­¢å®šæ—¶å™¨
 			}
 			catch (const std::exception& e)
 			{
-				std::cout << "//HttpConnection::WriteResponse() ´íÎó: " << ec.message() << std::endl;
+				std::cout << "//HttpConnection::WriteResponse() é”™è¯¯: " << ec.message() << std::endl;
 			}
 		}
 	);
 }
 void HttpConnection::HandleReq()
 {
-	//ÉèÖÃ°æ±¾
+	//è®¾ç½®ç‰ˆæœ¬
     _response.version(_request.version());
-	_response.keep_alive(false);			//http¶ÌÁ¬½Ó£¬²»±£³Ö³¤Á¬½Ó
+	_response.keep_alive(false);			//httpçŸ­è¿æ¥ï¼Œä¸ä¿æŒé•¿è¿æ¥
 
-	if (_request.method() == boost::beast::http::verb::get)	//´¦ÀígetÇëÇó
+	if (_request.method() == boost::beast::http::verb::get)	//å¤„ç†getè¯·æ±‚
 	{
-        PreParseGetParam();		//Ô¤´¦Àíget²ÎÊı
-		bool success = LogicSystem::getInstance()->HandleGet(_get_url, shared_from_this());	//½»¸øÂß¼­²ã´¦ÀígetÇëÇó
-		if (!success)	//successÎªfalse£¬·µ»Ø404
+        PreParseGetParam();		//é¢„å¤„ç†getå‚æ•°
+		bool success = LogicSystem::getInstance()->HandleGet(_get_url, shared_from_this());	//äº¤ç»™é€»è¾‘å±‚å¤„ç†getè¯·æ±‚
+		if (!success)	//successä¸ºfalseï¼Œè¿”å›404
 		{
 			_response.result(boost::beast::http::status::not_found);
 			_response.set(boost::beast::http::field::content_type, "text/plain");
-			boost::beast::ostream(_response.body()) << "url not found\r\n";		//Ğ´Èë´ğ¸´ÄÚÈİ
-			WriteResponse();												//½øĞĞ´ğ¸´
+			boost::beast::ostream(_response.body()) << "url not found\r\n";		//å†™å…¥ç­”å¤å†…å®¹
+			WriteResponse();												//è¿›è¡Œç­”å¤
 			return;
 		}
 		_response.result(boost::beast::http::status::ok);
@@ -102,7 +102,7 @@ void HttpConnection::HandleReq()
 		WriteResponse();
 	}
 
-	if (_request.method() == boost::beast::http::verb::post)	//´¦ÀípostÇëÇó
+	if (_request.method() == boost::beast::http::verb::post)	//å¤„ç†postè¯·æ±‚
 	{
 		bool success = LogicSystem::getInstance()->HandlePost(_request.target(), shared_from_this());
 		if (!success)
@@ -123,7 +123,7 @@ void HttpConnection::HandleReq()
 void HttpConnection::CheckDeadline()
 {
 	auto self = shared_from_this();
-	//¶¨Ê±Æ÷³¬Ê±»òÕßÈ¡Ïû´¥·¸»Øµ÷º¯Êı£¬¹Ø±ÕÌ×½Ó×Ö
+	//å®šæ—¶å™¨è¶…æ—¶æˆ–è€…å–æ¶ˆè§¦çŠ¯å›è°ƒå‡½æ•°ï¼Œå…³é—­å¥—æ¥å­—
 	deadline_.async_wait([self](boost::beast::error_code ec) {
 		if (!ec)
 		{
@@ -136,7 +136,7 @@ void HttpConnection::Start()
 { 
 	auto self(shared_from_this());
 
-	// ½ÓÊÕHTTPÇëÇó
+	// æ¥æ”¶HTTPè¯·æ±‚
     boost::beast::http::async_read(
         _socket,
         _buffer,
@@ -147,17 +147,17 @@ void HttpConnection::Start()
 			{ 
 				if (ec)
 				{
-					//·¢Éú´íÎó
-					std::cout << "//HttpConnection::Start() ´íÎó: " << ec.message() << std::endl;
+					//å‘ç”Ÿé”™è¯¯
+					std::cout << "//HttpConnection::Start() é”™è¯¯: " << ec.message() << std::endl;
 					return;
 				}
-				boost::ignore_unused(bytes_transferred);	//ÆÁ±ÎÎ´Ê¹ÓÃ±äÁ¿¾¯¸æ
-				self->HandleReq();							//´¦ÀíÇëÇó
-				self->CheckDeadline();						//¼ì²â³¬Ê±
+				boost::ignore_unused(bytes_transferred);	//å±è”½æœªä½¿ç”¨å˜é‡è­¦å‘Š
+				self->HandleReq();							//å¤„ç†è¯·æ±‚
+				self->CheckDeadline();						//æ£€æµ‹è¶…æ—¶
 			}
 			catch (const std::exception& e)
 			{
-				std::cout << "//HttpConnection::Start() Òì³£: " << e.what() << std::endl;
+				std::cout << "//HttpConnection::Start() å¼‚å¸¸: " << e.what() << std::endl;
 			}
         }
     );

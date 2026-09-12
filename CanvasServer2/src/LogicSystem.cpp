@@ -2,22 +2,23 @@
 #include "CanvasServer/SessionMgr.h"
 #include "CanvasServer/RoomMgr.h"
 #include "CanvasServer/RedisMgr.h"
-#include "CanvasServer/const.h"      // °üº¬ MSG_IDS ¶¨Òå
+#include "CanvasServer/const.h"      // åŒ…å« MSG_IDS å®šä¹‰
 #include "CanvasServer/message.pb.h"
 #include "CanvasServer/RoomMgr.h"
 #include "CanvasServer/Room.h"
 #include "CanvasServer/ConfigMgr.h"
+#include "Logger/Logger.h"
 #include <iostream>
 #include <random>
 
-static inline uint64_t NowMs()  // »ñÈ¡µ±Ç°Ê±¼ä´Á
+static inline uint64_t NowMs()  // è·å–å½“å‰æ—¶é—´æˆ³
 {
     using namespace std::chrono;
     return (uint64_t)duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
 
-// ¸¨Öúº¯Êı£ºÉú³É 6 Î»Ëæ»úÊı
+// è¾…åŠ©å‡½æ•°ï¼šç”Ÿæˆ 6 ä½éšæœºæ•°
 static inline std::string GenRandomId()
 {
     static std::random_device rd;
@@ -28,8 +29,8 @@ static inline std::string GenRandomId()
 
 LogicSystem::LogicSystem() : _b_stop(false)
 {
-	RegisterCallBacks();	// ×¢²á»Øµ÷º¯Êı
-	_work_thread = std::thread(&LogicSystem::DealMsg, this);	//Æô¶¯¹¤×÷Ïß³Ì
+	RegisterCallBacks();	// æ³¨å†Œå›è°ƒå‡½æ•°
+	_work_thread = std::thread(&LogicSystem::DealMsg, this);	//å¯åŠ¨å·¥ä½œçº¿ç¨‹
 }
 
 LogicSystem::~LogicSystem()
@@ -44,19 +45,19 @@ LogicSystem::~LogicSystem()
 
 void LogicSystem::PostMsgToQue(std::shared_ptr<LogicNode> msg)
 {
-    // Éú²úÕßĞ´·¨
+    // ç”Ÿäº§è€…å†™æ³•
     std::unique_lock<std::mutex> lock(_mutex);
     _msg_queue.push(msg);
     if (_msg_queue.size() == 1)
     {
-        lock.unlock(); // ÌáÔç½âËø
+        lock.unlock(); // ææ—©è§£é”
         _cond.notify_one();
     }
 }
 
 void LogicSystem::DealMsg()
 {
-    while (true)    // ËÀÑ­»·,´¦ÀíÏûÏ¢
+    while (true)    // æ­»å¾ªç¯,å¤„ç†æ¶ˆæ¯
     {
         std::unique_lock<std::mutex> lock(_mutex);
         _cond.wait(lock, [this](){
@@ -68,60 +69,60 @@ void LogicSystem::DealMsg()
             break;
         }
 
-        //È¡³öÍ·²¿ÏûÏ¢
+        //å–å‡ºå¤´éƒ¨æ¶ˆæ¯
         auto msg_node = _msg_queue.front();
         _msg_queue.pop();
-        lock.unlock();  // ´¦ÀíÏûÏ¢Ê±ÊÍ·ÅËø£¬ÔÊĞíĞÂÏûÏ¢Èë¶Ó
+        lock.unlock();  // å¤„ç†æ¶ˆæ¯æ—¶é‡Šæ”¾é”ï¼Œå…è®¸æ–°æ¶ˆæ¯å…¥é˜Ÿ
 
-        //²éÕÒ»Øµ÷º¯Êı
+        //æŸ¥æ‰¾å›è°ƒå‡½æ•°
         auto it = _fun_callbacks.find(msg_node->_recvnode->_msg_id);
         if (it != _fun_callbacks.end())
         {
-            // Ö´ĞĞÒµÎñÂß¼­
-            // RecvNode ÀïµÄ _data ÊÇ char*£¬×ª string ´«¸øÒµÎñ²ã·½±ã½âÎö Json
+            // æ‰§è¡Œä¸šåŠ¡é€»è¾‘
+            // RecvNode é‡Œçš„ _data æ˜¯ char*ï¼Œè½¬ string ä¼ ç»™ä¸šåŠ¡å±‚æ–¹ä¾¿è§£æ Json
             it->second(msg_node->_session,
                         msg_node->_recvnode->_msg_id,
                         std::string(msg_node->_recvnode->_data,msg_node->_recvnode->_cur_len));
         }
         else
         {
-            std::cout << "¡¾LogicSystem¡¿: Unknown msg id " << msg_node->_recvnode->_msg_id << std::endl;
+            LOG_WARN_CTX("LogicSystem::DealMsg", "æœªçŸ¥æ¶ˆæ¯ ID=" << msg_node->_recvnode->_msg_id);
         }
     }
 }
 
 void LogicSystem::RegisterCallBacks()
 {
-    // ×¢²áµÇÂ¼
+    // æ³¨å†Œç™»å½•
     _fun_callbacks[ID_CANVAS_LOGIN_REQ] = std::bind(&LogicSystem::HandleLogin, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    // ×¢²á½ø·¿
+    // æ³¨å†Œè¿›æˆ¿
     _fun_callbacks[ID_JOIN_ROOM_REQ] = std::bind(&LogicSystem::HandleJoinRoom, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //×¢²á´´½¨·¿¼ä
+    //æ³¨å†Œåˆ›å»ºæˆ¿é—´
     _fun_callbacks[ID_CREAT_ROOM_REQ] = std::bind(&LogicSystem::HandleCreatRoom, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //×¢²á¼ÓÈë·¿¼ä
+    //æ³¨å†ŒåŠ å…¥æˆ¿é—´
     _fun_callbacks[ID_JOIN_ROOM_REQ] = std::bind(&LogicSystem::HandleJoinRoom, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //×¢²áÈºÁÄÏûÏ¢
+    //æ³¨å†Œç¾¤èŠæ¶ˆæ¯
     _fun_callbacks[ID_CHAT_REQ] = std::bind(&LogicSystem::HandleChat, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //×¢²áÊÚÈ¨±à¼­ÏûÏ¢
+    //æ³¨å†Œæˆæƒç¼–è¾‘æ¶ˆæ¯
     _fun_callbacks[ID_GRANT_EDIT_REQ] = std::bind(&LogicSystem::HandleGrantEdit, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //×¢²áÈ¡Ïû±à¼­È¨ÏŞÏûÏ¢
+    //æ³¨å†Œå–æ¶ˆç¼–è¾‘æƒé™æ¶ˆæ¯
     _fun_callbacks[ID_REVOKE_EDIT_REQ] = std::bind(&LogicSystem::HandleRevokeEdit, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
-    //²»ĞèÒª×¢²á ID_DRAW_REQ (»­»­ÇëÇó)
-    // »­»­ÇëÇóÔÚ CSession ²ãÖ±½Ó±»À¹½Ø×ª·¢ÁË£¬²»»á½øÕâ¸ö¶ÓÁĞ
+    //ä¸éœ€è¦æ³¨å†Œ ID_DRAW_REQ (ç”»ç”»è¯·æ±‚)
+    // ç”»ç”»è¯·æ±‚åœ¨ CSession å±‚ç›´æ¥è¢«æ‹¦æˆªè½¬å‘äº†ï¼Œä¸ä¼šè¿›è¿™ä¸ªé˜Ÿåˆ—
 }
 
 void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -130,14 +131,14 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
     Json::Value root;
     Json::Value rsp;
 
-    rsp["error"] = message::ErrorCodes::Error_Json; // Ä¬ÈÏ´íÎóÂë
+    rsp["error"] = message::ErrorCodes::Error_Json; // é»˜è®¤é”™è¯¯ç 
 
-    //×÷ÓÃÓò½áÊø·¢ËÍ»Ø°ü
+    //ä½œç”¨åŸŸç»“æŸå‘é€å›åŒ…
     Defer defer([this, session, &rsp]() {
         std::string return_str = rsp.toStyledString();
         session->Send(return_str, ID_CANVAS_LOGIN_RSP);
 
-        // Èç¹ûÊÇÑÏÖØ´íÎó£¨ÈçÈÏÖ¤Ê§°Ü£©£¬·¢Íê°üºó¿ÉÒÔ¿¼ÂÇ´òÓ¡ÈÕÖ¾
+        // å¦‚æœæ˜¯ä¸¥é‡é”™è¯¯ï¼ˆå¦‚è®¤è¯å¤±è´¥ï¼‰ï¼Œå‘å®ŒåŒ…åå¯ä»¥è€ƒè™‘æ‰“å°æ—¥å¿—
         int err = rsp["error"].asInt();
         if (err != message::ErrorCodes::SUCCESS) {
             std::cout << "[CanvasServer] Login Error Response sent. Code: " << err << std::endl;
@@ -147,12 +148,12 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
 
         if (!reader.parse(msg_data, root))
         {
-            // ½âÎöÊ§°Ü£¬Ö±½Ó return
-            // ´ËÊ±»á´¥·¢ Defer£¬·¢ËÍ Error_Json ¸ø¿Í»§¶Ë
+            // è§£æå¤±è´¥ï¼Œç›´æ¥ return
+            // æ­¤æ—¶ä¼šè§¦å‘ Deferï¼Œå‘é€ Error_Json ç»™å®¢æˆ·ç«¯
             std::cout << "[CanvasServer] Login parse json failed." << std::endl;
             return;
         }
-        if (!root.isMember("uid") || !root.isMember("token"))   //¼ì²â×Ö¶ÎÊÇ·ñ´æÔÚ
+        if (!root.isMember("uid") || !root.isMember("token"))   //æ£€æµ‹å­—æ®µæ˜¯å¦å­˜åœ¨
         {
             rsp["error"] = message::ErrorCodes::Error_Json;
             std::cout << "[CanvasServer] Login Error: Missing field." << std::endl;
@@ -164,43 +165,43 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
         std::string client_name = root["name"].asString();
         std::string client_avatar = root["avatar"].asString();
 
-        //¹¹Ôìredis key
+        //æ„é€ redis key
         std::string token_key = TOKEN_PREFIX + client_token;
 
-        //²éÕÒredis£¬ÓĞÃ»ÓĞ¸Ãtoken¶ÔÓ¦µÄuid
+        //æŸ¥æ‰¾redisï¼Œæœ‰æ²¡æœ‰è¯¥tokenå¯¹åº”çš„uid
         std::string valid_uid_str;
         bool b_exist = RedisMgr::getInstance()->Get(token_key, valid_uid_str);
 
-        //token¹ıÆÚ»òÕß´íÎó
+        //tokenè¿‡æœŸæˆ–è€…é”™è¯¯
         if (!b_exist)
         {
             rsp["error"] = message::ErrorCodes::TokenInvalid;
-            std::cout << "[CanvasServer] Token not found in Redis. Client UID: " << client_uid << std::endl;
-            return; //´¥·¢Defer·¢ËÍ TokenInvalid
+            LOG_WARN_CTX("LogicSystem::HandleLogin", "Token ä¸å­˜åœ¨ uid=" << client_uid);
+            return; //è§¦å‘Deferå‘é€ TokenInvalid
         }
 
-        //token´æÔÚ£¬µ«ÊÇuidÊÇ±ğÈËµÄ
+        //tokenå­˜åœ¨ï¼Œä½†æ˜¯uidæ˜¯åˆ«äººçš„
         if (std::stoi(valid_uid_str) != client_uid)
         {
             rsp["error"] = message::ErrorCodes::TokenInvalid;
-            std::cout << "[CanvasServer] Token mismatch! Redis UID: " << valid_uid_str << " Client UID: " << client_uid << std::endl;
-            return; // ´¥·¢ Defer ·¢ËÍ TokenInvalid
+            LOG_WARN_CTX("LogicSystem::HandleLogin", "Token å¯¹åº”ç”¨æˆ·ä¸åŒ¹é… uid=" << client_uid);
+            return; // è§¦å‘ Defer å‘é€ TokenInvalid
         }
 
-        // Ğ£Ñé³É¹¦£¡
-        session->SetUserId(client_uid);     //°ó¶¨UIDµ½Session
+        // æ ¡éªŒæˆåŠŸï¼
+        session->SetUserId(client_uid);     //ç»‘å®šUIDåˆ°Session
         session->SetName(client_name);
         session->SetAvatarUrl(client_avatar);
 
-        SessionMgr::getInstance()->AddSession(client_uid, session);  //×¢²áµ½È«¾Ö¹ÜÀíÆ÷(SessionMgr)
+        SessionMgr::getInstance()->AddSession(client_uid, session);  //æ³¨å†Œåˆ°å…¨å±€ç®¡ç†å™¨(SessionMgr)
 
-        // ¹¹Ôì³É¹¦»Ø°ü
+        // æ„é€ æˆåŠŸå›åŒ…
         rsp["error"] = message::ErrorCodes::SUCCESS;
         rsp["uid"] = client_uid;
 
         std::cout << "[CanvasServer] User Login Success: " << client_uid << std::endl;
 
-        // º¯Êı½áÊø£¬Defer ×Ô¶¯Îö¹¹£¬·¢ËÍ SUCCESS °ü
+        // å‡½æ•°ç»“æŸï¼ŒDefer è‡ªåŠ¨ææ„ï¼Œå‘é€ SUCCESS åŒ…
 }
 
 void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -215,13 +216,13 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
         session->Send(return_str, ID_CREAT_ROOM_RSP);
         });
 
-    if (!reader.parse(msg_data, root))  //½âÎöÊ§°Ü
+    if (!reader.parse(msg_data, root))  //è§£æå¤±è´¥
     {
         std::cout << "[CanvasServer] Login parse json failed." << std::endl;
         return;
     }
 
-    // ÌáÈ¡²ÎÊı
+    // æå–å‚æ•°
     if (!root.isMember("room_name") || !root.isMember("owner_uid"))
     {
         std::cout << "[CanvasServer] Missing fields in CreateRoom." << std::endl;
@@ -231,17 +232,17 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     std::string room_name = root["room_name"].asString();
     int owner_uid = root["owner_uid"].asInt();
 
-    //Éú³ÉÎ¨Ò»µÄRoomId (·ÀÅö×²Âß¼­)
+    //ç”Ÿæˆå”¯ä¸€çš„RoomId (é˜²ç¢°æ’é€»è¾‘)
     std::string room_id;
-    int retry_count = 0;    // ÖØÊÔ´ÎÊı
+    int retry_count = 0;    // é‡è¯•æ¬¡æ•°
     bool is_unique = false;
 
-    //×î¶à³¢ÊÔ5´Î£¬·ÀÖ¹redis ¹Òµô
+    //æœ€å¤šå°è¯•5æ¬¡ï¼Œé˜²æ­¢redis æŒ‚æ‰
     while (retry_count < 5)
     {
         room_id = GenRandomId();
         std::string room_id_key = ROOM_PREFIX + room_id;
-        // ¼ì²éroom_idÊÇ·ñÒÑ¾­´æÔÚ
+        // æ£€æŸ¥room_idæ˜¯å¦å·²ç»å­˜åœ¨
         if (!RedisMgr::getInstance()->ExistsKey(room_id_key))
         {
             is_unique = true;
@@ -252,12 +253,12 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
 
     if (!is_unique)
     {
-        rsp["error"] = message::ErrorCodes::RoomCreateFailed; // Éú³É ID Ê§°Ü
+        rsp["error"] = message::ErrorCodes::RoomCreateFailed; // ç”Ÿæˆ ID å¤±è´¥
         std::cout << "[LogicSystem] Failed to generate unique Room ID after retries." << std::endl;
         return;
     }
 
-    //ÄÚ´æ´´½¨·¿¼ä
+    //å†…å­˜åˆ›å»ºæˆ¿é—´
     auto room = RoomMgr::getInstance()->GetOrCreateRoom(room_id);
     if (!room)
     {
@@ -266,12 +267,12 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     }
     room->SetRoomInfo(room_name, owner_uid);
 
-    //Redis×¢²á·¿¼ä
+    //Redisæ³¨å†Œæˆ¿é—´
     auto& cfg = ConfigMgr::Inst();
     std::string self_host = cfg["SelfServer"]["Host"];
     if (self_host == "0.0.0.0")
     {
-        self_host = "127.0.0.1";        //ĞŞ¸Ä...
+        self_host = "127.0.0.1";        //ä¿®æ”¹...
     }
     int self_port = std::stoi(cfg["SelfServer"]["Port"]);
 
@@ -284,8 +285,8 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     room_info.width = root["width"].asInt();
     room_info.height = root["height"].asInt();
 
-    //Ğ´Èëredis,·¿¼äĞÅÏ¢
-    bool b_redis = RedisMgr::getInstance()->CreateRoom(room_id, room_info); //CreateRoom ÄÚ²¿Ê¹ÓÃÁË pipeline ºÍ expire
+    //å†™å…¥redis,æˆ¿é—´ä¿¡æ¯
+    bool b_redis = RedisMgr::getInstance()->CreateRoom(room_id, room_info); //CreateRoom å†…éƒ¨ä½¿ç”¨äº† pipeline å’Œ expire
     if (!b_redis)
     {
         rsp["error"] = message::ErrorCodes::RoomCreateFailed;
@@ -293,12 +294,12 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
         return;
     }
 
-    //redis£º½«·¿Ö÷¼ÓÈëµ½·¿¼äµÄ³ÉÔ±ÁĞ±í
+    //redisï¼šå°†æˆ¿ä¸»åŠ å…¥åˆ°æˆ¿é—´çš„æˆå‘˜åˆ—è¡¨
     RedisMgr::getInstance()->AddUserToRoom(room_id, std::to_string(owner_uid));
 
-    room->Join(session);    //¼ÓÈëÄÚ´æ
+    room->Join(session);    //åŠ å…¥å†…å­˜
 
-    //³É¹¦·µ»Ø
+    //æˆåŠŸè¿”å›
     rsp["error"] = message::ErrorCodes::SUCCESS;
     rsp["room_id"] = room_id;
     rsp["room_name"] = room_name;
@@ -315,12 +316,12 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
 
 void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
-    //½âÎöÇëÇó°ü
+    //è§£æè¯·æ±‚åŒ…
     message::JoinRoomReq req;
     message::JoinRoomRsp rsp;
-    rsp.set_error(message::ErrorCodes::Error_Json); //Ä¬ÈÏ´íÎó£¬½âÎöÊ§°Ü
+    rsp.set_error(message::ErrorCodes::Error_Json); //é»˜è®¤é”™è¯¯ï¼Œè§£æå¤±è´¥
 
-    Defer defer([session, &rsp]() {                 //»Ø°ü
+    Defer defer([session, &rsp]() {                 //å›åŒ…
         std::string sendData;
         if (rsp.SerializeToString(&sendData))
         {
@@ -337,22 +338,22 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         return;
     }
 
-    std::string uid = std::to_string(req.uid());    //¼ÓÈëÕßid
+    std::string uid = std::to_string(req.uid());    //åŠ å…¥è€…id
     std::string room_id = req.room_id();
     std::cout << "Recv JoinRoomReq: User[" << uid << "] -> Room[" << room_id << "]" << std::endl;
 
-    //²éredis
+    //æŸ¥redis
     RoomInfo room_info;
     bool b_redis = RedisMgr::getInstance()->GetRoomInfo(room_id, room_info);
 
-    //·¿¼ä²»´æÔÚ
+    //æˆ¿é—´ä¸å­˜åœ¨
     if (!b_redis)
     {
         rsp.set_error(message::ErrorCodes::RoomNotExist);
         return;
     }
 
-    //¶ÁÈ¡±¾»úµØÖ·²¢ÇÒ±È½Ï
+    //è¯»å–æœ¬æœºåœ°å€å¹¶ä¸”æ¯”è¾ƒ
     std::string self_host = ConfigMgr::Inst()["SelfServer"]["Host"];
     std::string self_port = ConfigMgr::Inst()["SelfServer"]["Port"];
     if (self_host == "0.0.0.0")
@@ -364,22 +365,22 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         std::cout << "[HandleJoinRoom]:Redirect: Target is [" << room_info.host << ":" << room_info.port
             << "] Self is [" << self_host << ":" << self_port << "]" << std::endl;
 
-        rsp.set_error(message::ErrorCodes::NeedRedirect);   //ÉèÖÃÖØ¶¨Ïò´íÎó
+        rsp.set_error(message::ErrorCodes::NeedRedirect);   //è®¾ç½®é‡å®šå‘é”™è¯¯
 
-        //½«±ØÒªµÄÖØ¶¨ÏòÊı¾İ·¢¸ø¿Í»§¶Ë
+        //å°†å¿…è¦çš„é‡å®šå‘æ•°æ®å‘ç»™å®¢æˆ·ç«¯
         rsp.set_redirect_host(room_info.host);
         rsp.set_redirect_port(room_info.port);
         rsp.set_room_id(room_id);
         return;
     }
 
-    auto room = RoomMgr::getInstance()->GetRoom(room_id); // ÏÈ²éÄÚ´æ
+    auto room = RoomMgr::getInstance()->GetRoom(room_id); // å…ˆæŸ¥å†…å­˜
 
     if (!room)
     {
         std::cout << "[HandleJoinRoom] Room not in memory, restoring... from Redis. Room[" << room_id << "]" << std::endl;
 
-        // ÄÚ´æ´´½¨·¿¼ä
+        // å†…å­˜åˆ›å»ºæˆ¿é—´
         room = RoomMgr::getInstance()->GetOrCreateRoom(room_id);
         if (!room)
         {
@@ -388,22 +389,22 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
             return;
         }
 
-        // ÓÃ Redis µÄÔªĞÅÏ¢³õÊ¼»¯£¨Äã Room Ä¿Ç°Ö»ÓĞ name/owner_uid£©
+        // ç”¨ Redis çš„å…ƒä¿¡æ¯åˆå§‹åŒ–ï¼ˆä½  Room ç›®å‰åªæœ‰ name/owner_uidï¼‰
         room->SetRoomInfo(room_info.name, room_info.owner_uid);
     }
     auto user_session = SessionMgr::getInstance()->GetSession(std::stoi(uid));
     if (user_session)
     {
-        room->Join(user_session);       //ÄÚ´æÖĞ¼ÓÈë·¿¼ä
+        room->Join(user_session);       //å†…å­˜ä¸­åŠ å…¥æˆ¿é—´
     }
     else
     {
-        // ¼«¶ËÇé¿ö£º´¦ÀíÇëÇóÊ± Session ¶ÏÁË
+        // æç«¯æƒ…å†µï¼šå¤„ç†è¯·æ±‚æ—¶ Session æ–­äº†
         std::cerr << "[HandleJoinRoom] User session not found" << std::endl;
         rsp.set_error(message::ErrorCodes::LoginErr);
         return;
     }
-    //Õı³£¼ÓÈë£¬·¿Ö÷¸ú¼ÓÈëÕßÔÚ±¾»ú
+    //æ­£å¸¸åŠ å…¥ï¼Œæˆ¿ä¸»è·ŸåŠ å…¥è€…åœ¨æœ¬æœº
     bool addSuccess = RedisMgr::getInstance()->AddUserToRoom(room_id, uid);
     if (!addSuccess)
     {
@@ -411,7 +412,7 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         return;
     }
 
-    //¹¹Ôì»Ø°ü
+    //æ„é€ å›åŒ…
     rsp.set_error(message::ErrorCodes::SUCCESS);
     rsp.set_room_name(room_info.name);
     rsp.set_owner_uid(room_info.owner_uid);
@@ -421,15 +422,15 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     rsp.set_redirect_host(room_info.host);
     rsp.set_redirect_port(room_info.port);
 
-    //Ìî³äÌî³ä member_list
+    //å¡«å……å¡«å…… member_list
     std::vector<message::UserInfo> current_members = room->GetMemberSnapshot();
 
     for (auto& member : current_members)
     {
-        // add_member_list() ·µ»ØÒ»¸öÖ¸ÏòĞÂÌí¼ÓÔªËØµÄÖ¸Õë
+        // add_member_list() è¿”å›ä¸€ä¸ªæŒ‡å‘æ–°æ·»åŠ å…ƒç´ çš„æŒ‡é’ˆ
         message::UserInfo* pUser = rsp.add_member_list();
 
-        // ½« member ¸´ÖÆµ½ pUser
+        // å°† member å¤åˆ¶åˆ° pUser
         pUser->set_uid(member.uid());
         pUser->set_name(member.name());
         pUser->set_avatar_url(member.avatar_url());
@@ -454,7 +455,7 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
-    // ·ÀÎ±Ôì£ºreq.uid ±ØĞëµÈÓÚ session uid
+    // é˜²ä¼ªé€ ï¼šreq.uid å¿…é¡»ç­‰äº session uid
     if ((int)req.uid() != sess_uid)
     {
         std::cout << "[HandleChat] uid mismatch, Close. sess=" << sess_uid
@@ -463,14 +464,14 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
-    auto room = session->GetRoomLocked(); // »ñÈ¡·¿¼äÖ¸Õë
+    auto room = session->GetRoomLocked(); // è·å–æˆ¿é—´æŒ‡é’ˆ
     if (!room)
     {
         std::cout << "[HandleChat] rejected: not in room\n";
         return;
     }
 
-    // ´®·¿¼äĞ£Ñé
+    // ä¸²æˆ¿é—´æ ¡éªŒ
     if (!req.room_id().empty() && req.room_id() != room->GetRoomId())
     {
         std::cout << "[HandleChat] room_id mismatch, Close. sess_room=" << room->GetRoomId()
@@ -479,7 +480,7 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
-    // »ù±¾·ÀË¢ÆÁ£º³¤¶ÈÏŞÖÆ
+    // åŸºæœ¬é˜²åˆ·å±ï¼šé•¿åº¦é™åˆ¶
     const auto& content = req.content();
     if (content.empty() || content.size() > 500)
     {
@@ -502,7 +503,7 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
-    // »ØÏÔ¸ø×Ô¼º£¨¿Í»§¶ËÖ»Ğ´Ò»¸öÏÔÊ¾Âß¼­£©
+    // å›æ˜¾ç»™è‡ªå·±ï¼ˆå®¢æˆ·ç«¯åªå†™ä¸€ä¸ªæ˜¾ç¤ºé€»è¾‘ï¼‰
     room->Broadcast(out, ID_CHAT_RSP, /*exclude_uid=*/0);
 }
 void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -563,7 +564,7 @@ void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short
     rsp.set_target_uid(req.target_uid());
     rsp.set_can_edit(false);
 
-    // ÊÚÈ¨±à¼­£ºÖ»ÓĞ·¿Ö÷ÄÜ°ÑÆÕÍ¨³ÉÔ±¼ÓÈë¿É±à¼­¼¯ºÏ¡£
+    // æˆæƒç¼–è¾‘ï¼šåªæœ‰æˆ¿ä¸»èƒ½æŠŠæ™®é€šæˆå‘˜åŠ å…¥å¯ç¼–è¾‘é›†åˆã€‚
     if (!room->GrantEdit(req.target_uid()))
     {
         rsp.set_error(message::ErrorCodes::NotInRoom);
@@ -644,7 +645,7 @@ void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const shor
     rsp.set_target_uid(req.target_uid());
     rsp.set_can_edit(false);
 
-    // È¡ÏûÊÚÈ¨£ºÖ»ÓĞ·¿Ö÷ÄÜ³·ÏúÆÕÍ¨³ÉÔ±µÄ±à¼­È¨ÏŞ¡£
+    // å–æ¶ˆæˆæƒï¼šåªæœ‰æˆ¿ä¸»èƒ½æ’¤é”€æ™®é€šæˆå‘˜çš„ç¼–è¾‘æƒé™ã€‚
     room->RevokeEdit(req.target_uid());
 
     rsp.set_error(message::ErrorCodes::SUCCESS);

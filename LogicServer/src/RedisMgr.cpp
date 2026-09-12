@@ -1,9 +1,10 @@
 #include "LogicServer/RedisMgr.h"
 #include "LogicServer/ConfigMgr.h"
+#include "Logger/Logger.h"
 
 RedisMgr::RedisMgr()
 {
-    // ×Ô¶¯¶ÁÈ¡ÅäÖÃ²¢Á¬½Ó£¬·ÀÖ¹ºóĞø¿ÕÖ¸Õë
+    // è‡ªåŠ¨è¯»å–é…ç½®å¹¶è¿æ¥ï¼Œé˜²æ­¢åç»­ç©ºæŒ‡é’ˆ
     auto& cfg = ConfigMgr::Inst();
     std::string host = cfg["Redis"]["Host"];
     int port = std::stoi(cfg["Redis"]["Port"]);
@@ -14,7 +15,7 @@ RedisMgr::RedisMgr()
 RedisMgr::~RedisMgr()
 {
 }
-//³õÊ¼»¯Á¬½Ó
+//åˆå§‹åŒ–è¿æ¥
 bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd)
 {
     try
@@ -26,69 +27,69 @@ bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd
         connection_options.keep_alive = true;
 
         ConnectionPoolOptions pool_options;
-        pool_options.size = 5; // Ä¬ÈÏ³Ø´óĞ¡
+        pool_options.size = 5; // é»˜è®¤æ± å¤§å°
 
-        // Ê¹ÓÃ std::unique_ptr ¹ÜÀíÖ¸Õë£¬C++11 ±ê×¼Ğ´·¨
+        // ä½¿ç”¨ std::unique_ptr ç®¡ç†æŒ‡é’ˆï¼ŒC++11 æ ‡å‡†å†™æ³•
         _redis.reset(new Redis(connection_options, pool_options));
 
         _redis->ping();
-        std::cout << "Redis Connected successfully." << std::endl;
+        LOG_INFO_CTX("RedisMgr::Connect", "Redis è¿æ¥æˆåŠŸ");
         return true;
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis Connect Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::Connect", "Redis è¿æ¥å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//»ñÈ¡key¶ÔÓ¦µÄvalue
+//è·å–keyå¯¹åº”çš„value
 bool RedisMgr::Get(const std::string& key, std::string& value)			
 {
     try
     {
-        // redis++ µÄ get ·µ»ØµÄÊÇ OptionalString (ÀàËÆÖ¸Õë)
+        // redis++ çš„ get è¿”å›çš„æ˜¯ OptionalString (ç±»ä¼¼æŒ‡é’ˆ)
         auto val = _redis->get(key);
         if (val)
         {
-            value = *val; // ½âÒıÓÃ»ñÈ¡Öµ
+            value = *val; // è§£å¼•ç”¨è·å–å€¼
             return true;
         }
-        return false; // key ²»´æÔÚ
+        return false; // key ä¸å­˜åœ¨
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis Get Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::Get", "Redis æŸ¥è¯¢å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//ÉèÖÃkey¶ÔÓ¦µÄvalue
+//è®¾ç½®keyå¯¹åº”çš„value
 bool RedisMgr::Set(const std::string& key, const std::string& value, int timeout)
 {
     try
     {
         if (timeout > 0)
         {
-            // ÓĞ¹ıÆÚÊ±¼ä£ºSET key value EX timeout
-            // redis-plus-plus ÒªÇóÊ±¼ä²ÎÊı±ØĞëÊÇ std::chrono ÀàĞÍ
+            // æœ‰è¿‡æœŸæ—¶é—´ï¼šSET key value EX timeout
+            // redis-plus-plus è¦æ±‚æ—¶é—´å‚æ•°å¿…é¡»æ˜¯ std::chrono ç±»å‹
             _redis->set(key, value, std::chrono::seconds(timeout));
         }
         else
         {
-            // ÎŞ¹ıÆÚÊ±¼ä£ºSET key value
+            // æ— è¿‡æœŸæ—¶é—´ï¼šSET key value
             _redis->set(key, value);
         }
         return true;
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis Set Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::Set", "Redis å†™å…¥å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//É¾³ıkey
+//åˆ é™¤key
 bool RedisMgr::Del(const std::string& key)
 {
     try
@@ -97,12 +98,12 @@ bool RedisMgr::Del(const std::string& key)
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis Del Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::Del", "Redis åˆ é™¤å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//ÅĞ¶ÏkeyÊÇ·ñ´æÔÚ
+//åˆ¤æ–­keyæ˜¯å¦å­˜åœ¨
 bool RedisMgr::ExistsKey(const std::string& key)
 {
     try
@@ -111,14 +112,14 @@ bool RedisMgr::ExistsKey(const std::string& key)
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis Exists Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::ExistsKey", "Redis åˆ¤æ–­ key å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//List²Ù×÷
+//Listæ“ä½œ
 
-//Ìí¼ÓÔªËØ
+//æ·»åŠ å…ƒç´ 
 bool RedisMgr::LPush(const std::string& key, const std::string& value)
 {
     try
@@ -128,12 +129,12 @@ bool RedisMgr::LPush(const std::string& key, const std::string& value)
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis LPush Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::LPush", "Redis LPush å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//»ñÈ¡ÔªËØ£¬É¾³ıÔªËØ
+//è·å–å…ƒç´ ï¼Œåˆ é™¤å…ƒç´ 
 bool RedisMgr::LPop(const std::string& key, std::string& value)	
 {
     try
@@ -148,13 +149,13 @@ bool RedisMgr::LPop(const std::string& key, std::string& value)
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis LPop Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::LPop", "Redis LPop å¤±è´¥: " << e.what());
         return false;
     }
 }
 
-//HSet²Ù×÷
-//ÉèÖÃkey¶ÔÓ¦µÄhkey¶ÔÓ¦µÄvalue
+//HSetæ“ä½œ
+//è®¾ç½®keyå¯¹åº”çš„hkeyå¯¹åº”çš„value
 bool RedisMgr::HSet(const std::string& key, const std::string& hkey, const std::string& value)
 {
     try
@@ -164,11 +165,11 @@ bool RedisMgr::HSet(const std::string& key, const std::string& hkey, const std::
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis HSet Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::HSet", "Redis HSet å¤±è´¥: " << e.what());
         return false;
     }
 }
-//»ñÈ¡key¶ÔÓ¦µÄhkey¶ÔÓ¦µÄvalue
+//è·å–keyå¯¹åº”çš„hkeyå¯¹åº”çš„value
 bool RedisMgr::HGet(const std::string& key, const std::string& hkey, std::string& value)
 {
     try
@@ -183,7 +184,7 @@ bool RedisMgr::HGet(const std::string& key, const std::string& hkey, std::string
     }
     catch (const Error& e)
     {
-        std::cerr << "Redis HGet Error: " << e.what() << std::endl;
+        LOG_ERROR_CTX("RedisMgr::HGet", "Redis HGet å¤±è´¥: " << e.what());
         return false;
     }
 }

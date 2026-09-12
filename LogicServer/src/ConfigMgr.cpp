@@ -5,15 +5,15 @@
 #include <iostream>
 ConfigMgr::ConfigMgr()
 {
-	boost::filesystem::path current_path = boost::filesystem::current_path();	//»ñÈ¡³ÌĞòÔËĞĞÂ·¾¶
-	boost::filesystem::path config_path = current_path / "config.ini";			//Æ´½Óconfig.iniÂ·¾¶
+	boost::filesystem::path current_path = boost::filesystem::current_path();	//è·å–ç¨‹åºè¿è¡Œè·¯å¾„
+	boost::filesystem::path config_path = current_path / "config.ini";			//æ‹¼æ¥config.iniè·¯å¾„
 	std::cout << "Config path: " << config_path << std::endl;
 
-	//Boost::PropertyTree ÊÇ Boost ¿âÖĞµÄÒ»¸ö×é¼ş£¬ÓÃÓÚ´¦Àí²ã´Î»¯µÄÅäÖÃÊı¾İ
-	//boost::property_tree::ptree ÊÇÒ»¸ö½ÚµãÊé£¬½ÚµãÎªkey£¬valueÒ²ÊÇptreeÊ÷½á¹¹
+	//Boost::PropertyTree æ˜¯ Boost åº“ä¸­çš„ä¸€ä¸ªç»„ä»¶ï¼Œç”¨äºå¤„ç†å±‚æ¬¡åŒ–çš„é…ç½®æ•°æ®
+	//boost::property_tree::ptree æ˜¯ä¸€ä¸ªèŠ‚ç‚¹ä¹¦ï¼ŒèŠ‚ç‚¹ä¸ºkeyï¼Œvalueä¹Ÿæ˜¯ptreeæ ‘ç»“æ„
 
 	boost::property_tree::ptree pt;
-	boost::property_tree::read_ini(config_path.string(), pt);		//¶ÁÈ¡config.ini
+	boost::property_tree::read_ini(config_path.string(), pt);		//è¯»å–config.ini
 
 	for (const auto& section_pair : pt)
 	{
@@ -31,7 +31,7 @@ ConfigMgr::ConfigMgr()
 		_config_map[section_name] = sectionInfo;
 	}
 
-	//Êä³öËùÓĞµÄsection¸úkey-value¶Ô
+	//è¾“å‡ºæ‰€æœ‰çš„sectionè·Ÿkey-valueå¯¹
 	for (const auto& section_entry : _config_map)
 	{
 		const std::string& section_name = section_entry.first;

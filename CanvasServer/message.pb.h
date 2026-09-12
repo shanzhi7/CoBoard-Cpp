@@ -166,6 +166,10 @@ enum ErrorCodes : int {
   RoomJoinFailed = 1044,
   NotInRoom = 1045,
   NotOwner = 1046,
+  VoiceTokenInvalidArgument = 1060,
+  VoiceTokenConfigInvalid = 1061,
+  VoiceTokenGenerateFailed = 1062,
+  VoiceAuthFailed = 1063,
   NeedRedirect = 3001,
   ErrorCodes_INT_MIN_SENTINEL_DO_NOT_USE_ =
       std::numeric_limits<::int32_t>::min(),

@@ -1,6 +1,7 @@
-﻿#include <iostream>
+#include <iostream>
 #include <string>
 #include <memory>
+#include <clocale>
 
 // 1. Boost
 #include <boost/asio.hpp>
@@ -11,15 +12,30 @@
 // 4. gRPC
 #include <grpcpp/grpcpp.h>
 #include <memory>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 #include "GateServer/GateServer.h"
 #include "GateServer/ConfigMgr.h"
 #include "GateServer/CServer.h"
+#include "Logger/Logger.h"
 
+
+static void ConfigureConsoleUtf8()
+{
+#ifdef _WIN32
+	SetConsoleCP(CP_UTF8);
+	SetConsoleOutputCP(CP_UTF8);
+#else
+	std::setlocale(LC_ALL, "C.UTF-8");
+#endif
+}
 
 int main()
 {
-	// 设置控制台输入输出为 UTF-8
-	//SetConsoleOutputCP(65001);
+	ConfigureConsoleUtf8();
+	Logger::Init("GateServer", "logs/GateServer.log");
+	LOG_INFO_CTX("GateServer::main", "服务启动");
 	//TestRedisMgr();
 	auto& gCfgMgr = ConfigMgr::Inst();
 	std::string gate_port_str = gCfgMgr["GateServer"]["Port"];
@@ -38,13 +54,16 @@ int main()
 			ioc.stop();
 			});
 		std::make_shared<CServer>(ioc, port)->Start();
-		std::cout << "gateServer listen on " << port << std::endl;
+		LOG_INFO_CTX("GateServer::main", "监听端口 port=" << port);
 		ioc.run();
 	}
 	catch (std::exception const& exp)
 	{
+		LOG_ERROR_CTX("GateServer::main", "服务异常: " << exp.what());
 		std::cerr << "Error: " << exp.what() << std::endl;
+		Logger::Shutdown();
 		return EXIT_FAILURE;
 	}
+	Logger::Shutdown();
 	return 0;
 }

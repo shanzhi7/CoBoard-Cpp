@@ -3,6 +3,7 @@
 #include "ui_canvas.h"
 #include "usermgr.h"
 #include "tcpmgr.h"
+#include "voicemanager.h"
 #include "tipwidget.h"
 #include <QMouseEvent>
 #include <QApplication>
@@ -84,6 +85,22 @@ Canvas::Canvas(QWidget *parent)
     connect(ui->input_edit,&QLineEdit::returnPressed,this,&Canvas::slot_onSendChatClicked);
     connect(ui->send_btn,&QPushButton::clicked,this,&Canvas::slot_onSendChatClicked);
 
+    // ===== 语音 UI 预留连接（当前暂不启用） =====
+    // 后续在 canvas.ui 增加对应控件后，取消下面代码的注释。
+    // connect(ui->microphoneButton, &QPushButton::clicked,
+    //         this, &Canvas::slot_toggle_microphone);
+    // connect(ui->speakerButton, &QPushButton::clicked,
+    //         this, &Canvas::slot_toggle_speaker);
+    // connect(VoiceManager::getInstance().get(),
+    //         &VoiceManager::sig_state_changed,
+    //         this, &Canvas::slot_voice_state_changed);
+    // connect(VoiceManager::getInstance().get(),
+    //         &VoiceManager::sig_error,
+    //         this, &Canvas::slot_voice_error);
+    // connect(VoiceManager::getInstance().get(),
+    //         &VoiceManager::sig_active_speakers_changed,
+    //         this, &Canvas::slot_active_speakers_changed);
+
     // TcpMgr -> Canvas (接收广播)
     connect(TcpMgr::getInstance().get(), &TcpMgr::sig_draw_broadcast,
             this, &Canvas::slot_onDrawBroadcast);
@@ -96,6 +113,7 @@ Canvas::Canvas(QWidget *parent)
 
 Canvas::~Canvas()
 {
+    VoiceManager::getInstance()->leaveRoom();
     qApp->removeEventFilter(this);  // 移除事件过滤器
     delete ui;
 }
@@ -114,6 +132,8 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 
 void Canvas::enterOfflineMode()
 {
+    VoiceManager::getInstance()->leaveRoom();
+
     // 离线模式复用同一套 PaintScene 绘图能力，但不创建房间、不连接服务器。
     _pendingPointsByUuid.clear();
     _remoteDrawQueue.clear();
@@ -505,6 +525,9 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     _room_info = room_info;
     refreshRoomCollaborationState();
 
+    if (room_info && !room_info->offline)
+        VoiceManager::getInstance()->joinRoom(room_info->id);
+
     TipWidget::showTip(ui->graphicsView, QStringLiteral("创建房间成功"));
     QString room_name = room_info->name;
     QString room_id = room_info->id;
@@ -527,6 +550,9 @@ void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
     _room_info = room_info;
     refreshRoomCollaborationState();
+
+    if (room_info && !room_info->offline)
+        VoiceManager::getInstance()->joinRoom(room_info->id);
 
     TipWidget::showTip(ui->graphicsView, QStringLiteral("加入房间成功"));
     QString room_name = room_info->name;
@@ -1021,9 +1047,42 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
 
 void Canvas::on_return_btn_clicked()    //返回大厅
 {
+    VoiceManager::getInstance()->leaveRoom();
+
     // 离线画板没有大厅房间状态，返回时直接清空本地画布和离线房间信息。
     if (_room_info && _room_info->offline)
         resetForReconnect();
 
     emit sig_return_lobby();            //发送信号给mainWindow接收
 }
+
+// ===== 语音 UI 预留实现（当前暂不启用） =====
+// void Canvas::slot_toggle_microphone()
+// {
+//     const bool enabled = !VoiceManager::getInstance()->microphoneEnabled();
+//     VoiceManager::getInstance()->setMicrophoneEnabled(enabled);
+// }
+//
+// void Canvas::slot_toggle_speaker()
+// {
+//     const bool enabled = !VoiceManager::getInstance()->speakerEnabled();
+//     VoiceManager::getInstance()->setSpeakerEnabled(enabled);
+// }
+//
+// void Canvas::slot_voice_state_changed(VoiceManager::State state)
+// {
+//     // 根据 state 更新语音连接状态标签或图标。
+//     Q_UNUSED(state);
+// }
+//
+// void Canvas::slot_voice_error(const QString& message)
+// {
+//     // 根据项目现有提示控件展示错误，不在 VoiceManager 内直接操作 UI。
+//     TipWidget::showTip(this, message);
+// }
+//
+// void Canvas::slot_active_speakers_changed(const QStringList& identities)
+// {
+//     // identities 中的值类似 uid-1001，可映射到成员列表并显示“说话中”状态。
+//     Q_UNUSED(identities);
+// }

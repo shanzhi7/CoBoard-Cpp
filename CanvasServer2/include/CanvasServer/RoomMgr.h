@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-//Ç°ÖÃÉùÃ÷ Room
+//å‰ç½®å£°æ˜ Room
 class Room;
 
 class RoomMgr : public Singleton<RoomMgr>
@@ -14,18 +14,18 @@ class RoomMgr : public Singleton<RoomMgr>
 public:
 	~RoomMgr();
 
-	//»ñÈ¡·¿¼ä£¬Èç¹û²»´æÔÚÔò´´½¨Ò»¸öĞÂµÄ
+	//è·å–æˆ¿é—´ï¼Œå¦‚æœä¸å­˜åœ¨åˆ™åˆ›å»ºä¸€ä¸ªæ–°çš„
 	std::shared_ptr<Room> GetOrCreateRoom(const std::string& room_id);
 
-	// »ñÈ¡·¿¼ä£¬Èç¹û²»´æÔÚ·µ»Ø nullptr (ÓÃÓÚÖ»¶Á²Ù×÷£¬±ÈÈç²éÑ¯·¿¼äÈËÊı)
+	// è·å–æˆ¿é—´ï¼Œå¦‚æœä¸å­˜åœ¨è¿”å› nullptr (ç”¨äºåªè¯»æ“ä½œï¼Œæ¯”å¦‚æŸ¥è¯¢æˆ¿é—´äººæ•°)
 	std::shared_ptr<Room> GetRoom(const std::string& room_id);
 
-	// ÒÆ³ı·¿¼ä (Í¨³£ÔÚ·¿¼äÈËÊıÎª0Ê±µ÷ÓÃ)
+	// ç§»é™¤æˆ¿é—´ (é€šå¸¸åœ¨æˆ¿é—´äººæ•°ä¸º0æ—¶è°ƒç”¨)
 	void RemoveRoom(const std::string& room_id);
 private:
 	RoomMgr();
 
 	std::mutex _mutex;
-	// ·¿¼äID -> ·¿¼ä¶ÔÏó
+	// æˆ¿é—´ID -> æˆ¿é—´å¯¹è±¡
 	std::unordered_map<std::string, std::shared_ptr<Room>> _rooms;
 };

@@ -11,20 +11,20 @@ VerifyGrpcClient::VerifyGrpcClient()
 	_pool.reset(new RPConPool(5, host, port));
 }
 
-RPConPool::RPConPool(size_t poolsize, std::string host, std::string port) :	//³õÊ¼»¯Á¬½Ó³Ø
+RPConPool::RPConPool(size_t poolsize, std::string host, std::string port) :	//åˆå§‹åŒ–è¿æ¥æ± 
 	_poolSize(poolsize), _host(host), _port(port), _b_stop(false)
 {
 	for (size_t i = 0; i < _poolSize; i++)
 	{
-		std::shared_ptr<Channel> channel = grpc::CreateChannel(host + ":" + port, //¼àÌıipÓë¶Ë¿Ú
-			grpc::InsecureChannelCredentials());					//Í¨µÀ,ÓÃÓÚÓëgrpc·şÎñ¶ËÍ¨ĞÅ(grpc::InsecureChannelCredentials() Ê¹ÓÃ²»°²È«Ö¤Êé)
+		std::shared_ptr<Channel> channel = grpc::CreateChannel(host + ":" + port, //ç›‘å¬ipä¸ç«¯å£
+			grpc::InsecureChannelCredentials());					//é€šé“,ç”¨äºä¸grpcæœåŠ¡ç«¯é€šä¿¡(grpc::InsecureChannelCredentials() ä½¿ç”¨ä¸å®‰å…¨è¯ä¹¦)
 		_connections.push(VarifyService::NewStub(channel));
 	}
 }
 
-RPConPool::~RPConPool()		//Îö¹¹º¯Êı¹Ø±ÕÁ¬½Ó£¬Í¨ÖªËùÓĞÏß³Ì
+RPConPool::~RPConPool()		//ææ„å‡½æ•°å…³é—­è¿æ¥ï¼Œé€šçŸ¥æ‰€æœ‰çº¿ç¨‹
 {
-	std::lock_guard<std::mutex> lock(_mutex);	//ÉÏËø±£Ö¤Ïß³Ì°²È«
+	std::lock_guard<std::mutex> lock(_mutex);	//ä¸Šé”ä¿è¯çº¿ç¨‹å®‰å…¨
 	Close();
 	while (_connections.empty() == false)
 	{
@@ -32,7 +32,7 @@ RPConPool::~RPConPool()		//Îö¹¹º¯Êı¹Ø±ÕÁ¬½Ó£¬Í¨ÖªËùÓĞÏß³Ì
 	}
 }
 
-std::unique_ptr<VarifyService::Stub> RPConPool::getConnection()	//»ñÈ¡ VarifyService::Stub Á¬½Ó
+std::unique_ptr<VarifyService::Stub> RPConPool::getConnection()	//è·å– VarifyService::Stub è¿æ¥
 {
 	std::unique_lock<std::mutex> lock(_mutex);
 	_cond.wait(lock, [this]() {
@@ -53,7 +53,7 @@ std::unique_ptr<VarifyService::Stub> RPConPool::getConnection()	//»ñÈ¡ VarifySer
 
 }
 
-void RPConPool::returnConnection(std::unique_ptr<VarifyService::Stub> stub)	//Ê¹ÓÃÍê±Ïºó¹é»¹µ½Á¬½Ó³Ø
+void RPConPool::returnConnection(std::unique_ptr<VarifyService::Stub> stub)	//ä½¿ç”¨å®Œæ¯•åå½’è¿˜åˆ°è¿æ¥æ± 
 {
 	std::lock_guard<std::mutex> lock(_mutex);
 	if (_b_stop)
@@ -64,7 +64,7 @@ void RPConPool::returnConnection(std::unique_ptr<VarifyService::Stub> stub)	//Ê¹
 	_cond.notify_one();
 }
 
-void RPConPool::Close()		//¹Ø±ÕÁ¬½Ó£¬¸æÖªËùÓĞÏß³Ì
+void RPConPool::Close()		//å…³é—­è¿æ¥ï¼Œå‘ŠçŸ¥æ‰€æœ‰çº¿ç¨‹
 {
 	_b_stop = true;
 	_cond.notify_all();

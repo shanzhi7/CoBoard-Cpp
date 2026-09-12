@@ -1,4 +1,4 @@
-//CServerÀà£¬ÓÃÓÚÆô¶¯·şÎñÆ÷£¬¼àÌı¶Ë¿Ú£¬½ÓÊÕ¿Í»§¶ËÁ¬½Ó
+//CServerç±»ï¼Œç”¨äºå¯åŠ¨æœåŠ¡å™¨ï¼Œç›‘å¬ç«¯å£ï¼Œæ¥æ”¶å®¢æˆ·ç«¯è¿æ¥
 #pragma once
 #include <iostream>
 #include <memory>
@@ -16,9 +16,9 @@
 class CServer : public std::enable_shared_from_this<CServer>
 { 
 public:
-	CServer(boost::asio::io_context& ioc, short port);	//¹¹Ôìº¯Êı£¬³õÊ¼»¯_acceptor¶ÔÏó
+	CServer(boost::asio::io_context& ioc, short port);	//æ„é€ å‡½æ•°ï¼Œåˆå§‹åŒ–_acceptorå¯¹è±¡
 	void Start();
 private:
-	boost::asio::ip::tcp::acceptor _acceptor;		//½ÓÊÕÆ÷¶ÔÏó
-	boost::asio::io_context& _ioc;					//ÉÏÏÂÎÄ
+	boost::asio::ip::tcp::acceptor _acceptor;		//æ¥æ”¶å™¨å¯¹è±¡
+	boost::asio::io_context& _ioc;					//ä¸Šä¸‹æ–‡
 };

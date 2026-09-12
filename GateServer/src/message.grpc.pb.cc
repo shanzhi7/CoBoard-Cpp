@@ -23,6 +23,7 @@ namespace message {
 
 static const char* VarifyService_method_names[] = {
   "/message.VarifyService/GetVarifyCode",
+  "/message.VarifyService/CreateVoiceToken",
 };
 
 std::unique_ptr< VarifyService::Stub> VarifyService::NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options) {
@@ -33,6 +34,7 @@ std::unique_ptr< VarifyService::Stub> VarifyService::NewStub(const std::shared_p
 
 VarifyService::Stub::Stub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options)
   : channel_(channel), rpcmethod_GetVarifyCode_(VarifyService_method_names[0], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
+  , rpcmethod_CreateVoiceToken_(VarifyService_method_names[1], options.suffix_for_stats(),::grpc::internal::RpcMethod::NORMAL_RPC, channel)
   {}
 
 ::grpc::Status VarifyService::Stub::GetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::message::GetVarifyRsp* response) {
@@ -58,6 +60,29 @@ void VarifyService::Stub::async::GetVarifyCode(::grpc::ClientContext* context, c
   return result;
 }
 
+::grpc::Status VarifyService::Stub::CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::message::CreateVoiceTokenRsp* response) {
+  return ::grpc::internal::BlockingUnaryCall< ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), rpcmethod_CreateVoiceToken_, context, request, response);
+}
+
+void VarifyService::Stub::async::CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, std::function<void(::grpc::Status)> f) {
+  ::grpc::internal::CallbackUnaryCall< ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateVoiceToken_, context, request, response, std::move(f));
+}
+
+void VarifyService::Stub::async::CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) {
+  ::grpc::internal::ClientCallbackUnaryFactory::Create< ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(stub_->channel_.get(), stub_->rpcmethod_CreateVoiceToken_, context, request, response, reactor);
+}
+
+::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>* VarifyService::Stub::PrepareAsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+  return ::grpc::internal::ClientAsyncResponseReaderHelper::Create< ::message::CreateVoiceTokenRsp, ::message::CreateVoiceTokenReq, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(channel_.get(), cq, rpcmethod_CreateVoiceToken_, context, request);
+}
+
+::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>* VarifyService::Stub::AsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+  auto* result =
+    this->PrepareAsyncCreateVoiceTokenRaw(context, request, cq);
+  result->StartCall();
+  return result;
+}
+
 VarifyService::Service::Service() {
   AddMethod(new ::grpc::internal::RpcServiceMethod(
       VarifyService_method_names[0],
@@ -69,12 +94,29 @@ VarifyService::Service::Service() {
              ::message::GetVarifyRsp* resp) {
                return service->GetVarifyCode(ctx, req, resp);
              }, this)));
+  AddMethod(new ::grpc::internal::RpcServiceMethod(
+      VarifyService_method_names[1],
+      ::grpc::internal::RpcMethod::NORMAL_RPC,
+      new ::grpc::internal::RpcMethodHandler< VarifyService::Service, ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp, ::grpc::protobuf::MessageLite, ::grpc::protobuf::MessageLite>(
+          [](VarifyService::Service* service,
+             ::grpc::ServerContext* ctx,
+             const ::message::CreateVoiceTokenReq* req,
+             ::message::CreateVoiceTokenRsp* resp) {
+               return service->CreateVoiceToken(ctx, req, resp);
+             }, this)));
 }
 
 VarifyService::Service::~Service() {
 }
 
 ::grpc::Status VarifyService::Service::GetVarifyCode(::grpc::ServerContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response) {
+  (void) context;
+  (void) request;
+  (void) response;
+  return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+}
+
+::grpc::Status VarifyService::Service::CreateVoiceToken(::grpc::ServerContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response) {
   (void) context;
   (void) request;
   (void) response;

@@ -1,29 +1,30 @@
 #include "CanvasServer/Room.h"
 #include "CanvasServer/CSession.h"
 #include "CanvasServer/const.h"
+#include "Logger/Logger.h"
 
 Room::Room(const std::string& room_id)
     : _room_id(room_id)
 {
-    std::cout << "[Room] Created: " << _room_id << std::endl;
+    LOG_INFO_CTX("Room::Room", "åˆ›å»ºæˆ¿é—´ room_id=" << _room_id);
 }
 
 Room::~Room()
 {
-    std::cout << "[Room] Destroyed: " << _room_id << std::endl;
-    // ¿ÉÒÔÔÚÕâÀïÇå¿Õ _sessions£¬µ«ÖÇÄÜÖ¸Õë»á×Ô¶¯´¦Àí
+    LOG_INFO_CTX("Room::~Room", "é”€æ¯æˆ¿é—´ room_id=" << _room_id);
+    // å¯ä»¥åœ¨è¿™é‡Œæ¸…ç©º _sessionsï¼Œä½†æ™ºèƒ½æŒ‡é’ˆä¼šè‡ªåŠ¨å¤„ç†
 }
 
-// ÊµÏÖ£º¼ÓÈëÀúÊ·¼ÇÂ¼
+// å®ç°ï¼šåŠ å…¥å†å²è®°å½•
 void Room::AppendHistory(const std::string& raw_drawreq)
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _history.emplace_back(raw_drawreq);
 
-    // ¼òµ¥²ÃÇĞ: ³¬¹ıÉÏÏŞ¶ªµô×îÀÏµÄ²¿·Ö (±ÜÃâvectorÆµ·±eraseÍ·²¿)
+    // ç®€å•è£åˆ‡: è¶…è¿‡ä¸Šé™ä¸¢æ‰æœ€è€çš„éƒ¨åˆ† (é¿å…vectoré¢‘ç¹eraseå¤´éƒ¨)
     if (_history.size() > MAX_HISTORY_OPS)
     {
-        const size_t kTrim = MAX_HISTORY_OPS / 10 + 1; // Ã¿´Î²Ã¼ôÔ¼10%
+        const size_t kTrim = MAX_HISTORY_OPS / 10 + 1; // æ¯æ¬¡è£å‰ªçº¦10%
         if (kTrim < _history.size())
         {
             _history.erase(_history.begin(), _history.begin() + static_cast<long>(kTrim));
@@ -31,14 +32,14 @@ void Room::AppendHistory(const std::string& raw_drawreq)
     }
 }
 
-// ÊµÏÖ£º»ñÈ¡ÀúÊ·¼ÇÂ¼¿ìÕÕ
+// å®ç°ï¼šè·å–å†å²è®°å½•å¿«ç…§
 std::vector<std::string> Room::GetHistorySnapshot()
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    return _history;    // ¿½±´Ò»·İ£¬»Ø·ÅÔÚËøÍâ×ö
+    return _history;    // æ‹·è´ä¸€ä»½ï¼Œå›æ”¾åœ¨é”å¤–åš
 }
 
-// ÊµÏÖ£ºÇå¿ÕÀúÊ·¼ÇÂ¼
+// å®ç°ï¼šæ¸…ç©ºå†å²è®°å½•
 void Room::ClearHistory()
 {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -50,58 +51,57 @@ void Room::Join(std::shared_ptr<CSession> session)
 
     if (!session)
     {
-        std::cout << "[Room] Join failed: null session\n";
+        LOG_WARN_CTX("Room::Join", "åŠ å…¥æˆ¿é—´å¤±è´¥: session ä¸ºç©º");
         return;
     }
     if (session->IsClosed())
     {
-        std::cout << "[Room] Join failed: session closed. UID: "
-            << session->GetUserId() << std::endl;
+        LOG_WARN_CTX("Room::Join", "åŠ å…¥æˆ¿é—´å¤±è´¥: session å·²å…³é—­ uid=" << session->GetUserId());
         return;
     }
 
     int uid = session->GetUserId();
-    if (uid == 0) // Î´µÇÂ¼ÓÃ»§²»ÔÊĞí¼ÓÈë
+    if (uid == 0) // æœªç™»å½•ç”¨æˆ·ä¸å…è®¸åŠ å…¥
     {
         return;
     }
-    bool first_join = false;    // ÊÇ·ñÊÇµÚÒ»´Î¼ÓÈë
+    bool first_join = false;    // æ˜¯å¦æ˜¯ç¬¬ä¸€æ¬¡åŠ å…¥
     std::vector<std::string> history_snapshot;
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
 
-        // ÊÇ·ñµÚÒ»´Î¼ÓÈë
+        // æ˜¯å¦ç¬¬ä¸€æ¬¡åŠ å…¥
         if (_sessions.find(uid) == _sessions.end())
             first_join = true;
 
         _sessions[uid] = session;
-        session->SetRoom(shared_from_this());   //ÕâÑù Session ¶Ï¿ªÊ±ÖªµÀÍ¨ÖªÄÄ¸ö·¿¼ä,sessionÓĞroomµÄÈõÖ¸Õë
+        session->SetRoom(shared_from_this());   //è¿™æ · Session æ–­å¼€æ—¶çŸ¥é“é€šçŸ¥å“ªä¸ªæˆ¿é—´,sessionæœ‰roomçš„å¼±æŒ‡é’ˆ
 
-        // Ö»¸ø¡°Ê×´Î¼ÓÈë¡±µÄÈË»Ø·ÅÀúÊ·
+        // åªç»™â€œé¦–æ¬¡åŠ å…¥â€çš„äººå›æ”¾å†å²
         if (first_join && !_history.empty())
         {
             history_snapshot = _history;
         }
 
-        std::cout << "[Room " << _room_id << "] User joined: " << uid
-            << ". Total: " << _sessions.size() << std::endl;
+        LOG_INFO_CTX("Room::Join", "ç”¨æˆ·åŠ å…¥ room_id=" << _room_id << " uid=" << uid
+            << " total=" << _sessions.size());
 
-        // Ë«ÖØ±£ÏÕ,¼ÓÈëºóÔÙ²éÒ»´Î
-        // Èç¹û¸Õ²Å¼ÓÈëµÄ¹ı³ÌÖĞÄÇ±ß¶Ï¿ªÁË£¬ÏÖÔÚ¸Ï½ô°ÑËûÌß³öÈ¥
+        // åŒé‡ä¿é™©,åŠ å…¥åå†æŸ¥ä¸€æ¬¡
+        // å¦‚æœåˆšæ‰åŠ å…¥çš„è¿‡ç¨‹ä¸­é‚£è¾¹æ–­å¼€äº†ï¼Œç°åœ¨èµ¶ç´§æŠŠä»–è¸¢å‡ºå»
         if (session->IsClosed())
         {
-            _sessions.erase(uid); // Á¢¼´»Ø¹ö
+            _sessions.erase(uid); // ç«‹å³å›æ»š
             return;
         }
     }
 
-    //ÏÈ»Ø·ÅÀúÊ· (Ö»¸ø¼ÓÈëÕß)
+    //å…ˆå›æ”¾å†å² (åªç»™åŠ å…¥è€…)
     if (first_join && !history_snapshot.empty())
     {
         auto weak_sess = std::weak_ptr<CSession>(session);
 
-        // Í¶µİµ½¸Ã session µÄ IO executor Ïß³Ì´®ĞĞÖ´ĞĞ
+        // æŠ•é€’åˆ°è¯¥ session çš„ IO executor çº¿ç¨‹ä¸²è¡Œæ‰§è¡Œ
         boost::asio::post(session->GetSocket().get_executor(),
             [weak_sess, history_snapshot]() {
                 auto sess = weak_sess.lock();
@@ -114,7 +114,7 @@ void Room::Join(std::shared_ptr<CSession> session)
             });
     }
 
-        // Ö»ÓĞµÚÒ»´Î join ²Å¹ã²¥½øÈë£¬Í¨ÖªÆäËûÓÃ»§£¬¸üĞÂ¿Í»§¶Ëui
+        // åªæœ‰ç¬¬ä¸€æ¬¡ join æ‰å¹¿æ’­è¿›å…¥ï¼Œé€šçŸ¥å…¶ä»–ç”¨æˆ·ï¼Œæ›´æ–°å®¢æˆ·ç«¯ui
     if (first_join)
         BroadcastUserEnter(session);
 
@@ -126,65 +126,63 @@ void Room::Leave(int uid)
     {
         std::lock_guard<std::mutex> lock(_mutex);
 
-        //ÒÆ³ıÓÃ»§
+        //ç§»é™¤ç”¨æˆ·
         auto it = _sessions.find(uid);
         if (it != _sessions.end())
         {
             _sessions.erase(it);
-            std::cout << "[Room " << _room_id << "] User left: " << uid
-                << ". Total: " << _sessions.size() << std::endl;
+            LOG_INFO_CTX("Room::Leave", "ç”¨æˆ·ç¦»å¼€ room_id=" << _room_id << " uid=" << uid
+                << " total=" << _sessions.size());
             b_removed = true;
 
         }
-    }   // Ëø×Ô¶¯ÊÍ·Å
+    }   // é”è‡ªåŠ¨é‡Šæ”¾
 
     if (b_removed)
     {
-        std::cout << "[Room " << _room_id << "] User left: " << uid << std::endl;
-
-        // ¡¾ÖØµã¡¿¹ã²¥Í¨ÖªÆäËûÈË
+        // ã€é‡ç‚¹ã€‘å¹¿æ’­é€šçŸ¥å…¶ä»–äºº
         BroadcastUserLeave(uid);
     }
 }
 
 void Room::Broadcast(const std::string& data, int msg_id, int exclude_uid)
 { 
-    auto sessions = GetMemberSessionSnapshot(exclude_uid);     //»ñÈ¡¿ìÕÕ(³ı×Ô¼º),±ÜÃâËøÍâ²Ù×÷
+    auto sessions = GetMemberSessionSnapshot(exclude_uid);     //è·å–å¿«ç…§(é™¤è‡ªå·±),é¿å…é”å¤–æ“ä½œ
 
-    // ±éÀú·¢ËÍ
+    // éå†å‘é€
     for (auto& session : sessions)
     {
         if (!session || session->IsClosed()) 
             continue;
 
-        // ·¢ËÍ
+        // å‘é€
         session->Send(data, msg_id);
     }
 }
 
-// ÊµÏÖ£º¹ã²¥ÓĞÈË½øÈë
+// å®ç°ï¼šå¹¿æ’­æœ‰äººè¿›å…¥
 void Room::BroadcastUserEnter(std::shared_ptr<CSession> session)
 {
     message::UserJoinRoomBroadcast msg;
 
-    //»ñÈ¡msgÀïUserInfoµÄÖ¸Õë
+    //è·å–msgé‡ŒUserInfoçš„æŒ‡é’ˆ
     message::UserInfo* user_info = msg.mutable_user_info();
 
-    //Ìî³äÊı¾İ
+    //å¡«å……æ•°æ®
     user_info->set_uid(session->GetUserId());
     user_info->set_name(session->GetName());
     user_info->set_avatar_url(session->GetAvatarUrl());
 
-    //×ª»»Îª¶ş½øÖÆÊı¾İ
+    //è½¬æ¢ä¸ºäºŒè¿›åˆ¶æ•°æ®
     std::string sendData;
     if (msg.SerializeToString(&sendData))
     {
-        //¹ã²¥¸ø·¿¼äÄÚËùÓĞÓÃ»§
+        //å¹¿æ’­ç»™æˆ¿é—´å†…æ‰€æœ‰ç”¨æˆ·
         Broadcast(sendData, ID_USER_JOIN_BROADCAST,session->GetUserId());
     }
 }
 
-// ÊµÏÖ£º¹ã²¥ÓĞÈËÀë¿ª
+// å®ç°ï¼šå¹¿æ’­æœ‰äººç¦»å¼€
 void Room::BroadcastUserLeave(int uid)
 {
     message::UserLeaveRoomBroadcast msg;
@@ -193,12 +191,12 @@ void Room::BroadcastUserLeave(int uid)
     std::string sendData;
     if (msg.SerializeToString(&sendData))
     {
-        //¹ã²¥¸ø·¿¼äÄÚËùÓĞÓÃ»§
+        //å¹¿æ’­ç»™æˆ¿é—´å†…æ‰€æœ‰ç”¨æˆ·
         Broadcast(sendData, ID_USER_LEAVE_BROADCAST);
     }
 }
 
-// ÊµÏÖ£º»ñÈ¡·¿¼äÄÚËùÓĞ³ÉÔ±µÄ¿ìÕÕ£¨¸´ÖÆÒ»·İ£¬·ÀÖ¹ÆÚ¼äÓĞ ¼ÓÈë/Àë¿ª ÒıÆğµÄÏß³Ì°²È«£©
+// å®ç°ï¼šè·å–æˆ¿é—´å†…æ‰€æœ‰æˆå‘˜çš„å¿«ç…§ï¼ˆå¤åˆ¶ä¸€ä»½ï¼Œé˜²æ­¢æœŸé—´æœ‰ åŠ å…¥/ç¦»å¼€ å¼•èµ·çš„çº¿ç¨‹å®‰å…¨ï¼‰
 std::vector<message::UserInfo> Room::GetMemberSnapshot()
 {
     std::lock_guard<std::mutex> lock(_mutex);
@@ -212,7 +210,7 @@ std::vector<message::UserInfo> Room::GetMemberSnapshot()
         if(!session) continue;
         if(session->IsClosed()) continue;
 
-        //¹¹ÔìUserInfo
+        //æ„é€ UserInfo
         message::UserInfo user_info;
         user_info.set_uid(session->GetUserId());
         user_info.set_name(session->GetName());
@@ -223,7 +221,7 @@ std::vector<message::UserInfo> Room::GetMemberSnapshot()
     return member_list;
 }
 
-// ÊµÏÖ£º»ñÈ¡·¿¼äÄÚËùÓĞ³ÉÔ±µÄSession¿ìÕÕ£¨¸´ÖÆÒ»·İ£¬·ÀÖ¹ÆÚ¼äÓĞ Ìí¼Ó/É¾³ı ÒıÆğµÄÏß³Ì°²È«£©
+// å®ç°ï¼šè·å–æˆ¿é—´å†…æ‰€æœ‰æˆå‘˜çš„Sessionå¿«ç…§ï¼ˆå¤åˆ¶ä¸€ä»½ï¼Œé˜²æ­¢æœŸé—´æœ‰ æ·»åŠ /åˆ é™¤ å¼•èµ·çš„çº¿ç¨‹å®‰å…¨ï¼‰
 std::vector<std::shared_ptr<CSession>> Room::GetMemberSessionSnapshot(int exclude_uid)
 {
     std::vector<std::shared_ptr<CSession>> session_list;
@@ -242,13 +240,13 @@ std::vector<std::shared_ptr<CSession>> Room::GetMemberSessionSnapshot(int exclud
             {
                 continue;
             }
-            session_list.emplace_back(session); //¿½±´Ö¸Õë,±£Ö¤ËøÍâ°²È«Ê¹ÓÃ
+            session_list.emplace_back(session); //æ‹·è´æŒ‡é’ˆ,ä¿è¯é”å¤–å®‰å…¨ä½¿ç”¨
         }
     }
     return session_list;
 }
 
-//»ñÈ¡·¿¼äID
+//è·å–æˆ¿é—´ID
 std::string Room::GetRoomId() const
 {
     return _room_id;
@@ -260,7 +258,7 @@ void Room::SetRoomInfo(const std::string& name, int owner_uid)
     _name = name;
     _owner_uid = owner_uid;
 }
-int Room::GetOwnerUid() const //»ñÈ¡·¿Ö÷ID
+int Room::GetOwnerUid() const //è·å–æˆ¿ä¸»ID
 {
     std::lock_guard<std::mutex> lock(_mutex);
     return _owner_uid;
@@ -281,7 +279,7 @@ bool Room::HasMember(int uid) const
 
 bool Room::CanEdit(int uid) const
 {
-    // ·¿Ö÷ÌìÈ»¿É±à¼­£»ÆÕÍ¨³ÉÔ±ĞèÒª±»·¿Ö÷¼ÓÈëÊÚÈ¨¼¯ºÏºó²Å¿É±à¼­¡£
+    // æˆ¿ä¸»å¤©ç„¶å¯ç¼–è¾‘ï¼›æ™®é€šæˆå‘˜éœ€è¦è¢«æˆ¿ä¸»åŠ å…¥æˆæƒé›†åˆåæ‰å¯ç¼–è¾‘ã€‚
     std::lock_guard<std::mutex> lock(_mutex);
     return uid != 0 && (uid == _owner_uid || _editable_users.count(uid) > 0);
 }

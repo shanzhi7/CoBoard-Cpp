@@ -1,16 +1,17 @@
 #include "CanvasServer/CServer.h"
 #include "CanvasServer/CSession.h"
+#include "Logger/Logger.h"
 
 CServer::CServer(boost::asio::io_context& ioc, short port)
 	:_io_context(ioc), _port(port),_acceptor(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 {
-	std::cout << "[CServer] Server initialized on port: " << _port << std::endl;
+	LOG_INFO_CTX("CServer::CServer", "服务器初始化 port=" << _port);
 	Start();
 }
 
 CServer::~CServer()
 {
-	std::cout << "[CServer] Server stopped." << std::endl;
+	LOG_INFO_CTX("CServer::~CServer", "服务器停止");
 }
 
 void CServer::Start()
@@ -38,14 +39,14 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session, const boost::s
 		new_session->GetSocket().set_option(boost::asio::ip::tcp::no_delay(true), option_ec);
 		if (option_ec)
 		{
-			std::cout << "[CServer] set TCP_NODELAY failed: " << option_ec.message() << std::endl;
+			LOG_WARN_CTX("CServer::HandleAccept", "设置 TCP_NODELAY 失败: " << option_ec.message());
 		}
 
 		new_session->Start();
 	}
 	else
 	{
-		std::cout << "[CServer] Accept error: " << error.message() << std::endl;
+		LOG_ERROR_CTX("CServer::HandleAccept", "接收连接失败: " << error.message());
 	}
 
 	StartAccept();

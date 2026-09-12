@@ -6,13 +6,17 @@
 #include <queue>
 #include <mutex>
 #include <condition_variable>
+#include <iostream>
+#include <string>
 
-using grpc::Channel;			//Í¨µÀ
-using grpc::Status;				//×´Ì¬
-using grpc::ClientContext;		//¿Í»§¶ËÉÏÏÂÎÄ
+using grpc::Channel;			//é€šé“
+using grpc::Status;				//çŠ¶æ€
+using grpc::ClientContext;		//å®¢æˆ·ç«¯ä¸Šä¸‹æ–‡
 
 using message::GetVarifyReq;
 using message::GetVarifyRsp;
+using message::CreateVoiceTokenReq;
+using message::CreateVoiceTokenRsp;
 using message::VarifyService;
 
 class RPConPool
@@ -45,26 +49,56 @@ class VerifyGrpcClient :public Singleton<VerifyGrpcClient>
 public:
 	~VerifyGrpcClient() {};
 
-	GetVarifyRsp GetVarifyCode(std::string email) {
-		ClientContext context;	//ÉÏÏÂÎÄ
-		GetVarifyRsp reply;		//´ğ¸´
-		GetVarifyReq request;	//ÇëÇó
+	GetVarifyRsp GetVarifyCode(std::string email) {	//è·å–éªŒè¯ç 
+		ClientContext context;	//ä¸Šä¸‹æ–‡
+		GetVarifyRsp reply;		//ç­”å¤
+		GetVarifyReq request;	//è¯·æ±‚
 		request.set_email(email);
 
 		std::unique_ptr<VarifyService::Stub> stub = _pool->getConnection();
-		Status stutas = stub->GetVarifyCode(&context, request, &reply);	//·¢ËÍ»ñÈ¡ÑéÖ¤ÂëÇëÇó
+		Status stutas = stub->GetVarifyCode(&context, request, &reply);	//å‘é€è·å–éªŒè¯ç è¯·æ±‚
 
-		if (stutas.ok())		//ÇëÇó³É¹¦
+		if (stutas.ok())		//è¯·æ±‚æˆåŠŸ
 		{
 			_pool->returnConnection(std::move(stub));
 			return reply;
 		}
-		else					//ÇëÇóÊ§°Ü
+		else					//è¯·æ±‚å¤±è´¥
 		{
 			_pool->returnConnection(std::move(stub));
-			reply.set_error(message::ErrorCodes::RPCFailed);//ÉèÖÃ´íÎóÂë
+			reply.set_error(message::ErrorCodes::RPCFailed);//è®¾ç½®é”™è¯¯ç 
 			return reply;
 		}
+	}
+
+	//è·å–æˆ¿é—´è¯­éŸ³tokenè¯·æ±‚
+	CreateVoiceTokenRsp CreateVoiceToken(int uid, const std::string& room_id) {
+		ClientContext context;
+		CreateVoiceTokenRsp reply;
+		CreateVoiceTokenReq request;
+		request.set_uid(uid);
+		request.set_room_id(room_id);
+
+		std::unique_ptr<VarifyService::Stub> stub = _pool->getConnection();
+		if (stub == nullptr)
+		{
+			reply.set_error(message::ErrorCodes::RPCFailed);
+			return reply;
+		}
+
+		Status status = stub->CreateVoiceToken(&context, request, &reply);
+		_pool->returnConnection(std::move(stub));
+
+		if (!status.ok())
+		{
+			std::cout << "[VerifyGrpcClient] CreateVoiceToken RPC failed, uid: "
+				<< uid << ", room_id: " << room_id
+				<< ", error: " << status.error_message() << std::endl;
+			reply.Clear();
+			reply.set_error(message::ErrorCodes::RPCFailed);
+		}
+
+		return reply;
 	}
 
 	//UpdateAvatarRsp 

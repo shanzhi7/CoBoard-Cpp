@@ -3,12 +3,13 @@
 #include "LogicServer/MysqlMgr.h"
 #include "LogicServer/ConfigMgr.h"
 #include "LogicServer/data.h"
+#include "Logger/Logger.h"
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 #include <iostream>
 
-// ¸¨Öúº¯Êı£º×Ö·û´®·Ö¸î
+// è¾…åŠ©å‡½æ•°ï¼šå­—ç¬¦ä¸²åˆ†å‰²
 std::vector<std::string> split(const std::string& s, char delimiter)
 {
     std::vector<std::string> tokens;
@@ -21,123 +22,123 @@ std::vector<std::string> split(const std::string& s, char delimiter)
     return tokens;
 }
 
-// ×¢²áÓÃ»§º¯Êı
+// æ³¨å†Œç”¨æˆ·å‡½æ•°
 Status LogicServiceImpl::RegisterUser(ServerContext* context, const RegisterReq* request, RegisterRsp* reply)
 {
-	//»ñÈ¡²ÎÊı
+	//è·å–å‚æ•°
     std::string name = request->name();
     std::string email = request->email();
     std::string passwd = request->passwd();
     std::string confirm_pwd = request->confirm_pwd();
     std::string varifycode = request->varifycode();
 
-    std::cout << "[LogicServer] ÊÕµ½×¢²áÇëÇó: email=" << email << ", name=" << name << std::endl;
+    LOG_INFO_CTX("LogicServiceImpl::RegisterUser", "æ”¶åˆ°æ³¨å†Œè¯·æ±‚ email=" << email << ", name=" << name);
 
-    //ÑéÖ¤ÑéÖ¤Âë
+    //éªŒè¯éªŒè¯ç 
     std::string redis_key = CODEPREFIX + email;
     std::string redis_code;
-    // ´ÓredisÖĞ»ñÈ¡ÑéÖ¤Âë
+    // ä»redisä¸­è·å–éªŒè¯ç 
     bool get_success = RedisMgr::getInstance()->Get(redis_key, redis_code);
     if (!get_success)
     {
-        std::cout<<"[LogicServer] ÑéÖ¤ÂëÒÑ¹ıÆÚ»ò²»´æÔÚ"<<std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::RegisterUser", "éªŒè¯ç å·²è¿‡æœŸæˆ–ä¸å­˜åœ¨");
         reply->set_error(message::ErrorCodes::VarifyExpired);
         return Status::OK;
     }
     if (redis_code != varifycode)
     {
-        std::cout << "[LogicServer] ÑéÖ¤Âë´íÎó: " << email <<std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::RegisterUser", "éªŒè¯ç é”™è¯¯ email=" << email);
         reply->set_error(message::ErrorCodes::VarifyCodeErr);
         return Status::OK;
     }
 
-    //³É¹¦£¬Ğ´Èëmysql
+    //æˆåŠŸï¼Œå†™å…¥mysql
     int result = MysqlMgr::getInstance()->Register(name, email, passwd);
     if (result == message::ErrorCodes::UserExist)
     {
-        // ÓÃ»§Ãû/ÓÊÏäÒÑ´æÔÚ
-        std::cout << "[LogicServer] ×¢²áÊ§°Ü£¬ÓÃ»§ÒÑ´æÔÚ: " << email << std::endl;
+        // ç”¨æˆ·å/é‚®ç®±å·²å­˜åœ¨
+        LOG_WARN_CTX("LogicServiceImpl::RegisterUser", "æ³¨å†Œå¤±è´¥ï¼Œç”¨æˆ·å·²å­˜åœ¨ email=" << email);
         reply->set_error(message::ErrorCodes::UserExist);
         return Status::OK;
     }
     if (result <= 0)
     {
-        // Êı¾İ¿âÄÚ²¿´íÎó (Á¬½ÓÊ§°Ü¡¢SQLÓï·¨´íµÈ)
-        std::cout << "[LogicServer] ×¢²áÊ§°Ü£¬Êı¾İ¿âÄÚ²¿´íÎó" << std::endl;
-        reply->set_error(message::ErrorCodes::RPCFailed); // »òÕß¶¨ÒåÒ»¸ö DBError
+        // æ•°æ®åº“å†…éƒ¨é”™è¯¯ (è¿æ¥å¤±è´¥ã€SQLè¯­æ³•é”™ç­‰)
+        LOG_ERROR_CTX("LogicServiceImpl::RegisterUser", "æ³¨å†Œå¤±è´¥ï¼Œæ•°æ®åº“å†…éƒ¨é”™è¯¯");
+        reply->set_error(message::ErrorCodes::RPCFailed); // æˆ–è€…å®šä¹‰ä¸€ä¸ª DBError
         return Status::OK;
     }
 
-    // ×¢²á³É¹¦
-    RedisMgr::getInstance()->Del(redis_key);    // É¾³ıÑéÖ¤Âë
-    std::cout << "[LogicServer] ×¢²á³É¹¦: " << email << ", uid=" << result << std::endl;
+    // æ³¨å†ŒæˆåŠŸ
+    RedisMgr::getInstance()->Del(redis_key);    // åˆ é™¤éªŒè¯ç 
+    LOG_INFO_CTX("LogicServiceImpl::RegisterUser", "æ³¨å†ŒæˆåŠŸ email=" << email << ", uid=" << result);
     reply->set_error(message::ErrorCodes::SUCCESS);
-    reply->set_uid(result); // ½«Éú³ÉµÄ UID ·µ»Ø¸øÇ°¶Ë
+    reply->set_uid(result); // å°†ç”Ÿæˆçš„ UID è¿”å›ç»™å‰ç«¯
 
     return Status::OK;
 }
 
 Status LogicServiceImpl::ResetPassword(ServerContext* context, const ResetPasswordReq* request, ResetPasswordRsp* reply)
 { 
-    // »ñÈ¡²ÎÊı
+    // è·å–å‚æ•°
     std::string email = request->email();
     std::string varifycode = request->varifycode();
     std::string passwd = request->passwd();
     std::string confirm_pwd = request->confirm_pwd();
-    std::cout << "[LogicServer] ÃÜÂëÖØÖÃÇëÇó: email=" << email << std::endl;
+    LOG_INFO_CTX("LogicServiceImpl::ResetPassword", "å¯†ç é‡ç½®è¯·æ±‚ email=" << email);
     if (passwd != confirm_pwd)
     {
-        std::cout << "[LogicServer] ÃÜÂë²»Ò»ÖÂ" << std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::ResetPassword", "å¯†ç ä¸ä¸€è‡´");
         reply->set_error(message::ErrorCodes::PasswdInvalid);
         return Status::OK;
     }
     
-    // ÑéÖ¤ÑéÖ¤Âë
+    // éªŒè¯éªŒè¯ç 
     std::string redis_key = CODEPREFIX + email;
     std::string redis_code;
     bool get_success = RedisMgr::getInstance()->Get(redis_key, redis_code);
     if (!get_success)
     {
-        std::cout << "[LogicServer] ÑéÖ¤ÂëÒÑ¹ıÆÚ»ò²»´æÔÚ" << std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::ResetPassword", "éªŒè¯ç å·²è¿‡æœŸæˆ–ä¸å­˜åœ¨");
         reply->set_error(message::ErrorCodes::VarifyExpired);
         return Status::OK;
     }
     if (redis_code != varifycode)
     {
-        std::cout << "[LogicServer] ÑéÖ¤Âë´íÎó: " << email << std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::ResetPassword", "éªŒè¯ç é”™è¯¯ email=" << email);
         reply->set_error(message::ErrorCodes::VarifyCodeErr);
         return Status::OK;
     }
-    int result = MysqlMgr::getInstance()->ResetPassword(email, varifycode, passwd); // µ÷ÓÃ MysqlMgr
+    int result = MysqlMgr::getInstance()->ResetPassword(email, varifycode, passwd); // è°ƒç”¨ MysqlMgr
     if (result != message::ErrorCodes::SUCCESS)
     {
-        std::cout << "[LogicServer] ÃÜÂëÖØÖÃÊ§°Ü£¬Êı¾İ¿âÄÚ²¿´íÎó" << std::endl;
+        LOG_ERROR_CTX("LogicServiceImpl::ResetPassword", "å¯†ç é‡ç½®å¤±è´¥ï¼Œæ•°æ®åº“å†…éƒ¨é”™è¯¯");
         reply->set_error(message::ErrorCodes::RPCFailed);
         return Status::OK;
     }
 
-    RedisMgr::getInstance()->Del(redis_key);    // É¾³ıÑéÖ¤Âë
+    RedisMgr::getInstance()->Del(redis_key);    // åˆ é™¤éªŒè¯ç 
 
-    std::cout << "[LogicServer] ÃÜÂëÖØÖÃ³É¹¦: " << email << std::endl;
+    LOG_INFO_CTX("LogicServiceImpl::ResetPassword", "å¯†ç é‡ç½®æˆåŠŸ email=" << email);
     return Status::OK;
 }
 bool LogicServiceImpl::GetCanvasServerInfo(std::string& host, std::string& port)
 {
-    // »ñÈ¡CanvasServerĞÅÏ¢
+    // è·å–CanvasServerä¿¡æ¯
     auto& configMgr = ConfigMgr::Inst();
     std::string serverNamesStr = configMgr["CanvasServers"]["Name"];
     if (serverNamesStr.empty())
     {
         return false;
     }
-    //·Ö¸î·şÎñÆ÷Ãû×Ö
+    //åˆ†å‰²æœåŠ¡å™¨åå­—
     std::vector<std::string> serverNames = split(serverNamesStr, ',');
     if (serverNames.empty())
     {
         return false;
     }
 
-    //¼òµ¥µÄËæ»ú¸ºÔØ¾ùºâ£¬//·µ»Ø·şÎñÆ÷ĞÅÏ¢
+    //ç®€å•çš„éšæœºè´Ÿè½½å‡è¡¡ï¼Œ//è¿”å›æœåŠ¡å™¨ä¿¡æ¯
     srand(time(0));
     int index = rand() % serverNames.size();
     std::string selectedServer = serverNames[index];
@@ -152,87 +153,125 @@ bool LogicServiceImpl::GetCanvasServerInfo(std::string& host, std::string& port)
 
 Status LogicServiceImpl::Login(ServerContext* context, const LoginReq* request, LoginRsp* reply)
 {
-    if (request->email().empty() || request->passwd().empty())  // ²ÎÊıĞ£Ñé
+    if (request->email().empty() || request->passwd().empty())  // å‚æ•°æ ¡éªŒ
     {
         reply->set_error(message::ErrorCodes::PasswdErr);
         return Status::OK;
     }
 
-    //ÓÊÏäÕËºÅÃÜÂë
+    //é‚®ç®±è´¦å·å¯†ç 
     UserInfo userInfo;
     bool isPasswordValid = MysqlMgr::getInstance()->CheckPassword(request->email(), request->passwd(),userInfo);
 
     if (!isPasswordValid)
     {
-        std::cout << "[LogicServer] Login failed: Password error or user not found. Email: " << request->email() << std::endl;
+        LOG_WARN_CTX("LogicServiceImpl::Login", "ç™»å½•å¤±è´¥ï¼Œå¯†ç é”™è¯¯æˆ–ç”¨æˆ·ä¸å­˜åœ¨ email=" << request->email());
         reply->set_error(message::ErrorCodes::PasswdErr);
         return Status::OK;
     }
-    std::string uid_str = std::to_string(userInfo.uid); //»ñÈ¡ÓÃ»§uid
+    std::string uid_str = std::to_string(userInfo.uid); //è·å–ç”¨æˆ·uid
     std::string uid_key = UID_PREFIX + uid_str; // key: uid_token_1001
     std::string old_token;
 
-    bool has_login = RedisMgr::getInstance()->Get(uid_key, old_token);  //³¢ÊÔ»ñÈ¡¸ÃÓÃ»§¾ÉµÄ Token
+    bool has_login = RedisMgr::getInstance()->Get(uid_key, old_token);  //å°è¯•è·å–è¯¥ç”¨æˆ·æ—§çš„ Token
 
     if (has_login)
     {
-        // Èç¹û´æÔÚ¾É Token£¬°Ñ¾É Token µÄÈÏÖ¤ Key É¾µô (ÌßÏÂÏß)
-        std::string old_token_key = TOKEN_PREFIX + old_token;       //value Îª uid
+        // å¦‚æœå­˜åœ¨æ—§ Tokenï¼ŒæŠŠæ—§ Token çš„è®¤è¯ Key åˆ æ‰ (è¸¢ä¸‹çº¿)
+        std::string old_token_key = TOKEN_PREFIX + old_token;       //value ä¸º uid
         RedisMgr::getInstance()->Del(old_token_key);
 
-        std::cout << "[LogicServer] Kick out old token: " << old_token << " for uid: " << uid_str << std::endl;
+        LOG_INFO_CTX("LogicServiceImpl::Login", "è¸¢å‡ºæ—§ç™»å½•ä¼šè¯ uid=" << uid_str);
     }
 
-    //Éú³Étoken
+    //ç”Ÿæˆtoken
     boost::uuids::random_generator gen;
     boost::uuids::uuid id = gen();
-    std::string token = boost::uuids::to_string(id);        // Éú³ÉËæ»úµÄ Token
+    std::string token = boost::uuids::to_string(id);        // ç”Ÿæˆéšæœºçš„ Token
 
-    //´æ´¢token,Ë«Ïò´æ´¢
+    //å­˜å‚¨token,åŒå‘å­˜å‚¨
     std::string token_key = TOKEN_PREFIX + token;           // utoken_f4521......
-    // A. ´æÈÏÖ¤ Key (Token -> Uid)
-    bool setToken = RedisMgr::getInstance()->Set(token_key, uid_str, 86400);    //idÎªvalue
-    // B. ´æ¹ÜÀí Key (Uid -> Token) - Ò²ÒªÉèÖÃ¹ıÆÚÊ±¼ä£¬±£³ÖÒ»ÖÂ
-    bool setUid = RedisMgr::getInstance()->Set(uid_key, token, 86400);          //key: uid_token_1001 £¬valueÎªtoken
+    // A. å­˜è®¤è¯ Key (Token -> Uid)
+    bool setToken = RedisMgr::getInstance()->Set(token_key, uid_str, 86400);    //idä¸ºvalue
+    // B. å­˜ç®¡ç† Key (Uid -> Token) - ä¹Ÿè¦è®¾ç½®è¿‡æœŸæ—¶é—´ï¼Œä¿æŒä¸€è‡´
+    bool setUid = RedisMgr::getInstance()->Set(uid_key, token, 86400);          //key: uid_token_1001 ï¼Œvalueä¸ºtoken
     if (!setToken || !setUid)
     {
         reply->set_error(message::ErrorCodes::LoginErr);
         return Status::OK;
     }
 
-    //·ÖÅäCanvasServer
+    //åˆ†é…CanvasServer
     std::string canvasHost, canvasPort;
     if (!GetCanvasServerInfo(canvasHost, canvasPort))
     {
-        std::cout << "[LogicServer] Login error: No CanvasServer available." << std::endl;
+        LOG_ERROR_CTX("LogicServiceImpl::Login", "ç™»å½•å¤±è´¥ï¼Œæ²¡æœ‰å¯ç”¨çš„ CanvasServer");
         reply->set_error(message::ErrorCodes::RPCFailed);
         return Status::OK;
     }
 
-    //¹¹Ôì·µ»Ø°ü
+    //æ„é€ è¿”å›åŒ…
     reply->set_error(message::ErrorCodes::SUCCESS);
     reply->set_uid(userInfo.uid);
     reply->set_token(token);
     reply->set_name(userInfo.name);
-    reply->set_avatar(userInfo.avatar); // °ÑÍ·ÏñÒ²·µ»Ø¸øÇ°¶Ë
+    reply->set_avatar(userInfo.avatar); // æŠŠå¤´åƒä¹Ÿè¿”å›ç»™å‰ç«¯
     reply->set_host(canvasHost);
     reply->set_port(canvasPort);
 
-    std::cout << "[LogicServer] Login success! UID: " << userInfo.uid << " -> " << canvasHost << ":" << canvasPort << std::endl;
+    LOG_INFO_CTX("LogicServiceImpl::Login", "ç™»å½•æˆåŠŸ uid=" << userInfo.uid << " canvas=" << canvasHost << ":" << canvasPort);
 
+    return Status::OK;
+}
+
+Status LogicServiceImpl::VerifyToken(ServerContext* context, const VerifyTokenReq* request, VerifyTokenRsp* reply)
+{
+    if (request == nullptr || request->uid() <= 0 || request->token().empty())
+    {
+        reply->set_error(message::ErrorCodes::TokenInvalid);
+        return Status::OK;
+    }
+
+    const std::string token_key = TOKEN_PREFIX + request->token();
+    std::string valid_uid;
+    if (!RedisMgr::getInstance()->Get(token_key, valid_uid))
+    {
+        LOG_WARN_CTX("LogicServiceImpl::VerifyToken", "Token ä¸å­˜åœ¨æˆ–å·²è¿‡æœŸ uid=" << request->uid());
+        reply->set_error(message::ErrorCodes::TokenInvalid);
+        return Status::OK;
+    }
+
+    try
+    {
+        if (std::stoi(valid_uid) != request->uid())
+        {
+            LOG_WARN_CTX("LogicServiceImpl::VerifyToken", "Token ä¸ç”¨æˆ·ä¸åŒ¹é… uid=" << request->uid());
+            reply->set_error(message::ErrorCodes::TokenInvalid);
+            return Status::OK;
+        }
+    }
+    catch (const std::exception& error)
+    {
+        LOG_ERROR_CTX("LogicServiceImpl::VerifyToken", "Redis ä¸­çš„ Token ç”¨æˆ·å€¼æ— æ•ˆ: " << error.what());
+        reply->set_error(message::ErrorCodes::TokenInvalid);
+        return Status::OK;
+    }
+
+    reply->set_error(message::ErrorCodes::SUCCESS);
+    reply->set_uid(request->uid());
     return Status::OK;
 }
 
 Status LogicServiceImpl::UpdateAvatar(ServerContext* context, const UpdateAvatarReq* request, UpdateAvatarRsp* reply)
 {
-    if (request->uid() == 0 || request->avatar_url().empty())  // ²ÎÊıĞ£Ñé
+    if (request->uid() == 0 || request->avatar_url().empty())  // å‚æ•°æ ¡éªŒ
     {
         reply->set_error(message::ErrorCodes::RPCFailed);
         return Status::OK;
     }
     int err_code = MysqlMgr::getInstance()->UpdateAvatar(request->uid(), request->avatar_url());
 
-    if (err_code != message::ErrorCodes::SUCCESS) // ¸üĞÂÊı¾İ¿âÊ§°Ü
+    if (err_code != message::ErrorCodes::SUCCESS) // æ›´æ–°æ•°æ®åº“å¤±è´¥
     {
         reply->set_error(err_code);
         return Status::OK;

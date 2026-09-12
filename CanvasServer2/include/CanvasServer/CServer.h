@@ -4,7 +4,7 @@
 #include <iostream>
 #include "CanvasServer/AsioIOServicePool.h"
 
-class CSession;//Ç°ÖÃÉùÃ÷
+class CSession;//å‰ç½®å£°æ˜
 class CServer
 {
 public:
@@ -13,10 +13,10 @@ public:
 
 	void Start();
 private:
-	void StartAccept();		//½ÓÊÜÁ¬½Ó
+	void StartAccept();		//æ¥å—è¿æ¥
 	void HandleAccept(std::shared_ptr<CSession> new_session, const boost::system::error_code& error);
 
-	boost::asio::io_context& _io_context; // ÒÀÈ»ÊÇÖ÷Ïß³ÌµÄ io_context
+	boost::asio::io_context& _io_context; // ä¾ç„¶æ˜¯ä¸»çº¿ç¨‹çš„ io_context
 	short _port;
 	boost::asio::ip::tcp::acceptor _acceptor;
 };

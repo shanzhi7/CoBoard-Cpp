@@ -13,6 +13,8 @@ using message::RegisterRsp;
 using message::LogicService;
 using message::LoginReq;
 using message::LoginRsp;
+using message::VerifyTokenReq;
+using message::VerifyTokenRsp;
 using message::ResetPasswordReq;
 using message::ResetPasswordRsp;
 using message::UpdateAvatarReq;
@@ -23,18 +25,21 @@ class LogicServiceImpl final : public LogicService::Service
 public:
     LogicServiceImpl() = default;
 
-    // ÖØĞ´ .proto ÖĞ¶¨ÒåµÄ RegisterUser ·½·¨
+    // é‡å†™ .proto ä¸­å®šä¹‰çš„ RegisterUser æ–¹æ³•
     virtual Status RegisterUser(ServerContext* context, const RegisterReq* request, RegisterRsp* reply) override;
 
-    // ÖØĞ´ .proto ÖĞ¶¨ÒåµÄ ResetPassword ·½·¨
+    // é‡å†™ .proto ä¸­å®šä¹‰çš„ ResetPassword æ–¹æ³•
     virtual Status ResetPassword(ServerContext* context, const ResetPasswordReq* request, ResetPasswordRsp* reply) override;
 
-    // ÖØĞ´ .proto ÖĞ¶¨ÒåµÄ Login ·½·¨
+    // é‡å†™ .proto ä¸­å®šä¹‰çš„ Login æ–¹æ³•
     virtual Status Login(ServerContext* context, const LoginReq* request, LoginRsp* reply) override;
 
-    // ÖØĞ´ .proto ÖĞ¶¨ÒåµÄ UpdateAvatar ·½·¨
+    // é‡å†™ .proto ä¸­å®šä¹‰çš„ VerifyToken æ–¹æ³•ï¼Œä¾›ç½‘å…³å’Œ CanvasServer æ ¡éªŒç™»å½•å‡­è¯
+    virtual Status VerifyToken(ServerContext* context, const VerifyTokenReq* request, VerifyTokenRsp* reply) override;
+
+    // é‡å†™ .proto ä¸­å®šä¹‰çš„ UpdateAvatar æ–¹æ³•
     virtual Status UpdateAvatar(ServerContext* context, const UpdateAvatarReq* request, UpdateAvatarRsp* reply) override;
 
-    //¸¨Öúº¯Êı£¬»ñÈ¡Á¬½ÓÊıÉÙµÄCanvasServerInfo
+    //è¾…åŠ©å‡½æ•°ï¼Œè·å–è¿æ¥æ•°å°‘çš„CanvasServerInfo
     bool GetCanvasServerInfo(std::string& host, std::string& port);
 };

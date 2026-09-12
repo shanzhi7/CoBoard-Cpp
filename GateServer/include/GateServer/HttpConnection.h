@@ -1,4 +1,4 @@
-// HttpConnectionÀà£¬ÓÃÓÚ¶ÁÈ¡httpÇëÇó£¬»Ø¸´¿Í»§¶Ë
+// HttpConnectionç±»ï¼Œç”¨äºè¯»å–httpè¯·æ±‚ï¼Œå›å¤å®¢æˆ·ç«¯
 #pragma once
 #include <iostream>
 #include <memory>
@@ -14,13 +14,13 @@
 #include <json/value.h>
 #include <json/reader.h>
 
-//char ×ªÎª16½øÖÆ
+//char è½¬ä¸º16è¿›åˆ¶
 inline unsigned char ToHex(unsigned char x)
 {
 	return  x > 9 ? x + 55 : x + 48;
 }
 
-//char ×ª»¯Îª10½øÖÆ
+//char è½¬åŒ–ä¸º10è¿›åˆ¶
 inline unsigned char FromHex(unsigned char x)
 {
 	unsigned char y;
@@ -31,44 +31,44 @@ inline unsigned char FromHex(unsigned char x)
 	return y;
 }
 
-//url±àÂë
+//urlç¼–ç 
 inline std::string UrlEncode(const std::string& str)
 {
 	std::string strTemp = "";
 	size_t length = str.length();
 	for (size_t i = 0; i < length; i++)
 	{
-		//ÅĞ¶ÏÊÇ·ñ½öÓĞÊı×ÖºÍ×ÖÄ¸¹¹³É
+		//åˆ¤æ–­æ˜¯å¦ä»…æœ‰æ•°å­—å’Œå­—æ¯æ„æˆ
 		if (isalnum((unsigned char)str[i]) ||
 			(str[i] == '-') ||
 			(str[i] == '_') ||
 			(str[i] == '.') ||
 			(str[i] == '~'))
 			strTemp += str[i];
-		else if (str[i] == ' ') //Îª¿Õ×Ö·û
+		else if (str[i] == ' ') //ä¸ºç©ºå­—ç¬¦
 			strTemp += "+";
 		else
 		{
-			//ÆäËû×Ö·ûĞèÒªÌáÇ°¼Ó%²¢ÇÒ¸ßËÄÎ»ºÍµÍËÄÎ»·Ö±ğ×ªÎª16½øÖÆ
+			//å…¶ä»–å­—ç¬¦éœ€è¦æå‰åŠ %å¹¶ä¸”é«˜å››ä½å’Œä½å››ä½åˆ†åˆ«è½¬ä¸º16è¿›åˆ¶
 			strTemp += '%';
 			strTemp += ToHex((unsigned char)str[i] >> 4);
 			strTemp += ToHex((unsigned char)str[i] & 0x0F);
 		}
 	}
-	//std::cout << "//url±àÂë: " << strTemp << std::endl;
+	//std::cout << "//urlç¼–ç : " << strTemp << std::endl;
 	return strTemp;
 }
 
-//url½âÂë
+//urlè§£ç 
 inline std::string UrlDecode(const std::string& str)
 {
 	std::string strTemp = "";
 	size_t length = str.length();
 	for (size_t i = 0; i < length; i++)
 	{
-		//»¹Ô­+Îª¿Õ
+		//è¿˜åŸ+ä¸ºç©º
 		if (str[i] == '+') strTemp += ' ';
-		//Óöµ½%½«ºóÃæµÄÁ½¸ö×Ö·û´Ó16½øÖÆ×ªÎªcharÔÙÆ´½Ó
+		//é‡åˆ°%å°†åé¢çš„ä¸¤ä¸ªå­—ç¬¦ä»16è¿›åˆ¶è½¬ä¸ºcharå†æ‹¼æ¥
 		else if (str[i] == '%')
 		{
 			assert(i + 2 < length);
@@ -78,7 +78,7 @@ inline std::string UrlDecode(const std::string& str)
 		}
 		else strTemp += str[i];
 	}
-	//std::cout << "//url½âÂë: " << strTemp << std::endl;
+	//std::cout << "//urlè§£ç : " << strTemp << std::endl;
 	return strTemp;
 }
 
@@ -87,26 +87,26 @@ class HttpConnection : public std::enable_shared_from_this<HttpConnection>
 	friend class LogicSystem;
 public:
 	HttpConnection(boost::asio::io_context& ioc);
-	void Start();							//¿ªÊ¼½ÓÊÕÇëÇó£¬Á¬½ÓÔÚCServerÆô¶¯Ê±´´½¨
+	void Start();							//å¼€å§‹æ¥æ”¶è¯·æ±‚ï¼Œè¿æ¥åœ¨CServerå¯åŠ¨æ—¶åˆ›å»º
 	boost::asio::ip::tcp::socket& GetSocket();
 
 private:
 
-	void PreParseGetParam();									//½âÎögetÇëÇó²ÎÊı
-	void WriteResponse();										//»Ø¸´¿Í»§¶Ë
-	void HandleReq();											//´¦ÀíÇëÇó
-	void CheckDeadline();										//¼ì²éÇëÇóÊÇ·ñ³¬Ê±
+	void PreParseGetParam();									//è§£ægetè¯·æ±‚å‚æ•°
+	void WriteResponse();										//å›å¤å®¢æˆ·ç«¯
+	void HandleReq();											//å¤„ç†è¯·æ±‚
+	void CheckDeadline();										//æ£€æŸ¥è¯·æ±‚æ˜¯å¦è¶…æ—¶
 
-	boost::asio::ip::tcp::socket _socket;	//ÓÃÓÚÓë¿Í»§¶ËÍ¨ĞÅ
+	boost::asio::ip::tcp::socket _socket;	//ç”¨äºä¸å®¢æˆ·ç«¯é€šä¿¡
 
-	std::string _get_url;										//getÇëÇóµÄurl
-	std::unordered_map<std::string, std::string> _get_params;	//²ÎÊı½âÎömap
+	std::string _get_url;										//getè¯·æ±‚çš„url
+	std::unordered_map<std::string, std::string> _get_params;	//å‚æ•°è§£æmap
 
-	boost::beast::flat_buffer _buffer{ 8192 };							//Êı¾İ»º³åÇø
-	boost::beast::http::request<boost::beast::http::dynamic_body> _request;			//ÓÃÓÚ½ÓÊÜÈÎÒâÀàĞÍµÄÇëÇó
-	boost::beast::http::response<boost::beast::http::dynamic_body> _response;		//ÈÎÒâÀàĞÍµÄ´ğ¸´
+	boost::beast::flat_buffer _buffer{ 8192 };							//æ•°æ®ç¼“å†²åŒº
+	boost::beast::http::request<boost::beast::http::dynamic_body> _request;			//ç”¨äºæ¥å—ä»»æ„ç±»å‹çš„è¯·æ±‚
+	boost::beast::http::response<boost::beast::http::dynamic_body> _response;		//ä»»æ„ç±»å‹çš„ç­”å¤
 	boost::asio::steady_timer deadline_
 	{
-		_socket.get_executor(),std::chrono::seconds(60)			//¶¨Ê±Æ÷, ÓÃÓÚÅĞ¶ÏÇëÇóÊÇ·ñ³¬Ê±
+		_socket.get_executor(),std::chrono::seconds(60)			//å®šæ—¶å™¨, ç”¨äºåˆ¤æ–­è¯·æ±‚æ˜¯å¦è¶…æ—¶
 	};
 };

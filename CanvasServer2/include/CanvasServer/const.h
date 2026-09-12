@@ -5,46 +5,46 @@
 //enum ErrorCodes
 //{
 //	Success = 0,
-//	Error_Json = 1001,		//Json½âÎö´íÎó
-//	RPCFailed = 1002,		//RPCÇëÇó´íÎó
-//	VarifyExpired = 1003,	//ÑéÖ¤Âë¹ıÆÚ
-//	VarifyCodeErr = 1004,	//ÑéÖ¤Âë´íÎó
-//	UserExist = 1005,		//ÓÃ»§ÒÑ¾­´æÔÚ
-//	PasswdErr = 1006,		//ÃÜÂë´íÎó
-//	EmailNotMatch = 1007,	//ÓÊÏä²»Æ¥Åä
-//	PasswdUpFailed = 1008,	//¸üĞÂÃÜÂëÊ§°Ü
-//	PasswdInvalid = 1009,	//ÃÜÂë¸üĞÂÊ§°Ü
-//	TokenInvalid = 1010,	//tokenÎŞĞ§
-//	UidInvalid = 1011,		//uidÎŞĞ§
+//	Error_Json = 1001,		//Jsonè§£æé”™è¯¯
+//	RPCFailed = 1002,		//RPCè¯·æ±‚é”™è¯¯
+//	VarifyExpired = 1003,	//éªŒè¯ç è¿‡æœŸ
+//	VarifyCodeErr = 1004,	//éªŒè¯ç é”™è¯¯
+//	UserExist = 1005,		//ç”¨æˆ·å·²ç»å­˜åœ¨
+//	PasswdErr = 1006,		//å¯†ç é”™è¯¯
+//	EmailNotMatch = 1007,	//é‚®ç®±ä¸åŒ¹é…
+//	PasswdUpFailed = 1008,	//æ›´æ–°å¯†ç å¤±è´¥
+//	PasswdInvalid = 1009,	//å¯†ç æ›´æ–°å¤±è´¥
+//	TokenInvalid = 1010,	//tokenæ— æ•ˆ
+//	UidInvalid = 1011,		//uidæ— æ•ˆ
 //};
 
 enum MSG_IDS {
-	ID_GET_VERIFY_CODE = 1001,                  //»ñÈ¡ÑéÖ¤Âë
-	ID_REGISTER = 1002,                         //×¢²áÕËºÅ
-	ID_RESET_PWD = 1003,                        //ÖØÖÃÃÜÂë
-	ID_LOGIN_REQ = 1004,                        //µÇÂ¼
+	ID_GET_VERIFY_CODE = 1001,                  //è·å–éªŒè¯ç 
+	ID_REGISTER = 1002,                         //æ³¨å†Œè´¦å·
+	ID_RESET_PWD = 1003,                        //é‡ç½®å¯†ç 
+	ID_LOGIN_REQ = 1004,                        //ç™»å½•
 	ID_JOIN_ROOM_REQ_DEL = 1005,
 	ID_DRAW_REQ_DEL = 1006,
-	ID_CANVAS_LOGIN_REQ = 1007,                 //µÇÂ¼µ½CanvasServer
-	ID_CANVAS_LOGIN_RSP = 1008,                 //µÇÂ¼CanvasServer»Ø°ü
-	ID_CREAT_ROOM_REQ = 1009,                   //´´½¨·¿¼äÇëÇó
-	ID_CREAT_ROOM_RSP = 1010,                   //´´½¨·¿¼ä»Ø°ü
-	ID_JOIN_ROOM_REQ = 1011,                    //¼ÓÈë·¿¼äÇëÇó
-	ID_JOIN_ROOM_RSP = 1012,                    //¼ÓÈë·¿¼ä»Ø°ü
-	ID_GET_OSS_TOKEN = 1013,                    //»ñÈ¡OSSÉÏ´«Ç©Ãû
-	ID_UPLOAD_IMAGE = 1014,                     //ÉÏ´«Í¼Æ¬µ½OSS
-	ID_SAVE_IMAGE = 1015,                       //½«Í¼Æ¬±£´æµ½Êı¾İ¿â
-	ID_USER_JOIN_BROADCAST = 1016,				//ÓÃ»§¼ÓÈë·¿¼ä¹ã²¥
-	ID_USER_LEAVE_BROADCAST = 1017,				//ÓÃ»§Àë¿ª·¿¼ä¹ã²¥
-	ID_DRAW_REQ = 1018,      // »æ»­ÇëÇó£¨¿Í»§¶Ë -> CanvasServer£©
-	ID_DRAW_RSP = 1019,      // »æ»­¹ã²¥£¨CanvasServer -> ·¿¼äÆäËûÈË£©
-	ID_CHAT_REQ = 1020,							//ÈºÁÄÌìÇëÇó
-    ID_CHAT_RSP = 1021,							//ÈºÁÄÌì»Ø°ü
-    ID_GRANT_EDIT_REQ = 1022,    //ÊÚÈ¨±à¼­ÇëÇó
-    ID_GRANT_EDIT_RSP = 1023,    //ÊÚÈ¨±à¼­»Ø°ü
-    ID_REVOKE_EDIT_REQ = 1024,    //È¡Ïû±à¼­È¨ÏŞÇëÇó
-    ID_REVOKE_EDIT_RSP = 1025,    //È¡Ïû±à¼­È¨ÏŞ»Ø°ü
-    ID_PERMISSION_CHANGED_BROADCAST = 1026,    //±à¼­È¨ÏŞ±ä¸ü¹ã²¥
+	ID_CANVAS_LOGIN_REQ = 1007,                 //ç™»å½•åˆ°CanvasServer
+	ID_CANVAS_LOGIN_RSP = 1008,                 //ç™»å½•CanvasServerå›åŒ…
+	ID_CREAT_ROOM_REQ = 1009,                   //åˆ›å»ºæˆ¿é—´è¯·æ±‚
+	ID_CREAT_ROOM_RSP = 1010,                   //åˆ›å»ºæˆ¿é—´å›åŒ…
+	ID_JOIN_ROOM_REQ = 1011,                    //åŠ å…¥æˆ¿é—´è¯·æ±‚
+	ID_JOIN_ROOM_RSP = 1012,                    //åŠ å…¥æˆ¿é—´å›åŒ…
+	ID_GET_OSS_TOKEN = 1013,                    //è·å–OSSä¸Šä¼ ç­¾å
+	ID_UPLOAD_IMAGE = 1014,                     //ä¸Šä¼ å›¾ç‰‡åˆ°OSS
+	ID_SAVE_IMAGE = 1015,                       //å°†å›¾ç‰‡ä¿å­˜åˆ°æ•°æ®åº“
+	ID_USER_JOIN_BROADCAST = 1016,				//ç”¨æˆ·åŠ å…¥æˆ¿é—´å¹¿æ’­
+	ID_USER_LEAVE_BROADCAST = 1017,				//ç”¨æˆ·ç¦»å¼€æˆ¿é—´å¹¿æ’­
+	ID_DRAW_REQ = 1018,      // ç»˜ç”»è¯·æ±‚ï¼ˆå®¢æˆ·ç«¯ -> CanvasServerï¼‰
+	ID_DRAW_RSP = 1019,      // ç»˜ç”»å¹¿æ’­ï¼ˆCanvasServer -> æˆ¿é—´å…¶ä»–äººï¼‰
+	ID_CHAT_REQ = 1020,							//ç¾¤èŠå¤©è¯·æ±‚
+    ID_CHAT_RSP = 1021,							//ç¾¤èŠå¤©å›åŒ…
+    ID_GRANT_EDIT_REQ = 1022,    //æˆæƒç¼–è¾‘è¯·æ±‚
+    ID_GRANT_EDIT_RSP = 1023,    //æˆæƒç¼–è¾‘å›åŒ…
+    ID_REVOKE_EDIT_REQ = 1024,    //å–æ¶ˆç¼–è¾‘æƒé™è¯·æ±‚
+    ID_REVOKE_EDIT_RSP = 1025,    //å–æ¶ˆç¼–è¾‘æƒé™å›åŒ…
+    ID_PERMISSION_CHANGED_BROADCAST = 1026,    //ç¼–è¾‘æƒé™å˜æ›´å¹¿æ’­
 };
 #define MAX_LENGTH 1024*64
 
@@ -53,21 +53,21 @@ class Defer
 public:
 	Defer(std::function<void()> func) :_func(std::move(func)) {};
 
-	//×÷ÓÃÓò½áÊø×Ô¶¯µ÷ÓÃ
+	//ä½œç”¨åŸŸç»“æŸè‡ªåŠ¨è°ƒç”¨
 	~Defer()
 	{
 		if (_func)
-			_func();	//Ö´ĞĞÇåÀíÂß¼­
+			_func();	//æ‰§è¡Œæ¸…ç†é€»è¾‘
 	}
 
-	// ½ûÖ¹¿½±´£¨±ÜÃâÖØ¸´Ö´ĞĞ£©
+	// ç¦æ­¢æ‹·è´ï¼ˆé¿å…é‡å¤æ‰§è¡Œï¼‰
 	Defer(const Defer&) = delete;
 	Defer& operator=(const Defer&) = delete;
 private:
-	std::function<void()> _func;	//´æ´¢ÑÓ³ÙÖ´ĞĞµÄº¯Êı
+	std::function<void()> _func;	//å­˜å‚¨å»¶è¿Ÿæ‰§è¡Œçš„å‡½æ•°
 };
 
-// ¶¨Òå·¿¼äĞÅÏ¢½á¹¹Ìå
+// å®šä¹‰æˆ¿é—´ä¿¡æ¯ç»“æ„ä½“
 struct RoomInfo {
 	std::string id;
 	std::string name;
@@ -80,6 +80,6 @@ struct RoomInfo {
 
 #define CODEPREFIX "code_"
 #define TOKEN_PREFIX "utoken_"
-#define UID_PREFIX "uid_token_" //ÓÃÓÚÍ¨¹ı uid ÕÒ token
+#define UID_PREFIX "uid_token_" //ç”¨äºé€šè¿‡ uid æ‰¾ token
 #define ROOM_PREFIX "canvas:room:"
 #define ROOM_USERS_PREFIX "room_users:"

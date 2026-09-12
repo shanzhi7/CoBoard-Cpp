@@ -11,23 +11,23 @@
 #include <sstream>
 #include <iomanip>
 #include <ctime>
-#include "GateServer/ConfigMgr.h" // È·±£°üº¬ÄãµÄÅäÖÃ¹ÜÀíÆ÷
+#include "GateServer/ConfigMgr.h" // ç¡®ä¿åŒ…å«ä½ çš„é…ç½®ç®¡ç†å™¨
 
-// HMAC-SHA1 ¼ÓÃÜ
+// HMAC-SHA1 åŠ å¯†
 std::string HmacSha1(const std::string& key, const std::string& data)
 {
 	unsigned char* result;
 	unsigned int len = 20;
 	unsigned char hash[20];
 
-	// OpenSSL µÄ HMAC º¯Êı
+	// OpenSSL çš„ HMAC å‡½æ•°
 	result = HMAC(EVP_sha1(), key.c_str(), key.length(),
 		(unsigned char*)data.c_str(), data.length(), hash, &len);
 
 	return std::string((char*)hash, len);
 }
 
-// Base64 ±àÂë (ÀûÓÃ Boost.Beast)
+// Base64 ç¼–ç  (åˆ©ç”¨ Boost.Beast)
 std::string Base64Encode(const std::string& input)
 {
 	std::string output;
@@ -37,9 +37,9 @@ std::string Base64Encode(const std::string& input)
 	return output;
 }
 
-LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
+LogicSystem::LogicSystem()	//æ„é€ å‡½æ•°
 {
-	//²âÊÔgetÇëÇó£¬ÓÃ²»ÉÏ
+	//æµ‹è¯•getè¯·æ±‚ï¼Œç”¨ä¸ä¸Š
 	RegGet("/get_test", [](std::shared_ptr<HttpConnection> connection) {
 		boost::beast::ostream(connection->_response.body()) << "receive get_test request";
 		int i = 0;
@@ -51,9 +51,9 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		}
 		});
 
-	//×¢²á»ñÈ¡ÑéÖ¤ÂëÇëÇó
+	//æ³¨å†Œè·å–éªŒè¯ç è¯·æ±‚
 	RegPost("/get_verifycode", [](std::shared_ptr<HttpConnection> connection) {
-		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());	//»ñÈ¡ÇëÇóbody
+		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());	//è·å–è¯·æ±‚body
 		std::cout << "receive body is " << body_str << std::endl;
 		connection->_response.set(boost::beast::http::field::content_type,"application/json");
 		Json::Value root;
@@ -61,7 +61,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		Json::Value src_root;
 		bool parse_success = reader.parse(body_str, src_root);
 
-		if (!parse_success)	//½âÎöÊ§°Ü
+		if (!parse_success)	//è§£æå¤±è´¥
 		{
 			std::cout << "Failed to parse JSON data!" << std::endl;
 			root["error"] = message::ErrorCodes::Error_Json;
@@ -75,9 +75,9 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		auto pwd = src_root["password"].asString();
 		auto confirm = src_root["confirm"].asString();
 
-		if (pwd != confirm)	//ÅĞ¶ÏÁ½´ÎÊäÈëµÄÃÜÂëÊÇ·ñÒ»ÖÂ
+		if (pwd != confirm)	//åˆ¤æ–­ä¸¤æ¬¡è¾“å…¥çš„å¯†ç æ˜¯å¦ä¸€è‡´
 		{
-			std::cout << "Á½´ÎÃÜÂë²»Ò»ÖÂ" << std::endl;
+			std::cout << "ä¸¤æ¬¡å¯†ç ä¸ä¸€è‡´" << std::endl;
 			root["error"] = message::ErrorCodes::PasswdErr;
 			std::string jsonstr = root.toStyledString();
 			boost::beast::ostream(connection->_response.body()) << jsonstr;
@@ -93,10 +93,10 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		}
 		std::cout << "client email is " << email << std::endl;
 
-		//Ïògrpc·şÎñ·¢ËÍ»ñÈ¡ÑéÖ¤ÂëÇëÇó
+		//å‘grpcæœåŠ¡å‘é€è·å–éªŒè¯ç è¯·æ±‚
 		GetVarifyRsp rsp = VerifyGrpcClient::getInstance()->GetVarifyCode(email);
 
-		if (rsp.error() != 0)//ÑéÖ¤Âë·¢ËÍÊ§°Ü
+		if (rsp.error() != 0)//éªŒè¯ç å‘é€å¤±è´¥
 		{
 			std::cout << "get Verification code is Failed " << std::endl;
 			std::cout << "the error code is " << rsp.error() << std::endl;
@@ -105,7 +105,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		{
 			std::cout << "grpcServer: Verification code sent successfully, the target email is: " << rsp.email() << std::endl;
 		}
-		root["error"] = rsp.error();											  //½«´íÎó·¢ËÍ¸ø¿Í»§¶Ë
+		root["error"] = rsp.error();											  //å°†é”™è¯¯å‘é€ç»™å®¢æˆ·ç«¯
 		root["email"] = src_root["email"];
 		root["server"] = "GateServer";
 		std::string jsonstr = root.toStyledString();
@@ -113,7 +113,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		return true;
 		});
 
-    //×¢²á×¢²áÇëÇó
+    //æ³¨å†Œæ³¨å†Œè¯·æ±‚
     RegPost("/user_register", [](std::shared_ptr<HttpConnection> connection) { 
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -123,7 +123,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
         Json::Value src_root;
         bool parse_success = reader.parse(body_str, src_root);
 
-		// Ö»ÓĞ½âÎö³É¹¦ÁË£¬²ÅÍùÏÂ×ß
+		// åªæœ‰è§£ææˆåŠŸäº†ï¼Œæ‰å¾€ä¸‹èµ°
 		if (!parse_success)
 		{
 			std::cout << "Failed to parse JSON data!" << std::endl;
@@ -133,7 +133,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 			return true;
 		}
 
-		// ÅĞ¶ÏÊÇ·ñÈ±ÉÙ±ØÒª×Ö¶Î
+		// åˆ¤æ–­æ˜¯å¦ç¼ºå°‘å¿…è¦å­—æ®µ
 		if(!src_root.isMember("email") || !src_root.isMember("name") || !src_root.isMember("password")
 			|| !src_root.isMember("confirm") || !src_root.isMember("verifycode"))
 		{
@@ -150,7 +150,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
         auto confirm = src_root["confirm"].asString();
         if (pwd != confirm)
         {
-            std::cout << "Á½´ÎÃÜÂë²»Ò»ÖÂ" << std::endl;
+            std::cout << "ä¸¤æ¬¡å¯†ç ä¸ä¸€è‡´" << std::endl;
             root["error"] = message::ErrorCodes::PasswdErr;
             std::string jsonstr = root.toStyledString();
             boost::beast::ostream(connection->_response.body()) << jsonstr;
@@ -174,7 +174,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 
 		});
 
-	//×¢²áÖØÖÃÃÜÂëÇëÇó
+	//æ³¨å†Œé‡ç½®å¯†ç è¯·æ±‚
     RegPost("/reset_password", [](std::shared_ptr<HttpConnection> connection) { 
         auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
         std::cout << "receive body is " << body_str << std::endl;
@@ -207,7 +207,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
         auto confirm = src_root["confirm"].asString();
         if (pwd != confirm)
         {
-            std::cout << "Á½´ÎÃÜÂë²»Ò»ÖÂ" << std::endl;
+            std::cout << "ä¸¤æ¬¡å¯†ç ä¸ä¸€è‡´" << std::endl;
             root["error"] = message::ErrorCodes::PasswdErr;
             std::string jsonstr = root.toStyledString();
             boost::beast::ostream(connection->_response.body()) << jsonstr;
@@ -228,7 +228,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
         return true;
 		});
 
-	// ×¢²áµÇÂ¼ÇëÇó
+	// æ³¨å†Œç™»å½•è¯·æ±‚
 	RegPost("/user_login", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
 		std::cout << "receive body is " << body_str << std::endl;
@@ -247,7 +247,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 			return true;
 		}
 
-		// Ğ£Ñé±ØÒª×Ö¶Î
+		// æ ¡éªŒå¿…è¦å­—æ®µ
 		if (!src_root.isMember("email") || !src_root.isMember("password"))
 		{
 			std::cout << "[GateServer] Login missing required JSON fields!" << std::endl;
@@ -262,26 +262,26 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 
 		std::cout << "[GateServer] Client login email is " << email << std::endl;
 
-		// ¹¹Ôì gRPC ÇëÇó
+		// æ„é€  gRPC è¯·æ±‚
 		LoginReq req;
 		req.set_email(email);
 		req.set_passwd(pwd);
 
-		// ·¢ËÍ gRPC ÇëÇó¸ø LogicServer
+		// å‘é€ gRPC è¯·æ±‚ç»™ LogicServer
 		LoginRsp rsp = LogicGrpcClient::getInstance()->Login(req);
 
-		// ¹¹Ôì·µ»Ø¸ø Qt µÄ JSON
+		// æ„é€ è¿”å›ç»™ Qt çš„ JSON
 		root["error"] = rsp.error();
 		root["email"] = email;
 		root["server"] = "GateServer";
 
 		if (rsp.error() == message::ErrorCodes::SUCCESS)
 		{
-			// µÇÂ¼³É¹¦£¬·µ»ØºËĞÄÊı¾İ
+			// ç™»å½•æˆåŠŸï¼Œè¿”å›æ ¸å¿ƒæ•°æ®
 			root["uid"] = rsp.uid();
 			root["token"] = rsp.token();
 			root["name"] = rsp.name();
-			root["avatar"] = rsp.avatar(); // °ÑÍ·ÏñÒ²·µ»ØÈ¥
+			root["avatar"] = rsp.avatar(); // æŠŠå¤´åƒä¹Ÿè¿”å›å»
 			root["host"] = rsp.host();     // CanvasServer IP
 			root["port"] = rsp.port();     // CanvasServer Port
 			std::cout << "[GateServer] User login success: " << email << " -> " << rsp.host() << ":" << rsp.port() << std::endl;
@@ -296,18 +296,77 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		return true;
 		});
 
-	// ×¢²á»ñÈ¡ OSS ÉÏ´«Ç©ÃûµÄ½Ó¿Ú
+	// æ³¨å†Œæˆ¿é—´è¯­éŸ³ Token è¯·æ±‚
+	RegPost("/voice_token", [](std::shared_ptr<HttpConnection> connection) {
+		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+
+		Json::Value root;
+		Json::Value src_root;
+		Json::Reader reader;
+		if (!reader.parse(body_str, src_root)	//è§£æjson
+			|| !src_root.isMember("uid")
+			|| !src_root.isMember("room_id")
+			|| !src_root.isMember("app_token")
+			|| !src_root["uid"].isInt()
+			|| !src_root["room_id"].isString()
+			|| !src_root["app_token"].isString())
+		{
+			root["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		const int uid = src_root["uid"].asInt();
+		const std::string room_id = src_root["room_id"].asString();
+		const std::string app_token = src_root["app_token"].asString();
+		if (uid <= 0 || room_id.empty() || app_token.empty())
+		{
+			root["error"] = message::ErrorCodes::UidInvalid;
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		message::VerifyTokenReq verify_req;
+		verify_req.set_uid(uid);
+		verify_req.set_token(app_token);
+		message::VerifyTokenRsp verify_rsp = LogicGrpcClient::getInstance()->VerifyToken(verify_req);
+		if (verify_rsp.error() != message::ErrorCodes::SUCCESS || verify_rsp.uid() != uid)
+		{
+			root["error"] = verify_rsp.error() == message::ErrorCodes::SUCCESS
+				? message::ErrorCodes::TokenInvalid : verify_rsp.error();
+			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+			return true;
+		}
+
+		message::CreateVoiceTokenRsp voice_rsp =	//è·å–è¯­éŸ³æˆ¿é—´token
+			VerifyGrpcClient::getInstance()->CreateVoiceToken(uid, room_id);
+		root["error"] = voice_rsp.error();
+		if (voice_rsp.error() == message::ErrorCodes::SUCCESS)
+		{
+			root["url"] = voice_rsp.url();
+			root["room"] = voice_rsp.room();
+			root["identity"] = voice_rsp.identity();
+			root["token"] = voice_rsp.token();
+			root["expires_in"] = voice_rsp.expires_in();
+		}
+
+		boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+		return true;
+		});
+
+	// æ³¨å†Œè·å– OSS ä¸Šä¼ ç­¾åçš„æ¥å£
 	RegPost("/get_oss_token", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
 
-		//¶ÁÈ¡ÅäÖÃÎÄ¼ş (Ê¹ÓÃÄãµÄ ConfigMgr)
+		//è¯»å–é…ç½®æ–‡ä»¶ (ä½¿ç”¨ä½ çš„ ConfigMgr)
 		auto& cfg = ConfigMgr::Inst();
 		std::string access_id = cfg["AliyunOSS"]["AccessKeyId"];
 		std::string access_secret = cfg["AliyunOSS"]["AccessKeySecret"];
 		std::string bucket = cfg["AliyunOSS"]["BucketName"];
 		std::string host = cfg["AliyunOSS"]["Host"]; // http://bucket.endpoint
 
-		//½âÎö¿Í»§¶ËÇëÇó
+		//è§£æå®¢æˆ·ç«¯è¯·æ±‚
 		connection->_response.set(boost::beast::http::field::content_type, "application/json");
 		Json::Value root;
 		Json::Reader reader;
@@ -319,46 +378,46 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 			return true;
 		}
 
-		//×¼±¸ÎÄ¼şÃûºÍ¹ıÆÚÊ±¼ä
+		//å‡†å¤‡æ–‡ä»¶åå’Œè¿‡æœŸæ—¶é—´
 		std::string uid = src_root.get("uid", "0").asString();
 		std::string suffix = src_root.get("suffix", "jpg").asString();
-		// ±ØĞëºÍ Qt ¿Í»§¶ËÉÏ´«Ê±ÉèÖÃµÄ Header Ò»Ä£Ò»Ñù£¡
+		// å¿…é¡»å’Œ Qt å®¢æˆ·ç«¯ä¸Šä¼ æ—¶è®¾ç½®çš„ Header ä¸€æ¨¡ä¸€æ ·ï¼
 		std::string content_type = "image/jpeg";
 		if (suffix == "png")
 		{
 			content_type = "image/png";
 		}
 		std::time_t now = std::time(nullptr);
-		std::time_t expire_time = now + 600; // 10·ÖÖÓºó¹ıÆÚ
+		std::time_t expire_time = now + 600; // 10åˆ†é’Ÿåè¿‡æœŸ
 
-		//Éú³ÉÎÄ¼şÃû£ºavatars/uid_Ê±¼ä´Á.jpg
+		//ç”Ÿæˆæ–‡ä»¶åï¼šavatars/uid_æ—¶é—´æˆ³.jpg
 		std::string object_name = "avatars/" + uid + "_" + std::to_string(now) + "." + suffix;
 
-		//¹¹Ôì´ıÇ©Ãû×Ö·û´® (String To Sign)
-		// ¸ñÊ½£ºPUT + \n + Content-MD5(¿Õ) + \n + Content-Type + \n + Expires + \n + CanonicalizedResource
+		//æ„é€ å¾…ç­¾åå­—ç¬¦ä¸² (String To Sign)
+		// æ ¼å¼ï¼šPUT + \n + Content-MD5(ç©º) + \n + Content-Type + \n + Expires + \n + CanonicalizedResource
 		std::string string_to_sign = "PUT\n\n" + content_type + "\n" + std::to_string(expire_time) + "\n" + "/" + bucket + "/" + object_name;
 		std::cout << "[OSS Debug] StringToSign:\n" << string_to_sign << std::endl;
 
-		//¼ÆËãÇ©Ãû (HMAC-SHA1 -> Base64 -> UrlEncode)
+		//è®¡ç®—ç­¾å (HMAC-SHA1 -> Base64 -> UrlEncode)
 		std::string signature = Base64Encode(HmacSha1(access_secret, string_to_sign));
-		std::string encoded_signature = UrlEncode(signature); // Ê¹ÓÃÄãÏÖÓĞµÄ UrlEncode
+		std::string encoded_signature = UrlEncode(signature); // ä½¿ç”¨ä½ ç°æœ‰çš„ UrlEncode
 
-		//Æ´½Ó×îÖÕ URL
+		//æ‹¼æ¥æœ€ç»ˆ URL
 		std::stringstream ss;
 		ss << host << "/" << object_name
 			<< "?OSSAccessKeyId=" << access_id
 			<< "&Expires=" << expire_time
 			<< "&Signature=" << encoded_signature;
 
-		std::string public_url = host + "/" + object_name;		//¹«¹²Á´½Ó
+		std::string public_url = host + "/" + object_name;		//å…¬å…±é“¾æ¥
 
-		//·µ»Ø¸ø Qt
+		//è¿”å›ç»™ Qt
 		root["error"] = message::ErrorCodes::SUCCESS;
-		root["url"] = ss.str();				// ÉÏ´«ÓÃµÄ URL
-		root["public_url"] = public_url;	// ¹«¿ªÁ´½Ó
-		root["oss_key"] = object_name;		// ÎÄ¼şÂ·¾¶ key
+		root["url"] = ss.str();				// ä¸Šä¼ ç”¨çš„ URL
+		root["public_url"] = public_url;	// å…¬å¼€é“¾æ¥
+		root["oss_key"] = object_name;		// æ–‡ä»¶è·¯å¾„ key
 
-		//´òÓ¡ÈÕÖ¾·½±ãµ÷ÊÔ
+		//æ‰“å°æ—¥å¿—æ–¹ä¾¿è°ƒè¯•
 		std::cout << "[OSS] Generated URL for uid " << uid << std::endl;
 
 		boost::beast::ostream(connection->_response.body()) << root.toStyledString();
@@ -368,7 +427,7 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 	RegPost("/save_avator", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());
 
-		// ¡¾µ÷ÊÔÈÕÖ¾ 1¡¿È·ÈÏ GateServer ÊÇ·ñÕæÕıÊÕµ½ÁËÇëÇó
+		// ã€è°ƒè¯•æ—¥å¿— 1ã€‘ç¡®è®¤ GateServer æ˜¯å¦çœŸæ­£æ”¶åˆ°äº†è¯·æ±‚
 		std::cout << "------------------------------------------------" << std::endl;
 		std::cout << "[GateServer] Receive HTTP Post: /save_avator" << std::endl;
 		std::cout << "[GateServer] Body: " << body_str << std::endl;
@@ -378,20 +437,20 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		Json::Reader reader;
 		Json::Value src_root;
 
-		//½âÎö²ÎÊı
+		//è§£æå‚æ•°
 		if (!reader.parse(body_str, src_root))
 		{
-			// ¡¾µ÷ÊÔÈÕÖ¾ 2¡¿JSON ½âÎöÊ§°Ü
+			// ã€è°ƒè¯•æ—¥å¿— 2ã€‘JSON è§£æå¤±è´¥
 			std::cout << "[GateServer] Error: Failed to parse JSON!" << std::endl;
 			root["error"] = message::ErrorCodes::Error_Json;
 			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
 			return true;
 		}
 
-		//±ØĞëÒªÓĞ uid£¬²»È»²»ÖªµÀ¸øË­´æ
+		//å¿…é¡»è¦æœ‰ uidï¼Œä¸ç„¶ä¸çŸ¥é“ç»™è°å­˜
 		if (!src_root.isMember("uid") || !src_root.isMember("public_url"))
 		{
-			// ¡¾µ÷ÊÔÈÕÖ¾ 3¡¿×Ö¶ÎÈ±Ê§
+			// ã€è°ƒè¯•æ—¥å¿— 3ã€‘å­—æ®µç¼ºå¤±
 			std::cout << "[GateServer] Error: Missing 'uid' or 'public_url' field!" << std::endl;
 			root["error"] = message::ErrorCodes::Error_Json;
 			boost::beast::ostream(connection->_response.body()) << root.toStyledString();
@@ -401,25 +460,25 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 		int uid = src_root["uid"].asInt();
 		std::string public_url = src_root["public_url"].asString();
 
-		// ¡¾µ÷ÊÔÈÕÖ¾ 4¡¿È·ÈÏ½âÎö³öµÄÊı¾İÊÇ·ñÕıÈ·
+		// ã€è°ƒè¯•æ—¥å¿— 4ã€‘ç¡®è®¤è§£æå‡ºçš„æ•°æ®æ˜¯å¦æ­£ç¡®
 		std::cout << "[GateServer] Parsed UID: " << uid << std::endl;
 		std::cout << "[GateServer] Parsed URL: " << public_url << std::endl;
 
-		//¹¹Ôì gRPC ÇëÇó
+		//æ„é€  gRPC è¯·æ±‚
 		message::UpdateAvatarReq req;
 		req.set_uid(uid);
 		req.set_avatar_url(public_url);
 
-		//ºô½Ğ LogicServer
+		//å‘¼å« LogicServer
 		message::UpdateAvatarRsp rsp = LogicGrpcClient::getInstance()->UpdateAvatar(req);
 
-		// ¡¾µ÷ÊÔÈÕÖ¾ 5¡¿gRPC µ÷ÓÃ·µ»Ø
+		// ã€è°ƒè¯•æ—¥å¿— 5ã€‘gRPC è°ƒç”¨è¿”å›
 		std::cout << "[GateServer] LogicServer Response ErrorCode: " << rsp.error() << std::endl;
 
-		//·µ»Ø½á¹û¸ø Qt
+		//è¿”å›ç»“æœç»™ Qt
 		root["error"] = rsp.error();
 		root["uid"] = rsp.uid();
-		if (rsp.error() == message::ErrorCodes::SUCCESS)	//// Ö»ÓĞ rsp.error() == 0 Ê±£¬¿Í»§¶Ë²Å¸ÒÓÃÕâ¸öµØÖ·Ë¢ĞÂ UI
+		if (rsp.error() == message::ErrorCodes::SUCCESS)	//// åªæœ‰ rsp.error() == 0 æ—¶ï¼Œå®¢æˆ·ç«¯æ‰æ•¢ç”¨è¿™ä¸ªåœ°å€åˆ·æ–° UI
 		{
 			root["public_url"] = public_url;
 		}
@@ -433,12 +492,12 @@ LogicSystem::LogicSystem()	//¹¹Ôìº¯Êı
 
 void LogicSystem::RegGet(std::string url, HttpHandler handler)
 {
-	_get_handlers.insert(make_pair(url, handler));	//½«url¶ÔÓ¦µÄ´¦Àíº¯Êı²åÈëµ½mapÖĞ
+	_get_handlers.insert(make_pair(url, handler));	//å°†urlå¯¹åº”çš„å¤„ç†å‡½æ•°æ’å…¥åˆ°mapä¸­
 }
 
 void LogicSystem::RegPost(std::string url, HttpHandler handler)
 {
-	_post_handlers.insert(make_pair(url, handler));	//½«url¶ÔÓ¦µÄ´¦Àíº¯Êı²åÈëµ½mapÖĞ
+	_post_handlers.insert(make_pair(url, handler));	//å°†urlå¯¹åº”çš„å¤„ç†å‡½æ•°æ’å…¥åˆ°mapä¸­
 }
 
 bool LogicSystem::HandleGet(std::string path, std::shared_ptr<HttpConnection> con)
@@ -447,7 +506,7 @@ bool LogicSystem::HandleGet(std::string path, std::shared_ptr<HttpConnection> co
 	{
 		return false;
 	}
-	//µ÷ÓÃ´¦Àíº¯Êı
+	//è°ƒç”¨å¤„ç†å‡½æ•°
 	_get_handlers[path](con);
 	return true;
 }
@@ -458,7 +517,7 @@ bool LogicSystem::HandlePost(std::string path, std::shared_ptr<HttpConnection> c
 	{
 		return false;
 	}
-	//µ÷ÓÃ´¦Àíº¯Êı
+	//è°ƒç”¨å¤„ç†å‡½æ•°
 	_post_handlers[path](con);
 	return true;
 }

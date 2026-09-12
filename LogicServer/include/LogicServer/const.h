@@ -4,17 +4,17 @@
 //enum ErrorCodes
 //{
 //	Success = 0,
-//	Error_Json = 1001,		//Json½âÎö´íÎó
-//	RPCFailed = 1002,		//RPCÇëÇó´íÎó
-//	VarifyExpired = 1003,	//ÑéÖ¤Âë¹ıÆÚ
-//	VarifyCodeErr = 1004,	//ÑéÖ¤Âë´íÎó
-//	UserExist = 1005,		//ÓÃ»§ÒÑ¾­´æÔÚ
-//	PasswdErr = 1006,		//ÃÜÂë´íÎó
-//	EmailNotMatch = 1007,	//ÓÊÏä²»Æ¥Åä
-//	PasswdUpFailed = 1008,	//¸üĞÂÃÜÂëÊ§°Ü
-//	PasswdInvalid = 1009,	//ÃÜÂë¸üĞÂÊ§°Ü
-//	TokenInvalid = 1010,	//tokenÎŞĞ§
-//	UidInvalid = 1011,		//uidÎŞĞ§
+//	Error_Json = 1001,		//Jsonè§£æé”™è¯¯
+//	RPCFailed = 1002,		//RPCè¯·æ±‚é”™è¯¯
+//	VarifyExpired = 1003,	//éªŒè¯ç è¿‡æœŸ
+//	VarifyCodeErr = 1004,	//éªŒè¯ç é”™è¯¯
+//	UserExist = 1005,		//ç”¨æˆ·å·²ç»å­˜åœ¨
+//	PasswdErr = 1006,		//å¯†ç é”™è¯¯
+//	EmailNotMatch = 1007,	//é‚®ç®±ä¸åŒ¹é…
+//	PasswdUpFailed = 1008,	//æ›´æ–°å¯†ç å¤±è´¥
+//	PasswdInvalid = 1009,	//å¯†ç æ›´æ–°å¤±è´¥
+//	TokenInvalid = 1010,	//tokenæ— æ•ˆ
+//	UidInvalid = 1011,		//uidæ— æ•ˆ
 //};
 
 class Defer
@@ -22,19 +22,19 @@ class Defer
 public:
 	Defer(std::function<void()> func) :_func(std::move(func)) {};
 
-	//×÷ÓÃÓò½áÊø×Ô¶¯µ÷ÓÃ
+	//ä½œç”¨åŸŸç»“æŸè‡ªåŠ¨è°ƒç”¨
 	~Defer()
 	{
 		if (_func)
-			_func();	//Ö´ĞĞÇåÀíÂß¼­
+			_func();	//æ‰§è¡Œæ¸…ç†é€»è¾‘
 	}
 
-	// ½ûÖ¹¿½±´£¨±ÜÃâÖØ¸´Ö´ĞĞ£©
+	// ç¦æ­¢æ‹·è´ï¼ˆé¿å…é‡å¤æ‰§è¡Œï¼‰
 	Defer(const Defer&) = delete;
 	Defer& operator=(const Defer&) = delete;
 private:
-	std::function<void()> _func;	//´æ´¢ÑÓ³ÙÖ´ĞĞµÄº¯Êı
+	std::function<void()> _func;	//å­˜å‚¨å»¶è¿Ÿæ‰§è¡Œçš„å‡½æ•°
 };
 #define CODEPREFIX "code_"
 #define TOKEN_PREFIX "utoken_"
-#define UID_PREFIX "uid_token_" //ÓÃÓÚÍ¨¹ı uid ÕÒ token
+#define UID_PREFIX "uid_token_" //ç”¨äºé€šè¿‡ uid æ‰¾ token

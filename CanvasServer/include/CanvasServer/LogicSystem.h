@@ -1,6 +1,6 @@
 #pragma once
 #include "Singleton.h"
-#include "CSession.h" // °üº¬ LogicNode ºÍ CSession ¶¨Òå
+#include "CSession.h" // åŒ…å« LogicNode å’Œ CSession å®šä¹‰
 #include <map>
 #include <thread>
 #include <queue>
@@ -9,7 +9,7 @@
 #include <functional>
 #include <json/json.h>
 #include <chrono>
-// ¶¨Òå»Øµ÷º¯ÊıÀàĞÍ
+// å®šä¹‰å›è°ƒå‡½æ•°ç±»å‹
 typedef std::function<void(std::shared_ptr<CSession>, const short& msg_id, const std::string& msg_data)> FunCallBack;
 
 class LogicSystem : public Singleton<LogicSystem>
@@ -18,41 +18,41 @@ class LogicSystem : public Singleton<LogicSystem>
 public:
 	~LogicSystem();
 
-	// ·¢ËÍÏûÏ¢µ½Âß¼­¶ÓÁĞ (ÓÉ CSession µ÷ÓÃ)
+	// å‘é€æ¶ˆæ¯åˆ°é€»è¾‘é˜Ÿåˆ— (ç”± CSession è°ƒç”¨)
 	void PostMsgToQue(std::shared_ptr<LogicNode> msg);
 
 private:
 	LogicSystem();
 
-	// ¹¤×÷Ïß³ÌÖ÷Ñ­»·
+	// å·¥ä½œçº¿ç¨‹ä¸»å¾ªç¯
 	void DealMsg();
 
-	// ×¢²á»Øµ÷
+	// æ³¨å†Œå›è°ƒ
 	void RegisterCallBacks();
 
-	// ´¦ÀíµÇÂ¼ (Ğ£Ñé Token)
+	// å¤„ç†ç™»å½• (æ ¡éªŒ Token)
 	void HandleLogin(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	// ´¦Àí¼ÓÈë·¿¼ä (·ÖÅä Room)
+	// å¤„ç†åŠ å…¥æˆ¿é—´ (åˆ†é… Room)
 	void HandleJoinRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	//´´½¨·¿¼ä
+	//åˆ›å»ºæˆ¿é—´
 	void HandleCreatRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	// ÈºÁÄÏûÏ¢
+	// ç¾¤èŠæ¶ˆæ¯
     void HandleChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	// ÊÚÈ¨ÓÃ»§±à¼­»­°å
+	// æˆæƒç”¨æˆ·ç¼–è¾‘ç”»æ¿
 	void HandleGrantEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	// È¡ÏûÓÃ»§±à¼­È¨ÏŞ
+	// å–æ¶ˆç”¨æˆ·ç¼–è¾‘æƒé™
 	void HandleRevokeEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data);
 
-	std::thread _work_thread;							// ¹¤×÷Ïß³Ì,ÓÃÓÚ»Ø¸´¿Í»§¶Ë
-	std::queue<std::shared_ptr<LogicNode>> _msg_queue;	// ÏûÏ¢¶ÓÁĞ£¬´æ·ÅsessionÓërecvNode
+	std::thread _work_thread;							// å·¥ä½œçº¿ç¨‹,ç”¨äºå›å¤å®¢æˆ·ç«¯
+	std::queue<std::shared_ptr<LogicNode>> _msg_queue;	// æ¶ˆæ¯é˜Ÿåˆ—ï¼Œå­˜æ”¾sessionä¸recvNode
 	std::mutex _mutex;
 	std::condition_variable _cond;
 	bool _b_stop;
 
-	std::map<short, FunCallBack> _fun_callbacks;		// »Øµ÷º¯Êı,´ò°ü»Ø¸´Êı¾İ£¬µ÷ÓÃ¶ÔÓ¦µÄsessionµÄsendº¯Êı
+	std::map<short, FunCallBack> _fun_callbacks;		// å›è°ƒå‡½æ•°,æ‰“åŒ…å›å¤æ•°æ®ï¼Œè°ƒç”¨å¯¹åº”çš„sessionçš„sendå‡½æ•°
 };

@@ -1,272 +1,255 @@
 # SyncCanvas
 
-多人协作画板项目。前端使用 Qt 6.5.3、QGraphicsScene、QTcpSocket、Protobuf，后端使用 Boost.Asio、Boost.Beast、gRPC、JsonCpp、MySQL、Redis、Node.js 等。
+SyncCanvas 是一个基于 Qt 的多人协作画板。用户可以注册并登录账号、创建或加入房间，在同一张画布上实时绘制、聊天；房主还可以控制成员的编辑权限。项目采用“Qt 客户端 + C++ 多服务 + Node.js 验证服务”的分布式结构，适合学习 Qt 网络编程、Boost.Asio、Protobuf/gRPC、Redis 和 MySQL 的组合使用。
 
-## 当前功能状态（2026-05-11）
+> 文档根据当前源码整理。仓库中的协议文件、生成代码和配置模板属于实现的一部分，修改协议时需要同步更新各服务目录。
 
-1. 客户端
-   - 支持欢迎页、登录、注册、重置密码、大厅、画布窗口。
-   - 支持离线画板模式，可直接进入本地画布绘制。
-   - 支持画笔、矩形、椭圆、直线、橡皮擦。
-   - 支持画笔颜色、线宽选择、鼠标坐标显示、画布尺寸设置。
-   - 离线模式支持本地图元撤销；联机撤销协议字段已预留，服务端广播链路尚未落地。
+## 功能概览
 
-2. 账号与用户信息
-   - GateServer 提供 HTTP 接口，负责注册、登录、重置密码、验证码、头像上传签名等入口。
-   - VerifyServer 通过 gRPC 提供邮箱验证码服务，并将验证码写入 Redis。
-   - LogicServer 负责账号校验、Token 生成、MySQL 数据访问、Redis Token 存储。
-   - 客户端支持头像上传到 OSS，并通过 GateServer/LogicServer 保存头像地址。
+### 客户端
 
-3. 房间系统
-   - 支持创建房间、加入房间、返回已有房间。
-   - 支持自定义画布尺寸，并由服务端返回给客户端设置场景大小。
-   - 支持多 CanvasServer 实例下的 NeedRedirect 自动切服。
-   - 支持成员加入、离开广播，在线用户列表实时更新。
-   - 支持房间懒加载：CanvasServer 重启后，如果 Redis 中存在 room_info，JoinRoom 会按需恢复 Room 元信息。
+- 欢迎页、登录、注册、重置密码和大厅页面。
+- 离线画板：无需连接服务端即可绘制，并支持本地图元撤销。
+- 在线房间：创建房间、按房间号加入房间、返回最近进入的房间。
+- 画笔、橡皮擦、直线、矩形、椭圆；可调整颜色和线宽，并显示鼠标坐标。
+- 房间成员列表、成员加入/离开提示和房间群聊。
+- 房主授权或取消成员的编辑权限；普通成员默认只读。
+- 头像选择、OSS 签名上传和头像地址保存。
+- TCP 断线检测、指数退避重连；重连后自动重新进行 Canvas 登录并尝试回到原房间。
 
-4. 实时绘画同步
-   - 使用 `DrawReq` 表示绘画操作流，按 START、MOVE、END 三阶段同步。
-   - Pen/Eraser 使用 `path_points` 做增量点同步。
-   - 矩形、椭圆、直线在 MOVE 阶段实时预览。
-   - CanvasServer 对 `ID_DRAW_REQ` 走快通道处理，不进入 LogicQueue，降低高频绘画数据的排队延迟。
-   - 服务端校验登录状态、房间状态、编辑权限和请求 UID，防止未登录或伪造 UID 的绘画请求。
+### 服务端
 
-5. 历史回放与恢复
-   - CanvasServer 在 Room 内维护内存级 `_history`，保存可回放的绘画操作。
-   - 新用户第一次加入房间时，服务端会先向该用户回放已有绘画历史。
-   - 断线重连后，客户端自动 CanvasLogin 并重新 Join 上次房间，配合内存历史恢复画布状态。
-   - 当前绘画历史没有持久化到 Redis 或 MySQL，CanvasServer 进程重启后只能恢复房间元信息，不能恢复完整笔迹。
+- GateServer：对客户端提供 HTTP/JSON 网关，处理验证码、注册、登录、重置密码、OSS 签名和头像保存等请求。
+- LogicServer：通过 gRPC 提供账号业务，访问 MySQL 用户数据和 Redis 验证码/Token，并为登录请求选择 CanvasServer。
+- VerifyServer：Node.js gRPC 服务，生成验证码、写入 Redis 并发送邮件。
+- CanvasServer：Boost.Asio TCP 长连接服务，负责会话、房间、绘画广播、聊天、权限和房间历史回放。
+- CanvasServer2：与 CanvasServer 同构的第二个实例，用于多实例房间重定向场景。
 
-6. 协作权限与聊天
-   - 默认房主可编辑画板，普通成员进入房间后为只读。
-   - 房主可以在成员列表中授权或取消成员编辑权限。
-   - 服务端维护授权集合，并通过 `PermissionChangedBroadcast` 同步权限变化。
-   - 支持房间群聊，客户端发送 `ChatReq`，服务端校验房间和 UID 后广播 `ChatRsp`。
-
-7. 网络与稳定性
-   - 客户端 TCP 包头为 `quint16 message_id + quint16 message_len`，使用 BigEndian。
-   - 客户端支持断线检测和指数退避重连。
-   - 重连成功后自动进行 CanvasLogin、JoinRoom，且支持重连过程中再次触发 NeedRedirect。
-   - 服务端发送链路使用发送队列，并通过 socket executor 串行化 `async_write`，避免同一 socket 并发写导致的不稳定问题。
-   - 画笔和橡皮擦 MOVE 数据使用 16ms 定时器批量发送，并限制单包最大点数，避免瞬时大包。
-
-## 系统架构
+## 架构
 
 ```text
-Qt DBClient
-  | HTTP: 注册、登录、验证码、头像
-  v
-GateServer
-  | gRPC
-  +--> VerifyServer: 邮箱验证码
-  |
-  +--> LogicServer: 用户、密码、Token、CanvasServer 路由
-          |
-          +--> MySQL: 用户数据
-          +--> Redis: 验证码、Token、房间元信息
+                         +------------------+
+                         |   MySQL 8        |
+                         | 用户、好友表结构  |
+                         +---------+--------+
+                                   |
++------------+   HTTP/JSON   +-----v------+     gRPC      +--------------+
+| DBClient   +--------------->| GateServer +-------------->| LogicServer  |
+| Qt 6       |                +-----+------+               +------+-------+
++-----+------+                      |                             |
+      | TCP（JSON/Protobuf）        | gRPC                        +-----> Redis
+      |                             v                                   (Token、验证码、房间元数据)
+      |                       +-----------+
+      +---------------------->| Verify    |
+                              | Server    |----> SMTP 邮箱
+                              +-----------+
 
-Qt DBClient
-  | TCP + Protobuf: CanvasLogin、CreateRoom、JoinRoom、Draw、Chat
-  v
-CanvasServer / CanvasServer2
-  +--> RoomMgr / Room / SessionMgr
-  +--> Redis: 房间元信息、房间成员集合
+      TCP 长连接（JSON/Protobuf）
+      +----------------------+----------------------+
+      |                                             |
++-----v--------+                             +------v-------+
+| CanvasServer |<---------- Redis ---------->| CanvasServer2|
+| :8092        |                             | :8093        |
++--------------+                             +--------------+
+
+DBClient 上传头像时，先从 GateServer 获取 OSS 签名，再直接上传对象存储，最后回写头像地址。
 ```
 
-## 主要模块
+## 目录说明
 
-### DBClient
+| 目录 | 作用 |
+| --- | --- |
+| `DBClient/` | Qt Widgets 客户端、UI 文件、绘制场景、HTTP/TCP 管理器和 Protobuf 代码 |
+| `GateServer/` | Boost.Beast HTTP 网关及到 Logic/Verify 的 gRPC 客户端 |
+| `LogicServer/` | gRPC 业务服务、MySQL 连接池/DAO、Redis Token 管理 |
+| `CanvasServer/` | 画板 TCP 服务、会话/房间管理和实时广播 |
+| `CanvasServer2/` | CanvasServer 的第二实例，配置和端口独立 |
+| `VerifyServer/` | Node.js 验证码 gRPC 服务和邮件发送逻辑 |
+| `docker/` | C++、Node.js 镜像构建文件和 MySQL 初始化脚本 |
+| `configs/` | Compose 使用的服务配置；部署前请替换为自己的值 |
+| `docs/` | 设计记录和功能建议 |
 
-Qt 客户端，负责界面、登录流程、房间操作、本地绘制和远端渲染。
+客户端和服务端的关键入口：
 
-关键文件：
+- `DBClient/main.cpp`：读取客户端旁的 `config.ini` 并启动主窗口。
+- `DBClient/tcpmgr.cpp`：TCP 拆包、发包、CanvasServer 重定向和重连。
+- `DBClient/canvas.cpp`、`DBClient/paintscene.cpp`：画布界面、本地绘制和远端图元应用。
+- `GateServer/src/LogicSystem.cpp`：HTTP 路由实现。
+- `LogicServer/src/LogicServiceImpl.cpp`：注册、登录、重置密码和头像更新。
+- `CanvasServer/src/CSession.cpp`、`CanvasServer/src/Room.cpp`：TCP 会话、绘画快通道、广播和历史回放。
 
-1. `DBClient/main.cpp`：读取 `config.ini`，初始化 GateServer 地址并启动主窗口。
-2. `DBClient/mainwindow.cpp`：管理欢迎页、登录页、注册页、大厅、画布之间的切换。
-3. `DBClient/httpmgr.cpp`：处理 HTTP 请求和 OSS 上传。
-4. `DBClient/tcpmgr.cpp`：处理 TCP 连接、拆包、发包、消息分发、重定向和断线重连。
-5. `DBClient/lobbywidget.cpp`：创建房间、加入房间、头像上传、返回房间。
-6. `DBClient/canvas.cpp`：管理画布 UI、工具栏、成员列表、聊天、权限、绘画网络同步。
-7. `DBClient/paintscene.cpp`：处理本地绘制、远端绘制应用、离线撤销。
-8. `DBClient/global.h`：前端请求 ID、错误码、房间结构、图元枚举。
+## 通信与数据流
 
-### GateServer
+### 客户端登录
 
-HTTP 网关服务，基于 Boost.Beast 接收客户端 HTTP 请求，再通过 gRPC 调用 VerifyServer 或 LogicServer。
+1. DBClient 向 GateServer 发送 HTTP/JSON 登录请求。
+2. GateServer 通过 gRPC 调用 LogicServer。
+3. LogicServer 校验 MySQL 中的账号密码，在 Redis 中保存 24 小时 Token，并返回一个 CanvasServer 地址。
+4. DBClient 连接该 CanvasServer，发送 `uid + token` 完成 Canvas 登录鉴权。
 
-关键文件：
+GateServer 当前注册的 HTTP 路由如下：
 
-1. `GateServer/src/GateServer.cpp`：服务入口。
-2. `GateServer/src/CServer.cpp`：接收 HTTP 连接。
-3. `GateServer/src/HttpConnection.cpp`：解析 HTTP 请求并写回响应。
-4. `GateServer/src/LogicSystem.cpp`：注册 HTTP 路由，例如 `/get_verifycode`、`/user_register`、`/reset_password`、`/user_login`、`/get_oss_token`、`/save_avator`。
-5. `GateServer/src/VerifyGrpcClient.cpp`：调用验证码服务。
-6. `GateServer/src/LogicGrpcClient.cpp`：调用账号与用户服务。
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/get_test` | 基础连通性测试 |
+| `POST` | `/get_verifycode` | 请求邮箱验证码 |
+| `POST` | `/user_register` | 注册账号 |
+| `POST` | `/reset_password` | 重置密码 |
+| `POST` | `/user_login` | 登录并获取 Token/CanvasServer 地址 |
+| `POST` | `/get_oss_token` | 获取头像上传签名 |
+| `POST` | `/save_avator` | 保存头像公开地址（路径名称与源码保持一致） |
 
-### LogicServer
+### 创建和加入房间
 
-gRPC 业务服务，负责账号、Token、用户资料和 CanvasServer 路由。
+1. 创建房间时，CanvasServer 生成六位房间号，将房间名称、房主、画布宽高和所属实例写入 Redis（房间元数据默认 24 小时过期）。
+2. 加入房间时，服务端从 Redis 查找房间归属。如果房间属于另一实例，返回 `NeedRedirect`、目标 host/port；客户端自动切换连接并重试加入。
+3. 首次加入内存中的房间时，服务端会把当前历史操作回放给新成员，并广播成员加入/离开事件。
 
-关键文件：
+### 绘画同步
 
-1. `LogicServer/src/LogicServer.cpp`：服务入口。
-2. `LogicServer/src/LogicServiceImpl.cpp`：实现注册、重置密码、登录、更新头像。
-3. `LogicServer/src/MysqlDao.cpp`：MySQL 用户表访问。
-4. `LogicServer/src/MysqlPool.cpp`：MySQL 连接池。
-5. `LogicServer/src/RedisMgr.cpp`：验证码和 Token 读写。
-
-### VerifyServer
-
-Node.js gRPC 服务，负责验证码生成、Redis 写入和邮件发送。
-
-关键文件：
-
-1. `VerifyServer/server.js`：gRPC 服务入口。
-2. `VerifyServer/redis.js`：Redis 访问。
-3. `VerifyServer/email.js`：邮件发送。
-4. `VerifyServer/message.proto`：验证码服务协议。
-
-### CanvasServer
-
-画板 TCP 长连接服务，负责房间、会话、绘画广播、聊天广播、权限控制和历史回放。`CanvasServer2` 是同构实例，用于多实例重定向测试。
-
-关键文件：
-
-1. `CanvasServer/src/CanvasServer.cpp`：服务入口。
-2. `CanvasServer/src/CServer.cpp`：接收 TCP 连接。
-3. `CanvasServer/src/CSession.cpp`：处理 TCP 拆包、绘画快通道、会话关闭、发送队列。
-4. `CanvasServer/src/LogicSystem.cpp`：处理 CanvasLogin、CreateRoom、JoinRoom、Chat、GrantEdit、RevokeEdit。
-5. `CanvasServer/src/Room.cpp`：房间成员管理、广播、历史回放、编辑权限。
-6. `CanvasServer/src/RoomMgr.cpp`：房间管理。
-7. `CanvasServer/src/RedisMgr.cpp`：房间元信息读写。
-
-## 协议说明
-
-### TCP 包格式
-
-客户端和 CanvasServer 的 TCP 包格式为：
+CanvasServer 的 TCP 包格式为：
 
 ```text
-2 bytes message_id + 2 bytes message_len + message_body
+2 字节 message_id（网络字节序）
+2 字节 message_len（网络字节序）
+message_len 字节 message body
 ```
 
-包头使用网络字节序。客户端对应实现位于 `DBClient/tcpmgr.cpp`，服务端对应实现位于 `CanvasServer/src/CSession.cpp`。
+包体编码取决于消息类型：Canvas 登录和创建房间使用 JSON；加入房间、绘画、聊天、编辑权限和成员广播使用 Protobuf。`DrawReq` 使用 `CMD_START`、`CMD_MOVE`、`CMD_END` 表示一笔操作的生命周期。画笔和橡皮擦的移动点由客户端按约 16 ms 节奏批量发送，每包最多 80 个点；直线、矩形和椭圆的移动阶段用于实时预览。绘画请求绕过普通业务队列，由会话层校验登录状态、房间归属、编辑权限以及请求 UID 后广播给其他成员。
 
-### 实际业务消息 ID
+### 权限与历史
 
-实际 TCP 消息 ID 以 `DBClient/global.h` 和各服务 `include/*/const.h` 中的 `ReqId`、`MSG_IDS` 为准。
+- 房主始终可编辑，普通成员加入后默认只读。
+- 只有房主可以发送授权/取消授权请求；权限变化通过广播同步到客户端。
+- 房间历史目前保存在 CanvasServer 进程内存中，新成员可以回放；Redis 只保存房间元数据和成员集合，不保存完整笔迹。
 
-常用消息：
+## 构建环境
 
-1. `ID_CANVAS_LOGIN_REQ` / `ID_CANVAS_LOGIN_RSP`：客户端登录 CanvasServer。
-2. `ID_CREAT_ROOM_REQ` / `ID_CREAT_ROOM_RSP`：创建房间。
-3. `ID_JOIN_ROOM_REQ` / `ID_JOIN_ROOM_RSP`：加入房间。
-4. `ID_USER_JOIN_BROADCAST`：成员加入广播。
-5. `ID_USER_LEAVE_BROADCAST`：成员离开广播。
-6. `ID_DRAW_REQ` / `ID_DRAW_RSP`：绘画请求与绘画广播。
-7. `ID_CHAT_REQ` / `ID_CHAT_RSP`：群聊请求与广播。
-8. `ID_GRANT_EDIT_REQ` / `ID_GRANT_EDIT_RSP`：授权编辑。
-9. `ID_REVOKE_EDIT_REQ` / `ID_REVOKE_EDIT_RSP`：取消编辑权限。
-10. `ID_PERMISSION_CHANGED_BROADCAST`：编辑权限变更广播。
+### 通用依赖
 
-### DrawReq
+- CMake 3.20 或更高版本
+- C++14 编译器；Windows 可使用 Visual Studio 2022，Linux 可使用 GCC/Clang
+- Ninja（推荐）
+- vcpkg 依赖：Boost（Asio、Beast、Filesystem、System、UUID）、gRPC、Protobuf、JsonCpp、hiredis、redis-plus-plus、MySQL Connector/C++、libmysql、OpenSSL、Zlib、lz4、zstd、abseil
+- MySQL 8 和 Redis 7
 
-`DrawReq` 是绘画同步的核心结构，定义在各模块的 `message.proto` 中。各服务目录下的 `message.proto` 应保持一致。
+### 客户端依赖
 
-关键字段：
+- Qt 6.5（Core、Widgets、Network）
+- 与服务端一致的 Protobuf/gRPC C++ 库
 
-1. `uid`：发起绘画的用户 ID。
-2. `item_id`：客户端生成的图元 UUID，用于标识同一图元的 START、MOVE、END。
-3. `cmd`：绘画阶段，例如 `CMD_START`、`CMD_MOVE`、`CMD_END`。
-4. `shape`：图元类型，例如 `SHAPE_PEN`、`SHAPE_RECT`、`SHAPE_OVAL`、`SHAPE_LINE`、`SHAPE_ERASER`。
-5. `color`：颜色值，格式为 `0xAARRGGBB`。
-6. `width`：线宽。
-7. `start_x`、`start_y`：几何图形起点。
-8. `current_x`、`current_y`：当前点或几何图形终点。
-9. `path_points`：画笔和橡皮擦在 MOVE 阶段批量传输的增量点。
+### 验证码服务依赖
 
-## 关键流程
+- Node.js 18 或更高版本
+- npm
+- 可用的 SMTP 邮箱；在线注册/重置密码时需要发送验证码
 
-### 登录流程
+## 快速启动（Docker Compose）
 
-1. 客户端通过 GateServer 获取验证码、注册或登录。
-2. GateServer 通过 gRPC 调用 VerifyServer 或 LogicServer。
-3. LogicServer 校验 MySQL 用户数据，生成 Token 并写入 Redis。
-4. LogicServer 返回用户信息、Token 和一个 CanvasServer 地址。
-5. 客户端连接 CanvasServer，并发送 `ID_CANVAS_LOGIN_REQ` 进行 Token 鉴权。
-6. 鉴权成功后进入大厅。
+Compose 会启动 MySQL、Redis、VerifyServer、LogicServer、GateServer 和两个 CanvasServer。先准备环境变量文件（不要提交到 Git）：
 
-### 创建房间流程
+```dotenv
+MYSQL_ROOT_PASSWORD=请设置 MySQL 密码
+REDIS_PASSWORD=请设置 Redis 密码
+DOCKERHUB_USER=你的镜像仓库用户名
+```
 
-1. 客户端在大厅选择房间名和画布尺寸。
-2. 客户端向 CanvasServer 发送 `ID_CREAT_ROOM_REQ`。
-3. CanvasServer 生成房间号，创建内存 Room。
-4. CanvasServer 将房间元信息写入 Redis。
-5. CanvasServer 将房主加入房间并返回房间信息。
-6. 客户端进入画布窗口，房主获得编辑权限。
+然后检查并修改以下挂载配置中的地址、密码、邮箱和 OSS 参数：
 
-### 加入房间流程
+- `configs/prod/GateServer.config.ini`
+- `configs/prod/LogicServer.config.ini`
+- `configs/prod/CanvasServer.config.ini`
+- `configs/prod/CanvasServer2.config.ini`
+- `configs/prod/VerifyServer.config.json`
 
-1. 客户端向当前 CanvasServer 发送 `ID_JOIN_ROOM_REQ`。
-2. CanvasServer 从 Redis 读取房间元信息。
-3. 如果房间属于其他 CanvasServer，返回 `NeedRedirect` 和目标地址。
-4. 客户端自动切换 TCP 连接，重新 CanvasLogin，并再次发送 JoinRoom。
-5. 目标 CanvasServer 将用户加入房间，返回成员快照。
-6. 如果房间内存中已有历史操作，新用户会收到历史回放。
+启动服务：
 
-### 绘画同步流程
+```bash
+docker compose build
+docker compose up -d
+docker compose ps
+```
 
-1. `PaintScene` 采集本地鼠标输入。
-2. `Canvas` 将绘画事件组装成 `DrawReq`。
-3. 客户端通过 `TcpMgr` 发送 `ID_DRAW_REQ`。
-4. `CSession` 快通道校验请求并广播 `ID_DRAW_RSP`。
-5. 远端客户端收到广播后调用 `PaintScene::applyRemoteDraw()` 渲染图元。
-6. 服务端将可回放的绘画操作追加到 Room 内存历史。
+默认端口如下：
 
-### 断线重连流程
+| 服务 | 容器内/对外端口 | 说明 |
+| --- | --- | --- |
+| GateServer | `8080` | 客户端 HTTP 网关 |
+| CanvasServer | `8092` | 第一个画板 TCP 实例 |
+| CanvasServer2 | `8093` | 第二个画板 TCP 实例 |
+| LogicServer | `50058` | 仅 Compose 网络内访问的 gRPC 服务 |
+| VerifyServer | `50057` | 仅 Compose 网络内访问的 gRPC 服务 |
+| MySQL | `3306` | Compose 网络内使用；数据持久化到 `mysql-data` |
+| Redis | `6379` | Compose 网络内使用；数据持久化到 `redis-data` |
 
-1. 客户端监听 `QTcpSocket::disconnected`。
-2. 断线后回到 Lobby，并启动指数退避重连。
-3. 重连成功后自动发送 CanvasLogin。
-4. CanvasLogin 成功后自动 Join 上次房间。
-5. Join 成功后恢复 Canvas 界面，并通过历史回放恢复画布状态。
+MySQL 首次启动会执行 `docker/mysql-init/001_schema.sql`。Compose 配置把 CanvasServer 的 `SelfServer.Host` 写入房间元数据，部署到其他主机或云环境时必须改成客户端可访问的地址，不能直接照搬示例中的局域网 IP。
 
-## 构建与运行
+## 源码构建
 
-各模块独立构建，根目录没有统一的顶层 CMake。
+项目没有根目录统一 CMake，每个 C++ 模块独立构建。以 Linux + vcpkg 为例：
 
-客户端：
+```bash
+cmake -S GateServer -B GateServer/build -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+  -DVCPKG_TARGET_TRIPLET=x64-linux
+cmake --build GateServer/build
+```
 
-1. 进入 `DBClient`。
-2. 使用 Qt 6.5.3 和 vcpkg 提供的 Protobuf、gRPC 依赖构建。
-3. 准备 `config.ini`，配置 GateServer 地址。
+对 `LogicServer`、`CanvasServer`、`CanvasServer2` 重复上述命令即可。Windows 可以使用各目录的 `CMakePresets.json`，或在 Qt Creator/Visual Studio 中打开对应目录。
 
-C++ 服务：
+每个服务启动时都会从“当前工作目录”读取 `config.ini`，可复制对应的 `config.ini.example` 后填写实际配置。服务端建议按以下顺序启动：
 
-1. `GateServer`、`LogicServer`、`CanvasServer`、`CanvasServer2` 均有各自的 `CMakeLists.txt`。
-2. 各服务运行目录需要准备对应的 `config.ini`，可参考 `config.ini.example`。
-3. 需要可用的 MySQL、Redis、gRPC、Protobuf、JsonCpp、Boost 等依赖。
+```text
+MySQL、Redis -> VerifyServer -> LogicServer -> GateServer
+             -> CanvasServer / CanvasServer2 -> DBClient
+```
 
-VerifyServer：
+### 构建客户端
 
-1. 进入 `VerifyServer`。
-2. 执行 `npm install` 安装依赖。
-3. 准备 `config.json`，配置 Redis、邮箱等信息。
-4. 执行 `node server.js` 启动验证码服务。
+```bash
+cmake -S DBClient -B DBClient/build -G Ninja \
+  -DCMAKE_PREFIX_PATH=/path/to/Qt/6.5.x \
+  -DCMAKE_TOOLCHAIN_FILE="$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake" \
+  -DVCPKG_TARGET_TRIPLET=x64-linux
+cmake --build DBClient/build
+```
 
-推荐启动顺序：
+运行 `DBClient` 前，在可执行文件同目录放置 `config.ini`：
 
-1. 启动 MySQL 和 Redis。
-2. 启动 VerifyServer。
-3. 启动 LogicServer。
-4. 启动 GateServer。
-5. 启动 CanvasServer 和 CanvasServer2。
-6. 启动 DBClient。
+```ini
+[GateServer]
+host = 127.0.0.1
+port = 8080
+```
+
+### 启动 VerifyServer
+
+```bash
+cd VerifyServer
+npm install
+# 根据 config.json 配置 SMTP 和 Redis
+npm run serve
+```
+
+## 配置与安全
+
+- `config.ini`、`config.json` 和 `.env` 可能包含数据库密码、Redis 密码、邮箱授权码、OSS 密钥，生产环境应使用独立的密钥管理或运行时挂载，禁止把真实凭据提交到仓库。
+- GateServer 当前使用 HTTP，内部 gRPC 默认使用不带 TLS 的连接；部署到公网前应增加 HTTPS/TLS、访问控制和反向代理。
+- OSS 上传需要配置 `AliyunOSS` 的密钥、Bucket、Endpoint 和 Host；不需要头像功能时可以关闭对应入口。
+- 修改任一 `message.proto` 后，应使用项目中的 `gen_message.bat` 或 `protoc`/gRPC 工具重新生成各目录下的 `.pb.*` 文件，并确保所有模块使用同一份协议。
 
 ## 已知限制
 
-1. 绘画历史当前只保存在 CanvasServer 内存中，服务进程重启后无法恢复完整笔迹。
-2. 清屏、联机撤销相关协议字段已有预留，但完整的服务端校验与广播链路尚未实现。
-3. 多人同时 Join 与绘画时，历史回放和实时操作之间还没有全局序列号，极端情况下可能出现弱一致。
-4. 各服务目录存在多份 `message.proto` 和生成文件，修改协议时需要同步更新并重新生成。
-5. 部分注释文件存在编码不一致现象，建议后续统一为 UTF-8。
+- 联机撤销和清屏的协议字段已定义，但当前没有完整的服务端处理和广播链路；可用的撤销仅限离线画板中的本地图元。
+- 绘画历史只存在于 CanvasServer 内存，服务进程重启后不会恢复完整笔迹；Redis 中仅保留房间元数据和成员集合。
+- 历史回放与实时绘画尚未使用全局序列号，多人同时加入并绘制时只能提供尽力而为的一致性。
+- 数据库中已有好友相关表结构，但当前客户端和服务端主流程未提供完整的好友业务界面/API。
+- `CanvasServer2` 是用于多实例测试的同构服务，不是独立的业务版本；两个实例需要正确配置可互相访问的地址和端口。
+- 部分旧源码注释存在编码不一致，阅读时建议统一按 UTF-8 处理。
+
+## 截图
+
+![画板界面](画板效果图.png)
+
+![服务端设计](服务端设计.png)

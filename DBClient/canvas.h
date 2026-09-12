@@ -63,6 +63,15 @@ private slots:
 
     void on_return_btn_clicked();                //返回大厅槽函数
 
+    // ===== 语音 UI 预留接口（当前暂不启用） =====
+    // 下面的槽函数对应后续麦克风、听筒、连接状态和说话人 UI。
+    // 接入按钮和标签后，取消注释声明、实现及 canvas.cpp 中的 connect 即可使用。
+    // void slot_toggle_microphone();
+    // void slot_toggle_speaker();
+    // void slot_voice_state_changed(VoiceManager::State state);
+    // void slot_voice_error(const QString& message);
+    // void slot_active_speakers_changed(const QStringList& identities);
+
 private:
     Ui::Canvas *ui;
     QLabel *statusDot;                              // 状态栏标签

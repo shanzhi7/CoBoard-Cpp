@@ -28,7 +28,7 @@
 
 namespace message {
 
-// ÑéÖ¤Âë·şÎñ (VarifyServer ÊµÏÖ)
+// éªŒè¯ç æœåŠ¡ (VarifyServer å®ç°)
 class VarifyService final {
  public:
   static constexpr char const* service_full_name() {
@@ -44,11 +44,22 @@ class VarifyService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::GetVarifyRsp>> PrepareAsyncGetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::GetVarifyRsp>>(PrepareAsyncGetVarifyCodeRaw(context, request, cq));
     }
+    // ä¸ºå·²é€šè¿‡ GateServer ç™»å½•æ ¡éªŒçš„ç”¨æˆ·ç­¾å‘ LiveKit è¯­éŸ³ Token
+    virtual ::grpc::Status CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::message::CreateVoiceTokenRsp* response) = 0;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>> AsyncCreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>>(AsyncCreateVoiceTokenRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>> PrepareAsyncCreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>>(PrepareAsyncCreateVoiceTokenRaw(context, request, cq));
+    }
     class async_interface {
      public:
       virtual ~async_interface() {}
       virtual void GetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void GetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
+      // ä¸ºå·²é€šè¿‡ GateServer ç™»å½•æ ¡éªŒçš„ç”¨æˆ·ç­¾å‘ LiveKit è¯­éŸ³ Token
+      virtual void CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, std::function<void(::grpc::Status)>) = 0;
+      virtual void CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
     typedef class async_interface experimental_async_interface;
     virtual class async_interface* async() { return nullptr; }
@@ -56,6 +67,8 @@ class VarifyService final {
    private:
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::GetVarifyRsp>* AsyncGetVarifyCodeRaw(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) = 0;
     virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::GetVarifyRsp>* PrepareAsyncGetVarifyCodeRaw(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>* AsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) = 0;
+    virtual ::grpc::ClientAsyncResponseReaderInterface< ::message::CreateVoiceTokenRsp>* PrepareAsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) = 0;
   };
   class Stub final : public StubInterface {
    public:
@@ -67,11 +80,20 @@ class VarifyService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::GetVarifyRsp>> PrepareAsyncGetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::GetVarifyRsp>>(PrepareAsyncGetVarifyCodeRaw(context, request, cq));
     }
+    ::grpc::Status CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::message::CreateVoiceTokenRsp* response) override;
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>> AsyncCreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>>(AsyncCreateVoiceTokenRaw(context, request, cq));
+    }
+    std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>> PrepareAsyncCreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) {
+      return std::unique_ptr< ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>>(PrepareAsyncCreateVoiceTokenRaw(context, request, cq));
+    }
     class async final :
       public StubInterface::async_interface {
      public:
       void GetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response, std::function<void(::grpc::Status)>) override;
       void GetVarifyCode(::grpc::ClientContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response, ::grpc::ClientUnaryReactor* reactor) override;
+      void CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, std::function<void(::grpc::Status)>) override;
+      void CreateVoiceToken(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) override;
      private:
       friend class Stub;
       explicit async(Stub* stub): stub_(stub) { }
@@ -85,7 +107,10 @@ class VarifyService final {
     class async async_stub_{this};
     ::grpc::ClientAsyncResponseReader< ::message::GetVarifyRsp>* AsyncGetVarifyCodeRaw(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) override;
     ::grpc::ClientAsyncResponseReader< ::message::GetVarifyRsp>* PrepareAsyncGetVarifyCodeRaw(::grpc::ClientContext* context, const ::message::GetVarifyReq& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>* AsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) override;
+    ::grpc::ClientAsyncResponseReader< ::message::CreateVoiceTokenRsp>* PrepareAsyncCreateVoiceTokenRaw(::grpc::ClientContext* context, const ::message::CreateVoiceTokenReq& request, ::grpc::CompletionQueue* cq) override;
     const ::grpc::internal::RpcMethod rpcmethod_GetVarifyCode_;
+    const ::grpc::internal::RpcMethod rpcmethod_CreateVoiceToken_;
   };
   static std::unique_ptr<Stub> NewStub(const std::shared_ptr< ::grpc::ChannelInterface>& channel, const ::grpc::StubOptions& options = ::grpc::StubOptions());
 
@@ -94,6 +119,8 @@ class VarifyService final {
     Service();
     virtual ~Service();
     virtual ::grpc::Status GetVarifyCode(::grpc::ServerContext* context, const ::message::GetVarifyReq* request, ::message::GetVarifyRsp* response);
+    // ä¸ºå·²é€šè¿‡ GateServer ç™»å½•æ ¡éªŒçš„ç”¨æˆ·ç­¾å‘ LiveKit è¯­éŸ³ Token
+    virtual ::grpc::Status CreateVoiceToken(::grpc::ServerContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response);
   };
   template <class BaseClass>
   class WithAsyncMethod_GetVarifyCode : public BaseClass {
@@ -115,7 +142,27 @@ class VarifyService final {
       ::grpc::Service::RequestAsyncUnary(0, context, request, response, new_call_cq, notification_cq, tag);
     }
   };
-  typedef WithAsyncMethod_GetVarifyCode<Service > AsyncService;
+  template <class BaseClass>
+  class WithAsyncMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithAsyncMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodAsync(1);
+    }
+    ~WithAsyncMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestCreateVoiceToken(::grpc::ServerContext* context, ::message::CreateVoiceTokenReq* request, ::grpc::ServerAsyncResponseWriter< ::message::CreateVoiceTokenRsp>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  typedef WithAsyncMethod_GetVarifyCode<WithAsyncMethod_CreateVoiceToken<Service > > AsyncService;
   template <class BaseClass>
   class WithCallbackMethod_GetVarifyCode : public BaseClass {
    private:
@@ -143,7 +190,34 @@ class VarifyService final {
     virtual ::grpc::ServerUnaryReactor* GetVarifyCode(
       ::grpc::CallbackServerContext* /*context*/, const ::message::GetVarifyReq* /*request*/, ::message::GetVarifyRsp* /*response*/)  { return nullptr; }
   };
-  typedef WithCallbackMethod_GetVarifyCode<Service > CallbackService;
+  template <class BaseClass>
+  class WithCallbackMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithCallbackMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodCallback(1,
+          new ::grpc::internal::CallbackUnaryHandler< ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::message::CreateVoiceTokenReq* request, ::message::CreateVoiceTokenRsp* response) { return this->CreateVoiceToken(context, request, response); }));}
+    void SetMessageAllocatorFor_CreateVoiceToken(
+        ::grpc::MessageAllocator< ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp>* allocator) {
+      ::grpc::internal::MethodHandler* const handler = ::grpc::Service::GetHandler(1);
+      static_cast<::grpc::internal::CallbackUnaryHandler< ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp>*>(handler)
+              ->SetMessageAllocator(allocator);
+    }
+    ~WithCallbackMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* CreateVoiceToken(
+      ::grpc::CallbackServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/)  { return nullptr; }
+  };
+  typedef WithCallbackMethod_GetVarifyCode<WithCallbackMethod_CreateVoiceToken<Service > > CallbackService;
   typedef CallbackService ExperimentalCallbackService;
   template <class BaseClass>
   class WithGenericMethod_GetVarifyCode : public BaseClass {
@@ -158,6 +232,23 @@ class VarifyService final {
     }
     // disable synchronous version of this method
     ::grpc::Status GetVarifyCode(::grpc::ServerContext* /*context*/, const ::message::GetVarifyReq* /*request*/, ::message::GetVarifyRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+  };
+  template <class BaseClass>
+  class WithGenericMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithGenericMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodGeneric(1);
+    }
+    ~WithGenericMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
       abort();
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
@@ -183,6 +274,26 @@ class VarifyService final {
     }
   };
   template <class BaseClass>
+  class WithRawMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodRaw(1);
+    }
+    ~WithRawMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    void RequestCreateVoiceToken(::grpc::ServerContext* context, ::grpc::ByteBuffer* request, ::grpc::ServerAsyncResponseWriter< ::grpc::ByteBuffer>* response, ::grpc::CompletionQueue* new_call_cq, ::grpc::ServerCompletionQueue* notification_cq, void *tag) {
+      ::grpc::Service::RequestAsyncUnary(1, context, request, response, new_call_cq, notification_cq, tag);
+    }
+  };
+  template <class BaseClass>
   class WithRawCallbackMethod_GetVarifyCode : public BaseClass {
    private:
     void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
@@ -202,6 +313,28 @@ class VarifyService final {
       return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
     }
     virtual ::grpc::ServerUnaryReactor* GetVarifyCode(
+      ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
+  };
+  template <class BaseClass>
+  class WithRawCallbackMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithRawCallbackMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodRawCallback(1,
+          new ::grpc::internal::CallbackUnaryHandler< ::grpc::ByteBuffer, ::grpc::ByteBuffer>(
+            [this](
+                   ::grpc::CallbackServerContext* context, const ::grpc::ByteBuffer* request, ::grpc::ByteBuffer* response) { return this->CreateVoiceToken(context, request, response); }));
+    }
+    ~WithRawCallbackMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable synchronous version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    virtual ::grpc::ServerUnaryReactor* CreateVoiceToken(
       ::grpc::CallbackServerContext* /*context*/, const ::grpc::ByteBuffer* /*request*/, ::grpc::ByteBuffer* /*response*/)  { return nullptr; }
   };
   template <class BaseClass>
@@ -231,12 +364,39 @@ class VarifyService final {
     // replace default version of method with streamed unary
     virtual ::grpc::Status StreamedGetVarifyCode(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::message::GetVarifyReq,::message::GetVarifyRsp>* server_unary_streamer) = 0;
   };
-  typedef WithStreamedUnaryMethod_GetVarifyCode<Service > StreamedUnaryService;
+  template <class BaseClass>
+  class WithStreamedUnaryMethod_CreateVoiceToken : public BaseClass {
+   private:
+    void BaseClassMustBeDerivedFromService(const Service* /*service*/) {}
+   public:
+    WithStreamedUnaryMethod_CreateVoiceToken() {
+      ::grpc::Service::MarkMethodStreamed(1,
+        new ::grpc::internal::StreamedUnaryHandler<
+          ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp>(
+            [this](::grpc::ServerContext* context,
+                   ::grpc::ServerUnaryStreamer<
+                     ::message::CreateVoiceTokenReq, ::message::CreateVoiceTokenRsp>* streamer) {
+                       return this->StreamedCreateVoiceToken(context,
+                         streamer);
+                  }));
+    }
+    ~WithStreamedUnaryMethod_CreateVoiceToken() override {
+      BaseClassMustBeDerivedFromService(this);
+    }
+    // disable regular version of this method
+    ::grpc::Status CreateVoiceToken(::grpc::ServerContext* /*context*/, const ::message::CreateVoiceTokenReq* /*request*/, ::message::CreateVoiceTokenRsp* /*response*/) override {
+      abort();
+      return ::grpc::Status(::grpc::StatusCode::UNIMPLEMENTED, "");
+    }
+    // replace default version of method with streamed unary
+    virtual ::grpc::Status StreamedCreateVoiceToken(::grpc::ServerContext* context, ::grpc::ServerUnaryStreamer< ::message::CreateVoiceTokenReq,::message::CreateVoiceTokenRsp>* server_unary_streamer) = 0;
+  };
+  typedef WithStreamedUnaryMethod_GetVarifyCode<WithStreamedUnaryMethod_CreateVoiceToken<Service > > StreamedUnaryService;
   typedef Service SplitStreamedService;
-  typedef WithStreamedUnaryMethod_GetVarifyCode<Service > StreamedService;
+  typedef WithStreamedUnaryMethod_GetVarifyCode<WithStreamedUnaryMethod_CreateVoiceToken<Service > > StreamedService;
 };
 
-// Âß¼­ÒµÎñ·şÎñ (LogicServer ÊµÏÖ)
+// é€»è¾‘ä¸šåŠ¡æœåŠ¡ (LogicServer å®ç°)
 class LogicService final {
  public:
   static constexpr char const* service_full_name() {
@@ -245,7 +405,7 @@ class LogicService final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    // ×¢²áÕËºÅ
+    // æ³¨å†Œè´¦å·
     virtual ::grpc::Status RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::message::RegisterRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>> AsyncRegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>>(AsyncRegisterUserRaw(context, request, cq));
@@ -253,7 +413,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>> PrepareAsyncRegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>>(PrepareAsyncRegisterUserRaw(context, request, cq));
     }
-    // ÖØÖÃÃÜÂë
+    // é‡ç½®å¯†ç 
     virtual ::grpc::Status ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::message::ResetPasswordRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>> AsyncResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>>(AsyncResetPasswordRaw(context, request, cq));
@@ -261,7 +421,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>> PrepareAsyncResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>>(PrepareAsyncResetPasswordRaw(context, request, cq));
     }
-    // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+    // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
     virtual ::grpc::Status Login(::grpc::ClientContext* context, const ::message::LoginReq& request, ::message::LoginRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>> AsyncLogin(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>>(AsyncLoginRaw(context, request, cq));
@@ -269,7 +429,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>> PrepareAsyncLogin(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>>(PrepareAsyncLoginRaw(context, request, cq));
     }
-    // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+    // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
     virtual ::grpc::Status VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::message::VerifyTokenRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>> AsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>>(AsyncVerifyTokenRaw(context, request, cq));
@@ -277,7 +437,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>> PrepareAsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>>(PrepareAsyncVerifyTokenRaw(context, request, cq));
     }
-    // ¸üĞÂÍ·Ïñ½Ó¿Ú
+    // æ›´æ–°å¤´åƒæ¥å£
     virtual ::grpc::Status UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::message::UpdateAvatarRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>> AsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>>(AsyncUpdateAvatarRaw(context, request, cq));
@@ -288,19 +448,19 @@ class LogicService final {
     class async_interface {
      public:
       virtual ~async_interface() {}
-      // ×¢²áÕËºÅ
+      // æ³¨å†Œè´¦å·
       virtual void RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // ÖØÖÃÃÜÂë
+      // é‡ç½®å¯†ç 
       virtual void ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+      // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
       virtual void Login(::grpc::ClientContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void Login(::grpc::ClientContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+      // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // ¸üĞÂÍ·Ïñ½Ó¿Ú
+      // æ›´æ–°å¤´åƒæ¥å£
       virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
@@ -403,15 +563,15 @@ class LogicService final {
    public:
     Service();
     virtual ~Service();
-    // ×¢²áÕËºÅ
+    // æ³¨å†Œè´¦å·
     virtual ::grpc::Status RegisterUser(::grpc::ServerContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response);
-    // ÖØÖÃÃÜÂë
+    // é‡ç½®å¯†ç 
     virtual ::grpc::Status ResetPassword(::grpc::ServerContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response);
-    // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+    // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
     virtual ::grpc::Status Login(::grpc::ServerContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response);
-    // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+    // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
     virtual ::grpc::Status VerifyToken(::grpc::ServerContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response);
-    // ¸üĞÂÍ·Ïñ½Ó¿Ú
+    // æ›´æ–°å¤´åƒæ¥å£
     virtual ::grpc::Status UpdateAvatar(::grpc::ServerContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response);
   };
   template <class BaseClass>

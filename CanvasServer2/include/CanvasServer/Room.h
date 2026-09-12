@@ -8,7 +8,7 @@
 #include <iostream>
 #include "CanvasServer/message.pb.h"
 
-// Ç°ÖÃÉùÃ÷£¬±ÜÃâÑ­»·ÒıÓÃ
+// å‰ç½®å£°æ˜ï¼Œé¿å…å¾ªç¯å¼•ç”¨
 class CSession;
 
 class Room : public std::enable_shared_from_this<Room>
@@ -17,50 +17,50 @@ public:
 	Room(const std::string& roomId);
 	~Room();
 
-	std::string GetRoomId() const;								//»ñÈ¡·¿¼äID
+	std::string GetRoomId() const;								//è·å–æˆ¿é—´ID
 
-	void SetRoomInfo(const std::string& name, int owner_uid);	//ÉèÖÃ·¿¼äĞÅÏ¢
-	int GetOwnerUid() const;									//»ñÈ¡·¿Ö÷ID
-	bool IsOwner(int uid) const;								//ÅĞ¶ÏÊÇ·ñÎª·¿Ö÷
-	bool HasMember(int uid) const;							//ÅĞ¶ÏÓÃ»§ÊÇ·ñÔÚµ±Ç°·¿¼ä
-	bool CanEdit(int uid) const;							//ÅĞ¶ÏÓÃ»§ÊÇ·ñÓĞ»­°å±à¼­È¨ÏŞ
-	bool GrantEdit(int uid);								//ÊÚÈ¨ÓÃ»§±à¼­»­°å
-	bool RevokeEdit(int uid);							//È¡ÏûÓÃ»§±à¼­È¨ÏŞ
+	void SetRoomInfo(const std::string& name, int owner_uid);	//è®¾ç½®æˆ¿é—´ä¿¡æ¯
+	int GetOwnerUid() const;									//è·å–æˆ¿ä¸»ID
+	bool IsOwner(int uid) const;								//åˆ¤æ–­æ˜¯å¦ä¸ºæˆ¿ä¸»
+	bool HasMember(int uid) const;							//åˆ¤æ–­ç”¨æˆ·æ˜¯å¦åœ¨å½“å‰æˆ¿é—´
+	bool CanEdit(int uid) const;							//åˆ¤æ–­ç”¨æˆ·æ˜¯å¦æœ‰ç”»æ¿ç¼–è¾‘æƒé™
+	bool GrantEdit(int uid);								//æˆæƒç”¨æˆ·ç¼–è¾‘ç”»æ¿
+	bool RevokeEdit(int uid);							//å–æ¶ˆç”¨æˆ·ç¼–è¾‘æƒé™
 
-	void Join(std::shared_ptr<CSession> session);				//¼ÓÈë·¿¼ä
-	void Leave(int uid);										//ÓÃ»§Àë¿ª
+	void Join(std::shared_ptr<CSession> session);				//åŠ å…¥æˆ¿é—´
+	void Leave(int uid);										//ç”¨æˆ·ç¦»å¼€
 
-	// ¹ã²¥ÏûÏ¢
-	void Broadcast(const std::string& data, int msg_id, int exclude_uid = 0);	//exclude_uid,ÅÅ³ı×Ô¼º
+	// å¹¿æ’­æ¶ˆæ¯
+	void Broadcast(const std::string& data, int msg_id, int exclude_uid = 0);	//exclude_uid,æ’é™¤è‡ªå·±
 
-	//¹ã²¥¸¨Öúº¯Êı
-	void BroadcastUserEnter(std::shared_ptr<CSession> session);		//¹ã²¥ÓÃ»§½øÈë
-	void BroadcastUserLeave(int uid);								//¹ã²¥ÓÃ»§Àë¿ª
+	//å¹¿æ’­è¾…åŠ©å‡½æ•°
+	void BroadcastUserEnter(std::shared_ptr<CSession> session);		//å¹¿æ’­ç”¨æˆ·è¿›å…¥
+	void BroadcastUserLeave(int uid);								//å¹¿æ’­ç”¨æˆ·ç¦»å¼€
 
-	//»ñÈ¡·¿¼ä³ÉÔ±ĞÅÏ¢¿ìÕÕ
+	//è·å–æˆ¿é—´æˆå‘˜ä¿¡æ¯å¿«ç…§
 	std::vector<message::UserInfo> GetMemberSnapshot();
 	
-	//»ñÈ¡·¿¼ä³ÉÔ±session¿ìÕÕ
+	//è·å–æˆ¿é—´æˆå‘˜sessionå¿«ç…§
 	std::vector<std::shared_ptr<CSession>> GetMemberSessionSnapshot(int exclude_uid = 0);
 
-	// --»­°åÀúÊ·(´æÄÚ´æ)--
-	void AppendHistory(const std::string& raw_drawreq);	// ±£´æÒ»Ìõ¿É»Ø·ÅµÄ²Ù×÷
-	std::vector<std::string> GetHistorySnapshot();		// Ïß³Ì°²È«¿½±´Ò»·İÓÃÓÚ»Ø·Å
-	void ClearHistory();								// Çå³ıÀúÊ·¼ÇÂ¼£¨ÇåÆÁÊ±ÓÃ£©
+	// --ç”»æ¿å†å²(å­˜å†…å­˜)--
+	void AppendHistory(const std::string& raw_drawreq);	// ä¿å­˜ä¸€æ¡å¯å›æ”¾çš„æ“ä½œ
+	std::vector<std::string> GetHistorySnapshot();		// çº¿ç¨‹å®‰å…¨æ‹·è´ä¸€ä»½ç”¨äºå›æ”¾
+	void ClearHistory();								// æ¸…é™¤å†å²è®°å½•ï¼ˆæ¸…å±æ—¶ç”¨ï¼‰
 
 private:
 	std::string _room_id;
 	std::string _name;
     int _owner_uid = 0;
 
-	mutable std::mutex _mutex;		// »¥³âËø£º±£»¤ _sessions¡¢_history ºÍ·¿¼ä×´Ì¬
-	std::map<int, std::shared_ptr<CSession>> _sessions;	// ·¿¼äÄÚµÄÓÃ»§ÁĞ±í: UID -> Session
-	std::unordered_set<int> _editable_users;			//±»·¿Ö÷ÊÚÈ¨¿É±à¼­»­°åµÄÓÃ»§¼¯ºÏ
+	mutable std::mutex _mutex;		// äº’æ–¥é”ï¼šä¿æŠ¤ _sessionsã€_history å’Œæˆ¿é—´çŠ¶æ€
+	std::map<int, std::shared_ptr<CSession>> _sessions;	// æˆ¿é—´å†…çš„ç”¨æˆ·åˆ—è¡¨: UID -> Session
+	std::unordered_set<int> _editable_users;			//è¢«æˆ¿ä¸»æˆæƒå¯ç¼–è¾‘ç”»æ¿çš„ç”¨æˆ·é›†åˆ
 
-	// ÀúÊ·±Ê¼£ history: ´æµÄÊÇ DrawReq µÄ protobuf ¶ş½øÖÆ body£¨²»º¬MsgHead£©
-	// Ôİ´æËùÓĞ»­»­µÄÖ¸Áî£¬ĞÂÓÃ»§½øÀ´Ê±Òª°ÑÕâĞ©·¢¸øËû£¬·ñÔòËû¿´µ½µÄÊÇ°×°å
+	// å†å²ç¬”è¿¹ history: å­˜çš„æ˜¯ DrawReq çš„ protobuf äºŒè¿›åˆ¶ bodyï¼ˆä¸å«MsgHeadï¼‰
+	// æš‚å­˜æ‰€æœ‰ç”»ç”»çš„æŒ‡ä»¤ï¼Œæ–°ç”¨æˆ·è¿›æ¥æ—¶è¦æŠŠè¿™äº›å‘ç»™ä»–ï¼Œå¦åˆ™ä»–çœ‹åˆ°çš„æ˜¯ç™½æ¿
 	std::vector<std::string> _history;
 
-	// ·ÀÖ¹·¿¼ä»­Ì«¾ÃÄÚ´æ±¬
-	static constexpr size_t MAX_HISTORY_OPS = 10000;	// ×î´ó±£´æµÄ±Ê¼£Êı
+	// é˜²æ­¢æˆ¿é—´ç”»å¤ªä¹…å†…å­˜çˆ†
+	static constexpr size_t MAX_HISTORY_OPS = 10000;	// æœ€å¤§ä¿å­˜çš„ç¬”è¿¹æ•°
 };

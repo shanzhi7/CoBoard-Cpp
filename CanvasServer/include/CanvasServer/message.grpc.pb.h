@@ -28,7 +28,7 @@
 
 namespace message {
 
-// ÑéÖ¤Âë·şÎñ (VarifyServer ÊµÏÖ)
+// éªŒè¯ç æœåŠ¡ (VarifyServer å®ç°)
 class VarifyService final {
  public:
   static constexpr char const* service_full_name() {
@@ -236,7 +236,7 @@ class VarifyService final {
   typedef WithStreamedUnaryMethod_GetVarifyCode<Service > StreamedService;
 };
 
-// Âß¼­ÒµÎñ·şÎñ (LogicServer ÊµÏÖ)
+// é€»è¾‘ä¸šåŠ¡æœåŠ¡ (LogicServer å®ç°)
 class LogicService final {
  public:
   static constexpr char const* service_full_name() {
@@ -245,7 +245,7 @@ class LogicService final {
   class StubInterface {
    public:
     virtual ~StubInterface() {}
-    // ×¢²áÕËºÅ
+    // æ³¨å†Œè´¦å·
     virtual ::grpc::Status RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::message::RegisterRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>> AsyncRegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>>(AsyncRegisterUserRaw(context, request, cq));
@@ -253,7 +253,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>> PrepareAsyncRegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::RegisterRsp>>(PrepareAsyncRegisterUserRaw(context, request, cq));
     }
-    // ÖØÖÃÃÜÂë
+    // é‡ç½®å¯†ç 
     virtual ::grpc::Status ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::message::ResetPasswordRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>> AsyncResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>>(AsyncResetPasswordRaw(context, request, cq));
@@ -261,7 +261,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>> PrepareAsyncResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::ResetPasswordRsp>>(PrepareAsyncResetPasswordRaw(context, request, cq));
     }
-    // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+    // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
     virtual ::grpc::Status Login(::grpc::ClientContext* context, const ::message::LoginReq& request, ::message::LoginRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>> AsyncLogin(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>>(AsyncLoginRaw(context, request, cq));
@@ -269,7 +269,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>> PrepareAsyncLogin(::grpc::ClientContext* context, const ::message::LoginReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::LoginRsp>>(PrepareAsyncLoginRaw(context, request, cq));
     }
-    // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+    // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
     virtual ::grpc::Status VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::message::VerifyTokenRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>> AsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>>(AsyncVerifyTokenRaw(context, request, cq));
@@ -277,7 +277,7 @@ class LogicService final {
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>> PrepareAsyncVerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::VerifyTokenRsp>>(PrepareAsyncVerifyTokenRaw(context, request, cq));
     }
-    // ¸üĞÂÍ·Ïñ½Ó¿Ú
+    // æ›´æ–°å¤´åƒæ¥å£
     virtual ::grpc::Status UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::message::UpdateAvatarRsp* response) = 0;
     std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>> AsyncUpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq& request, ::grpc::CompletionQueue* cq) {
       return std::unique_ptr< ::grpc::ClientAsyncResponseReaderInterface< ::message::UpdateAvatarRsp>>(AsyncUpdateAvatarRaw(context, request, cq));
@@ -288,19 +288,19 @@ class LogicService final {
     class async_interface {
      public:
       virtual ~async_interface() {}
-      // ×¢²áÕËºÅ
+      // æ³¨å†Œè´¦å·
       virtual void RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void RegisterUser(::grpc::ClientContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // ÖØÖÃÃÜÂë
+      // é‡ç½®å¯†ç 
       virtual void ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void ResetPassword(::grpc::ClientContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+      // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
       virtual void Login(::grpc::ClientContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void Login(::grpc::ClientContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+      // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void VerifyToken(::grpc::ClientContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
-      // ¸üĞÂÍ·Ïñ½Ó¿Ú
+      // æ›´æ–°å¤´åƒæ¥å£
       virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, std::function<void(::grpc::Status)>) = 0;
       virtual void UpdateAvatar(::grpc::ClientContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response, ::grpc::ClientUnaryReactor* reactor) = 0;
     };
@@ -403,15 +403,15 @@ class LogicService final {
    public:
     Service();
     virtual ~Service();
-    // ×¢²áÕËºÅ
+    // æ³¨å†Œè´¦å·
     virtual ::grpc::Status RegisterUser(::grpc::ServerContext* context, const ::message::RegisterReq* request, ::message::RegisterRsp* response);
-    // ÖØÖÃÃÜÂë
+    // é‡ç½®å¯†ç 
     virtual ::grpc::Status ResetPassword(::grpc::ServerContext* context, const ::message::ResetPasswordReq* request, ::message::ResetPasswordRsp* response);
-    // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+    // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
     virtual ::grpc::Status Login(::grpc::ServerContext* context, const ::message::LoginReq* request, ::message::LoginRsp* response);
-    // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+    // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
     virtual ::grpc::Status VerifyToken(::grpc::ServerContext* context, const ::message::VerifyTokenReq* request, ::message::VerifyTokenRsp* response);
-    // ¸üĞÂÍ·Ïñ½Ó¿Ú
+    // æ›´æ–°å¤´åƒæ¥å£
     virtual ::grpc::Status UpdateAvatar(::grpc::ServerContext* context, const ::message::UpdateAvatarReq* request, ::message::UpdateAvatarRsp* response);
   };
   template <class BaseClass>

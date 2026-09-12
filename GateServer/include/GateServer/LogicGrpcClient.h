@@ -7,9 +7,9 @@
 #include <mutex>
 #include <condition_variable>
 
-using grpc::Channel;			//Í¨µÀ
-using grpc::Status;				//×´Ì¬
-using grpc::ClientContext;		//ÉÏÏÂÎÄ
+using grpc::Channel;			//é€šé“
+using grpc::Status;				//çŠ¶æ€
+using grpc::ClientContext;		//ä¸Šä¸‹æ–‡
 
 using message::RegisterReq;
 using message::RegisterRsp;
@@ -20,20 +20,23 @@ using message::LoginReq;
 using message::LoginRsp;
 using message::UpdateAvatarReq;
 using message::UpdateAvatarRsp;
+using message::VerifyTokenReq;
+using message::VerifyTokenRsp;
 
 class LogicGrpcClient : public Singleton<LogicGrpcClient>
 {
     friend class Singleton<LogicGrpcClient>;
 public:
-    ~LogicGrpcClient() {};      //Îö¹¹º¯Êı
+    ~LogicGrpcClient() {};      //ææ„å‡½æ•°
 
-    RegisterRsp RegisterUser(RegisterReq req);              //×¢²áÓÃ»§
-    ResetPasswordRsp ResetPassword(ResetPasswordReq req);   //ÖØÖÃÃÜÂë
-    LoginRsp Login(LoginReq req);                           //µÇÂ¼
-    UpdateAvatarRsp UpdateAvatar(UpdateAvatarReq req);      //¸üĞÂÍ·Ïñ
+    RegisterRsp RegisterUser(RegisterReq req);              //æ³¨å†Œç”¨æˆ·
+    ResetPasswordRsp ResetPassword(ResetPasswordReq req);   //é‡ç½®å¯†ç 
+    LoginRsp Login(LoginReq req);                           //ç™»å½•
+    UpdateAvatarRsp UpdateAvatar(UpdateAvatarReq req);      //æ›´æ–°å¤´åƒ
+    VerifyTokenRsp VerifyToken(VerifyTokenReq req);         //éªŒè¯ç™»å½• Token
 
 private:
-    LogicGrpcClient();           //Ë½ÓĞ»¯¹¹Ôìº¯Êı
+    LogicGrpcClient();           //ç§æœ‰åŒ–æ„é€ å‡½æ•°
 
     //Stub
     std::unique_ptr<LogicService::Stub> _stub;

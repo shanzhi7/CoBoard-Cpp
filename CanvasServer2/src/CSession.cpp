@@ -1,4 +1,4 @@
-﻿#include "CanvasServer/CSession.h"
+#include "CanvasServer/CSession.h"
 #include "CanvasServer/Room.h"
 #include "CanvasServer/LogicSystem.h"
 #include "CanvasServer/SessionMgr.h"

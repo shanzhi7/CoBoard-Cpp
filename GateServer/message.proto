@@ -2,81 +2,90 @@ syntax = "proto3";
 
 package message;
 
-//¹«¹²´íÎóÂë¶¨Òå(Óë C++ ÀïµÄ enum ±£³ÖÒ»ÖÂ)
+//å…¬å…±é”™è¯¯ç å®šä¹‰(ä¸ C++ é‡Œçš„ enum ä¿æŒä¸€è‡´)
 enum ErrorCodes {
     SUCCESS = 0;
 
-    // --- »ù´¡/ÏµÍ³´íÎó (1001 - 1019) ---
-    Error_Json = 1001;        // Json½âÎö´íÎó
-    RPCFailed = 1002;         // RPCÇëÇó´íÎó (ÍøÂç»ò·şÎñ²»¿É´ï)
-    VarifyExpired = 1003;     // ÑéÖ¤Âë¹ıÆÚ
-    VarifyCodeErr = 1004;     // ÑéÖ¤Âë´íÎó
-    PasswdErr = 1006;         // ÃÜÂë´íÎó
-    EmailNotMatch = 1007;     // ÓÊÏä²»Æ¥Åä
-    PasswdUpFailed = 1008;    // ¸üĞÂÃÜÂëÊ§°Ü
-    PasswdInvalid = 1009;     // ÃÜÂë¸ñÊ½ÎŞĞ§
-    TokenInvalid = 1010;      // TokenÎŞĞ§ (¹ıÆÚ»òÎ±Ôì)
-    UidInvalid = 1011;        // UIDÎŞĞ§
-    LoginErr = 1013;          // µÇÂ¼Ê§°Ü (·ºÖ¸)
+    // --- åŸºç¡€/ç³»ç»Ÿé”™è¯¯ (1001 - 1019) ---
+    Error_Json = 1001;        // Jsonè§£æé”™è¯¯
+    RPCFailed = 1002;         // RPCè¯·æ±‚é”™è¯¯ (ç½‘ç»œæˆ–æœåŠ¡ä¸å¯è¾¾)
+    VarifyExpired = 1003;     // éªŒè¯ç è¿‡æœŸ
+    VarifyCodeErr = 1004;     // éªŒè¯ç é”™è¯¯
+    PasswdErr = 1006;         // å¯†ç é”™è¯¯
+    EmailNotMatch = 1007;     // é‚®ç®±ä¸åŒ¹é…
+    PasswdUpFailed = 1008;    // æ›´æ–°å¯†ç å¤±è´¥
+    PasswdInvalid = 1009;     // å¯†ç æ ¼å¼æ— æ•ˆ
+    TokenInvalid = 1010;      // Tokenæ— æ•ˆ (è¿‡æœŸæˆ–ä¼ªé€ )
+    UidInvalid = 1011;        // UIDæ— æ•ˆ
+    LoginErr = 1013;          // ç™»å½•å¤±è´¥ (æ³›æŒ‡)
     
-    ServerInternalErr = 1014; // ·şÎñÆ÷ÄÚ²¿´íÎó (Î´ÖªÒì³£)
-    RedisErr = 1015;          // Redis ²Ù×÷Ê§°Ü (Á¬½Ó¶Ï¿ª»òĞ´ÈëÊ§°Ü)
-    MysqlErr = 1016;          // Mysql ²Ù×÷Ê§°Ü
+    ServerInternalErr = 1014; // æœåŠ¡å™¨å†…éƒ¨é”™è¯¯ (æœªçŸ¥å¼‚å¸¸)
+    RedisErr = 1015;          // Redis æ“ä½œå¤±è´¥ (è¿æ¥æ–­å¼€æˆ–å†™å…¥å¤±è´¥)
+    MysqlErr = 1016;          // Mysql æ“ä½œå¤±è´¥
 
-    // --- ÓÃ»§/¹ØÏµÏà¹Ø (1020 - 1039) ---
-    UserExist = 1005;         // ÓÃ»§ÒÑ¾­´æÔÚ (×¢²áÊ±)
-    UserNotExist = 1012;      // ÓÃ»§²»´æÔÚ
-    AlreadyFriend = 1020;     // ÒÑ¾­ÊÇºÃÓÑ
-    FriendOffline = 1021;     // ºÃÓÑ²»ÔÚÏß
-    TargetUserBusy = 1022;    // ¶Ô·½Ã¦Âµ
+    // --- ç”¨æˆ·/å…³ç³»ç›¸å…³ (1020 - 1039) ---
+    UserExist = 1005;         // ç”¨æˆ·å·²ç»å­˜åœ¨ (æ³¨å†Œæ—¶)
+    UserNotExist = 1012;      // ç”¨æˆ·ä¸å­˜åœ¨
+    AlreadyFriend = 1020;     // å·²ç»æ˜¯å¥½å‹
+    FriendOffline = 1021;     // å¥½å‹ä¸åœ¨çº¿
+    TargetUserBusy = 1022;    // å¯¹æ–¹å¿™ç¢Œ
     
-    // --- ·¿¼ä/»­°åÏà¹Ø (1040 - 1059) ---
-    RoomCreateFailed = 1040;  // ´´½¨·¿¼äÊ§°Ü (Ğ´ÈëRedisÊ§°ÜµÈ)
-    RoomNotExist = 1041;      // ·¿¼ä²»´æÔÚ (·¿¼äºÅ´íÎó»òÒÑÏú»Ù)
-    RoomAlreadyExist = 1042;  // ·¿¼äÒÑ´æÔÚ (ID³åÍ»)
-    RoomFull = 1043;          // ·¿¼äÈËÊıÒÑÂú
-    RoomJoinFailed = 1044;    // ¼ÓÈë·¿¼äÊ§°Ü (·ºÖ¸)
-    NotInRoom = 1045;         // ÓÃ»§²»ÔÚ·¿¼äÄÚ (·Ç·¨²Ù×÷)
-    NotOwner = 1046;          // È¨ÏŞ²»×ã (·Ç·¿Ö÷²Ù×÷)
+    // --- æˆ¿é—´/ç”»æ¿ç›¸å…³ (1040 - 1059) ---
+    RoomCreateFailed = 1040;  // åˆ›å»ºæˆ¿é—´å¤±è´¥ (å†™å…¥Rediså¤±è´¥ç­‰)
+    RoomNotExist = 1041;      // æˆ¿é—´ä¸å­˜åœ¨ (æˆ¿é—´å·é”™è¯¯æˆ–å·²é”€æ¯)
+    RoomAlreadyExist = 1042;  // æˆ¿é—´å·²å­˜åœ¨ (IDå†²çª)
+    RoomFull = 1043;          // æˆ¿é—´äººæ•°å·²æ»¡
+    RoomJoinFailed = 1044;    // åŠ å…¥æˆ¿é—´å¤±è´¥ (æ³›æŒ‡)
+    NotInRoom = 1045;         // ç”¨æˆ·ä¸åœ¨æˆ¿é—´å†… (éæ³•æ“ä½œ)
+    NotOwner = 1046;          // æƒé™ä¸è¶³ (éæˆ¿ä¸»æ“ä½œ)
     
-    // --- ÖØ¶¨ÏòĞ­Òé (3000+) ---
-    // Õâ¸ö²»Ëã´íÎó£¬µ«Í¨³£×÷Îª status ·µ»Ø
-    NeedRedirect = 3001;      // ĞèÒªÖØ¶¨Ïòµ½ÆäËû Server
+    // --- æˆ¿é—´è¯­éŸ³ç›¸å…³é”™è¯¯ (1060 - 1069) ---
+    VoiceTokenInvalidArgument = 1060; // è¯­éŸ³ Token è¯·æ±‚å‚æ•°æ— æ•ˆ
+    VoiceTokenConfigInvalid = 1061;   // LiveKit é…ç½®ç¼ºå¤±æˆ–æ— æ•ˆ
+    VoiceTokenGenerateFailed = 1062;  // LiveKit Token ç”Ÿæˆå¤±è´¥
+    VoiceAuthFailed = 1063;           // è¯­éŸ³æœåŠ¡é‰´æƒå¤±è´¥
+
+    // --- é‡å®šå‘åè®® (3000+) ---
+    // è¿™ä¸ªä¸ç®—é”™è¯¯ï¼Œä½†é€šå¸¸ä½œä¸º status è¿”å›
+    NeedRedirect = 3001;      // éœ€è¦é‡å®šå‘åˆ°å…¶ä»– Server
 }
 
-// ÏûÏ¢ID (ÓÃÓÚ TCP ³¤Á¬½ÓÇø·Ö°üÀàĞÍ)
+// æ¶ˆæ¯ID (ç”¨äº TCP é•¿è¿æ¥åŒºåˆ†åŒ…ç±»å‹)
 enum MsgID {
     ID_UNKNOWN = 0;
-    ID_LOGIN_REQ = 1001;      // ¿Í»§¶ËÁ¬½Ó CanvasServer ·¢ËÍµÄÈÏÖ¤°ü
+    ID_LOGIN_REQ = 1001;      // å®¢æˆ·ç«¯è¿æ¥ CanvasServer å‘é€çš„è®¤è¯åŒ…
     ID_LOGIN_RSP = 1002;
-    ID_DRAW_REQ = 1003;       // »æ»­ÇëÇó
-    ID_DRAW_RSP = 1004;       // ¹ã²¥»æ»­Êı¾İ
-    ID_CLEAR_REQ = 1005;      // ÇåÆÁÇëÇó
-    ID_CLEAR_RSP = 1006;      // ¹ã²¥ÇåÆÁ
+    ID_DRAW_REQ = 1003;       // ç»˜ç”»è¯·æ±‚
+    ID_DRAW_RSP = 1004;       // å¹¿æ’­ç»˜ç”»æ•°æ®
+    ID_CLEAR_REQ = 1005;      // æ¸…å±è¯·æ±‚
+    ID_CLEAR_RSP = 1006;      // å¹¿æ’­æ¸…å±
 }
 
-// ÑéÖ¤Âë·şÎñ (VarifyServer ÊµÏÖ)
+// éªŒè¯ç æœåŠ¡ (VarifyServer å®ç°)
 service VarifyService
 {
   rpc GetVarifyCode (GetVarifyReq) returns (GetVarifyRsp) {}
+
+  // ä¸ºå·²é€šè¿‡ GateServer ç™»å½•æ ¡éªŒçš„ç”¨æˆ·ç­¾å‘ LiveKit è¯­éŸ³ Token
+  rpc CreateVoiceToken (CreateVoiceTokenReq) returns (CreateVoiceTokenRsp) {}
 }
 
-// Âß¼­ÒµÎñ·şÎñ (LogicServer ÊµÏÖ)
+// é€»è¾‘ä¸šåŠ¡æœåŠ¡ (LogicServer å®ç°)
 service LogicService
 {
-    // ×¢²áÕËºÅ
+    // æ³¨å†Œè´¦å·
     rpc RegisterUser (RegisterReq) returns (RegisterRsp) {} 
 
-    // ÖØÖÃÃÜÂë
+    // é‡ç½®å¯†ç 
     rpc ResetPassword (ResetPasswordReq) returns (ResetPasswordRsp) {}
 
-    // µÇÂ¼ÕËºÅ (Í¬Ê±·µ»Ø CanvasServer µØÖ·ºÍ Token)
+    // ç™»å½•è´¦å· (åŒæ—¶è¿”å› CanvasServer åœ°å€å’Œ Token)
 	rpc Login (LoginReq) returns (LoginRsp);
 
-    // [Ô¤Áô] ÑéÖ¤ Token (¹© CanvasServer ÄÚ²¿µ÷ÓÃ£¬¿Í»§¶Ë²»µ÷Õâ¸ö)
+    // [é¢„ç•™] éªŒè¯ Token (ä¾› CanvasServer å†…éƒ¨è°ƒç”¨ï¼Œå®¢æˆ·ç«¯ä¸è°ƒè¿™ä¸ª)
     rpc VerifyToken (VerifyTokenReq) returns (VerifyTokenRsp) {}
 
-    // ¸üĞÂÍ·Ïñ½Ó¿Ú
+    // æ›´æ–°å¤´åƒæ¥å£
     rpc UpdateAvatar (UpdateAvatarReq) returns (UpdateAvatarRsp);
 }
 
@@ -101,38 +110,55 @@ message GetVarifyRsp
   string code = 3;
 }
 
+// --- æˆ¿é—´è¯­éŸ³ Token ---
+message CreateVoiceTokenReq
+{
+    int32 uid = 1;       // SyncCanvas ç”¨æˆ· ID
+    string room_id = 2;  // SyncCanvas æˆ¿é—´å·
+}
 
-// --- ×¢²áÏà¹ØÏûÏ¢ ---
+message CreateVoiceTokenRsp
+{
+    int32 error = 1;
+    string url = 2;         // LiveKit WebSocket åœ°å€
+    string room = 3;        // LiveKit æˆ¿é—´åï¼Œä¾‹å¦‚ canvas-604640
+    string identity = 4;    // LiveKit ç”¨æˆ·èº«ä»½ï¼Œä¾‹å¦‚ uid-1001
+    string token = 5;       // LiveKit JWT
+    int32 expires_in = 6;   // Token æœ‰æ•ˆæœŸï¼Œå•ä½ä¸ºç§’
+}
+
+
+// --- æ³¨å†Œç›¸å…³æ¶ˆæ¯ ---
 message RegisterReq
 {
-    string name = 1;         // êÇ³Æ
-    string email = 2;        // ÓÊÏä
-    string passwd = 3;       // ÃÜÂë(Í¨³£ÊÇ¼ÓÃÜºóµÄ)
-    string confirm_pwd = 4;  // È·ÈÏÃÜÂë(¿ÉÑ¡£¬Í¨³£ÔÚ¿Í»§¶Ë»òÍø¹Ø²ãĞ£Ñé£¬µ«´«¹ıÀ´Ò²Ã»ÊÂ)
-    string varifycode = 5;   // ÓÃ»§ÊäÈëµÄÑéÖ¤Âë(ÓÃÓÚÂß¼­·şĞ£ÑéRedis)
+    string name = 1;         // æ˜µç§°
+    string email = 2;        // é‚®ç®±
+    string passwd = 3;       // å¯†ç (é€šå¸¸æ˜¯åŠ å¯†åçš„)
+    string confirm_pwd = 4;  // ç¡®è®¤å¯†ç (å¯é€‰ï¼Œé€šå¸¸åœ¨å®¢æˆ·ç«¯æˆ–ç½‘å…³å±‚æ ¡éªŒï¼Œä½†ä¼ è¿‡æ¥ä¹Ÿæ²¡äº‹)
+    string varifycode = 5;   // ç”¨æˆ·è¾“å…¥çš„éªŒè¯ç (ç”¨äºé€»è¾‘æœæ ¡éªŒRedis)
 }
 
 message RegisterRsp
 {
-    int32 error = 1;         // ´íÎóÂë
-    int32 uid = 2;           // ×¢²á³É¹¦ºó·µ»ØµÄĞÂÓÃ»§ID
+    int32 error = 1;         // é”™è¯¯ç 
+    int32 uid = 2;           // æ³¨å†ŒæˆåŠŸåè¿”å›çš„æ–°ç”¨æˆ·ID
 }
 
-// ÖØÖÃÃÜÂë
+// é‡ç½®å¯†ç 
 message ResetPasswordReq
 {
-    string email = 1;        // ÓÊÏä
-    string varifycode = 2;   // ÑéÖ¤Âë
-    string passwd = 3;       // ĞÂÃÜÂë
-    string confirm_pwd = 4;  // È·ÈÏĞÂÃÜÂë
+    string email = 1;        // é‚®ç®±
+    string varifycode = 2;   // éªŒè¯ç 
+    string passwd = 3;       // æ–°å¯†ç 
+    string confirm_pwd = 4;  // ç¡®è®¤æ–°å¯†ç 
 }
 
 message ResetPasswordRsp
 {
-    int32 error = 1;         // ´íÎóÂë
+    int32 error = 1;         // é”™è¯¯ç 
 }
 
-// --- µÇÂ¼Ïà¹ØÏûÏ¢ ---
+// --- ç™»å½•ç›¸å…³æ¶ˆæ¯ ---
 message LoginReq
 {
     string email = 1;
@@ -142,11 +168,11 @@ message LoginReq
 message LoginRsp
 {
     int32 error = 1;
-    int32 uid = 2;           // ÓÃ»§ID
-    string token = 3;        // µÇÂ¼Æ¾Ö¤(·Ç³£ÖØÒª£¬ÓÃÓÚºóĞø³¤Á¬½Ó¼øÈ¨)
-    string name = 4;         // êÇ³Æ
-    string avatar = 5;       // Í·ÏñURL/Â·¾¶
-    string host = 6;         // ¸æËß¿Í»§¶ËÈ¥Á¬ÄÄ¸ö»­°å·ş
+    int32 uid = 2;           // ç”¨æˆ·ID
+    string token = 3;        // ç™»å½•å‡­è¯(éå¸¸é‡è¦ï¼Œç”¨äºåç»­é•¿è¿æ¥é‰´æƒ)
+    string name = 4;         // æ˜µç§°
+    string avatar = 5;       // å¤´åƒURL/è·¯å¾„
+    string host = 6;         // å‘Šè¯‰å®¢æˆ·ç«¯å»è¿å“ªä¸ªç”»æ¿æœ
     string port = 7;
 }
 
@@ -155,52 +181,52 @@ message VerifyTokenReq {
     string token = 2;
 }
 
-// --- Token ÑéÖ¤ (Server ÄÚ²¿½»»¥ÓÃ) ---
+// --- Token éªŒè¯ (Server å†…éƒ¨äº¤äº’ç”¨) ---
 message VerifyTokenRsp {
     int32 error = 1; 
     int32 uid = 2;
 }
 
-// ¼ÓÈë·¿¼äÇëÇó
+// åŠ å…¥æˆ¿é—´è¯·æ±‚
 message JoinRoomReq {
-    int32 uid = 1;          // Ë­Òª½ø£¿
-    string room_id = 2;     // ·¿¼äºÅ (ÀıÈç "604640")
+    int32 uid = 1;          // è°è¦è¿›ï¼Ÿ
+    string room_id = 2;     // æˆ¿é—´å· (ä¾‹å¦‚ "604640")
 }
 
-// ¼ÓÈë·¿¼äÏìÓ¦
+// åŠ å…¥æˆ¿é—´å“åº”
 message JoinRoomRsp {
-    int32 error = 1;        // ½á¹û
-    string room_id = 2;     // ·¿¼äºÅ
-    string room_name = 3;   // ·¿¼äÃû
-    int32 owner_uid = 4;    // ·¿Ö÷ID
+    int32 error = 1;        // ç»“æœ
+    string room_id = 2;     // æˆ¿é—´å·
+    string room_name = 3;   // æˆ¿é—´å
+    int32 owner_uid = 4;    // æˆ¿ä¸»ID
     
-    // »­²¼³ß´ç£¬È·±£ËùÓĞÈË×ø±êÏµÒ»ÖÂ
+    // ç”»å¸ƒå°ºå¯¸ï¼Œç¡®ä¿æ‰€æœ‰äººåæ ‡ç³»ä¸€è‡´
     int32 canvas_width = 5; 
     int32 canvas_height = 6;
 
-    string redirect_host = 7; // Ä¿±ê·şÎñÆ÷ IP
-    int32 redirect_port = 8;  // Ä¿±ê·şÎñÆ÷ Port
+    string redirect_host = 7; // ç›®æ ‡æœåŠ¡å™¨ IP
+    int32 redirect_port = 8;  // ç›®æ ‡æœåŠ¡å™¨ Port
 
-    // ¿Í»§¶ËÊÕµ½ºó£¬Ó¦Çå¿ÕÏÖÓĞÁĞ±í²¢ÓÃ´ËÁĞ±íÌî³ä
+    // å®¢æˆ·ç«¯æ”¶åˆ°åï¼Œåº”æ¸…ç©ºç°æœ‰åˆ—è¡¨å¹¶ç”¨æ­¤åˆ—è¡¨å¡«å……
     repeated UserInfo member_list = 9;
 }
 
-// ¹ã²¥£ºÓĞÈË¼ÓÈëÁË
+// å¹¿æ’­ï¼šæœ‰äººåŠ å…¥äº†
 message UserJoinRoomBroadcast {
-    UserInfo user_info = 1;     // Ö±½Ó°üº¬ÓÃ»§ĞÅÏ¢£¬¿Í»§¶Ë¿ÉÒÔÖ±½ÓÓÃÀ´ add item
+    UserInfo user_info = 1;     // ç›´æ¥åŒ…å«ç”¨æˆ·ä¿¡æ¯ï¼Œå®¢æˆ·ç«¯å¯ä»¥ç›´æ¥ç”¨æ¥ add item
 }
 
-// ¹ã²¥£ºÓĞÈËÀë¿ªÁË
+// å¹¿æ’­ï¼šæœ‰äººç¦»å¼€äº†
 message UserLeaveRoomBroadcast {
-    int32 uid = 1;          // Àë¿ªµÄÈËµÄ UID
-    string reason = 2;      // Àë¿ªÔ­Òò
+    int32 uid = 1;          // ç¦»å¼€çš„äººçš„ UID
+    string reason = 2;      // ç¦»å¼€åŸå› 
 }
 
-// --- ·¿¼ä±à¼­È¨ÏŞÏà¹Ø ---
+// --- æˆ¿é—´ç¼–è¾‘æƒé™ç›¸å…³ ---
 message GrantEditReq {
-    int32 operator_uid = 1; // ·¢ÆğÊÚÈ¨µÄÓÃ»§£¬±ØĞëÊÇ·¿Ö÷
+    int32 operator_uid = 1; // å‘èµ·æˆæƒçš„ç”¨æˆ·ï¼Œå¿…é¡»æ˜¯æˆ¿ä¸»
     string room_id = 2;
-    int32 target_uid = 3;   // ±»ÊÚÈ¨±à¼­µÄÓÃ»§
+    int32 target_uid = 3;   // è¢«æˆæƒç¼–è¾‘çš„ç”¨æˆ·
 }
 
 message GrantEditRsp {
@@ -211,9 +237,9 @@ message GrantEditRsp {
 }
 
 message RevokeEditReq {
-    int32 operator_uid = 1; // ·¢ÆğÈ¡ÏûÊÚÈ¨µÄÓÃ»§£¬±ØĞëÊÇ·¿Ö÷
+    int32 operator_uid = 1; // å‘èµ·å–æ¶ˆæˆæƒçš„ç”¨æˆ·ï¼Œå¿…é¡»æ˜¯æˆ¿ä¸»
     string room_id = 2;
-    int32 target_uid = 3;   // ±»È¡Ïû±à¼­È¨ÏŞµÄÓÃ»§
+    int32 target_uid = 3;   // è¢«å–æ¶ˆç¼–è¾‘æƒé™çš„ç”¨æˆ·
 }
 
 message RevokeEditRsp {
@@ -230,87 +256,87 @@ message PermissionChangedBroadcast {
     int32 operator_uid = 4;
 }
 
-// ¸üĞÂÍ·ÏñÇëÇó
+// æ›´æ–°å¤´åƒè¯·æ±‚
 message UpdateAvatarReq {
     int32 uid = 1;
     string avatar_url = 2;
 }
 
-// ¸üĞÂÍ·Ïñ»Ø°ü
+// æ›´æ–°å¤´åƒå›åŒ…
 message UpdateAvatarRsp {
     int32 error = 1;
     int32 uid = 2;
 }
 
 // ============================================================
-// 1. Ã¶¾Ù¶¨Òå
+// 1. æšä¸¾å®šä¹‰
 // ============================================================
 
-// »æ»­Ö¸Áî×´Ì¬
+// ç»˜ç”»æŒ‡ä»¤çŠ¶æ€
 enum DrawCmd {
     CMD_UNKNOWN = 0;
-    CMD_START = 1;      // Êó±ê°´ÏÂ£º¿ªÊ¼»­
-    CMD_MOVE = 2;       // Êó±êÍÏ×§£º¡¾ºËĞÄ¡¿ÓÃÓÚÊµÊ±Ô¤ÀÀ (Server Ö»×ª·¢²»´æ¿â)
-    CMD_END = 3;        // Êó±êËÉ¿ª£º×îÖÕÈ·¶¨ (Server ´æÈëÊı¾İ¿â/ÀúÊ·¼ÇÂ¼)
-    CMD_UNDO = 4;       // ³·Ïú
-    CMD_CLEAR = 5;      // Çå¿Õ
+    CMD_START = 1;      // é¼ æ ‡æŒ‰ä¸‹ï¼šå¼€å§‹ç”»
+    CMD_MOVE = 2;       // é¼ æ ‡æ‹–æ‹½ï¼šã€æ ¸å¿ƒã€‘ç”¨äºå®æ—¶é¢„è§ˆ (Server åªè½¬å‘ä¸å­˜åº“)
+    CMD_END = 3;        // é¼ æ ‡æ¾å¼€ï¼šæœ€ç»ˆç¡®å®š (Server å­˜å…¥æ•°æ®åº“/å†å²è®°å½•)
+    CMD_UNDO = 4;       // æ’¤é”€
+    CMD_CLEAR = 5;      // æ¸…ç©º
 }
 
-// Í¼ÔªÀàĞÍ
+// å›¾å…ƒç±»å‹
 enum ShapeType {
     SHAPE_UNKNOWN = 0;
-    SHAPE_PEN = 1;      // ×ÔÓÉ»­±Ê (ÇúÏß)
-    SHAPE_RECT = 2;     // ¾ØĞÎ
-    SHAPE_OVAL = 3;     // ÍÖÔ²
-    SHAPE_LINE = 4;     // Ö±Ïß
-    SHAPE_ERASER = 5;   // ÏğÆ¤²Á
+    SHAPE_PEN = 1;      // è‡ªç”±ç”»ç¬” (æ›²çº¿)
+    SHAPE_RECT = 2;     // çŸ©å½¢
+    SHAPE_OVAL = 3;     // æ¤­åœ†
+    SHAPE_LINE = 4;     // ç›´çº¿
+    SHAPE_ERASER = 5;   // æ©¡çš®æ“¦
 }
 
 // ============================================================
-// 2. ºËĞÄ»æ»­ÇëÇó
+// 2. æ ¸å¿ƒç»˜ç”»è¯·æ±‚
 // ============================================================
 
 message DrawReq {
-    // --- Éí·İÊ¶±ğ ---
-    int32 uid = 1;          // Ë­»­µÄ
-    string item_id = 2;     // ¡¾ºËĞÄ¡¿Í¼ÔªUUID (¿Í»§¶ËÉú³É£¬ÓÃÓÚÊ¶±ğÊÇÔÚĞŞ¸ÄÍ¬Ò»¸öÍ¼Ôª)
+    // --- èº«ä»½è¯†åˆ« ---
+    int32 uid = 1;          // è°ç”»çš„
+    string item_id = 2;     // ã€æ ¸å¿ƒã€‘å›¾å…ƒUUID (å®¢æˆ·ç«¯ç”Ÿæˆï¼Œç”¨äºè¯†åˆ«æ˜¯åœ¨ä¿®æ”¹åŒä¸€ä¸ªå›¾å…ƒ)
     
-    // --- ×´Ì¬ÓëÀàĞÍ ---
+    // --- çŠ¶æ€ä¸ç±»å‹ ---
     DrawCmd cmd = 3;        // START / MOVE / END
     ShapeType shape = 4;    // RECT / OVAL ...
 
-    // --- ÑùÊ½ÊôĞÔ ---
+    // --- æ ·å¼å±æ€§ ---
     int32 color = 5;        // 0xAARRGGBB
-    int32 width = 6;        // Ïß¿í
-    int32 pen_style = 7;    // (¿ÉÑ¡) ĞéÏß/ÊµÏßµÈ
+    int32 width = 6;        // çº¿å®½
+    int32 pen_style = 7;    // (å¯é€‰) è™šçº¿/å®çº¿ç­‰
 
-    // --- ×ø±êÊı¾İ ---
+    // --- åæ ‡æ•°æ® ---
     
-    // ¡¾·½°¸ A£º¼¸ºÎÍ¼ĞÎ×¨ÓÃ (Rect/Oval/Line)¡¿
-    // Ö»ĞèÒªÁ½¸öµã£º[Æğµã] ºÍ [µ±Ç°Êó±êÎ»ÖÃ]
-    // ½ÓÊÕ¶ËÂß¼­£ºQRectF(QPointF(start_x, start_y), QPointF(current_x, current_y))
+    // ã€æ–¹æ¡ˆ Aï¼šå‡ ä½•å›¾å½¢ä¸“ç”¨ (Rect/Oval/Line)ã€‘
+    // åªéœ€è¦ä¸¤ä¸ªç‚¹ï¼š[èµ·ç‚¹] å’Œ [å½“å‰é¼ æ ‡ä½ç½®]
+    // æ¥æ”¶ç«¯é€»è¾‘ï¼šQRectF(QPointF(start_x, start_y), QPointF(current_x, current_y))
     float start_x = 8;
     float start_y = 9;
     float current_x = 10;
     float current_y = 11;
 
-    // ¡¾·½°¸ B£º×ÔÓÉ»­±Ê×¨ÓÃ (Pen/Eraser)¡¿
-    // ×ÔÓÉ»­±ÊÊÇ¡°Ò»´®µã¡±£¬²»ÄÜÖ»´«ÆğµãÖÕµã
-    // ÔÚ MOVE ×´Ì¬ÏÂ£¬ÕâÀï´«Êä¡°×ÔÉÏ´Î·¢°üÒÔÀ´ĞÂÔöµÄµã¡±
+    // ã€æ–¹æ¡ˆ Bï¼šè‡ªç”±ç”»ç¬”ä¸“ç”¨ (Pen/Eraser)ã€‘
+    // è‡ªç”±ç”»ç¬”æ˜¯â€œä¸€ä¸²ç‚¹â€ï¼Œä¸èƒ½åªä¼ èµ·ç‚¹ç»ˆç‚¹
+    // åœ¨ MOVE çŠ¶æ€ä¸‹ï¼Œè¿™é‡Œä¼ è¾“â€œè‡ªä¸Šæ¬¡å‘åŒ…ä»¥æ¥æ–°å¢çš„ç‚¹â€
     message Point {
         float x = 1;
         float y = 2;
     }
     repeated Point path_points = 12; 
 
-    // --- ÑÓ³Ù²âÁ¿ ---
-    uint64 send_timestamp_ms = 13;  // ·¢ËÍ·½Ê±¼ä´Á£¨ºÁÃë£©£¬ÓÃÓÚµ¥ÏòÑÓ³Ù²âÁ¿
+    // --- å»¶è¿Ÿæµ‹é‡ ---
+    uint64 send_timestamp_ms = 13;  // å‘é€æ–¹æ—¶é—´æˆ³ï¼ˆæ¯«ç§’ï¼‰ï¼Œç”¨äºå•å‘å»¶è¿Ÿæµ‹é‡
 }
 
-//--ÈºÁÄ--
+//--ç¾¤èŠ--
 message ChatReq {
   uint64 uid = 1;
-  string room_id = 2;     // ×ö´®·¿¼äĞ£Ñé
+  string room_id = 2;     // åšä¸²æˆ¿é—´æ ¡éªŒ
   string content = 3;
   uint64 client_ts = 4;
 }

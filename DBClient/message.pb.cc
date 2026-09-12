@@ -1256,7 +1256,7 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "\t\022\021\n\tclient_ts\030\004 \001(\004\"m\n\007ChatRsp\022\013\n\003uid\030\001"
     " \001(\004\022\014\n\004name\030\002 \001(\t\022\022\n\navatar_url\030\003 \001(\t\022\017"
     "\n\007room_id\030\004 \001(\t\022\017\n\007content\030\005 \001(\t\022\021\n\tserv"
-    "er_ts\030\006 \001(\004*\217\004\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022"
+    "er_ts\030\006 \001(\004*\202\005\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022"
     "\017\n\nError_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVari"
     "fyExpired\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPass"
     "wdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016PasswdUp"
@@ -1269,32 +1269,35 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "eateFailed\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020Room"
     "AlreadyExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\023\n\016RoomJo"
     "inFailed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\r\n\010NotOwner\020"
-    "\226\010\022\021\n\014NeedRedirect\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UN"
-    "KNOWN\020\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_R"
-    "SP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354"
-    "\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007*"
-    "a\n\007DrawCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START"
-    "\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UND"
-    "O\020\004\022\r\n\tCMD_CLEAR\020\005*o\n\tShapeType\022\021\n\rSHAPE"
-    "_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020"
-    "\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHA"
-    "PE_ERASER\020\0052P\n\rVarifyService\022\?\n\rGetVarif"
-    "yCode\022\025.message.GetVarifyReq\032\025.message.G"
-    "etVarifyRsp\"\0002\313\002\n\014LogicService\022<\n\014Regist"
-    "erUser\022\024.message.RegisterReq\032\024.message.R"
-    "egisterRsp\"\000\022G\n\rResetPassword\022\031.message."
-    "ResetPasswordReq\032\031.message.ResetPassword"
-    "Rsp\"\000\022-\n\005Login\022\021.message.LoginReq\032\021.mess"
-    "age.LoginRsp\022A\n\013VerifyToken\022\027.message.Ve"
-    "rifyTokenReq\032\027.message.VerifyTokenRsp\"\000\022"
-    "B\n\014UpdateAvatar\022\030.message.UpdateAvatarRe"
-    "q\032\030.message.UpdateAvatarRspb\006proto3"
+    "\226\010\022\036\n\031VoiceTokenInvalidArgument\020\244\010\022\034\n\027Vo"
+    "iceTokenConfigInvalid\020\245\010\022\035\n\030VoiceTokenGe"
+    "nerateFailed\020\246\010\022\024\n\017VoiceAuthFailed\020\247\010\022\021\n"
+    "\014NeedRedirect\020\271\027*\207\001\n\005MsgID\022\016\n\nID_UNKNOWN"
+    "\020\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007"
+    "\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014"
+    "ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007*a\n\007Dr"
+    "awCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n"
+    "\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r"
+    "\n\tCMD_CLEAR\020\005*o\n\tShapeType\022\021\n\rSHAPE_UNKN"
+    "OWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\n"
+    "SHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ER"
+    "ASER\020\0052P\n\rVarifyService\022\?\n\rGetVarifyCode"
+    "\022\025.message.GetVarifyReq\032\025.message.GetVar"
+    "ifyRsp\"\0002\313\002\n\014LogicService\022<\n\014RegisterUse"
+    "r\022\024.message.RegisterReq\032\024.message.Regist"
+    "erRsp\"\000\022G\n\rResetPassword\022\031.message.Reset"
+    "PasswordReq\032\031.message.ResetPasswordRsp\"\000"
+    "\022-\n\005Login\022\021.message.LoginReq\032\021.message.L"
+    "oginRsp\022A\n\013VerifyToken\022\027.message.VerifyT"
+    "okenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014Up"
+    "dateAvatar\022\030.message.UpdateAvatarReq\032\030.m"
+    "essage.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    3475,
+    3590,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
@@ -1313,7 +1316,7 @@ const ::google::protobuf::EnumDescriptor* ErrorCodes_descriptor() {
   return file_level_enum_descriptors_message_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t ErrorCodes_internal_data_[] = {
-    65536u, 1769472u, 1016u, 1008u, 1044u, 1004u, 1012u, 1040u, 1046u, 1002u, 1006u, 1010u, 1014u, 1021u, 1042u, 1045u, 3001u, 1001u, 1003u, 1005u, 1007u, 1009u, 1011u, 1013u, 1015u, 1020u, 1022u, 1041u, 1043u, };
+    65536u, 2031616u, 1016u, 1008u, 1044u, 1004u, 1012u, 1040u, 1061u, 1002u, 1006u, 1010u, 1014u, 1021u, 1042u, 1046u, 1063u, 1001u, 1003u, 1005u, 1007u, 1009u, 1011u, 1013u, 1015u, 1020u, 1022u, 1041u, 1043u, 1045u, 1060u, 1062u, 3001u, };
 bool ErrorCodes_IsValid(int value) {
   return ::_pbi::ValidateEnum(value, ErrorCodes_internal_data_);
 }

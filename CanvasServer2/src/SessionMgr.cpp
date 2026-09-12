@@ -8,7 +8,7 @@ SessionMgr::SessionMgr()
 
 SessionMgr::~SessionMgr()
 {
-    // Îö¹¹Ê±Çå¿ÕËùÓĞ»á»°
+    // ææ„æ—¶æ¸…ç©ºæ‰€æœ‰ä¼šè¯
     std::lock_guard<std::mutex> lock(_mutex);
     _uid_to_session.clear();
 }
@@ -17,8 +17,8 @@ void SessionMgr::AddSession(int uid, std::shared_ptr<CSession> session)
 {
     std::lock_guard<std::mutex> lock(_mutex);
 
-    // Èç¹û¸Ã UID ÒÑ¾­´æÔÚ£¬¸²¸ÇËü (¶¥ºÅÂß¼­µÄÒ»ÖÖ¼òµ¥ÊµÏÖ)
-    // Í¬Ê±Ò²ÒâÎ¶×Å¾ÉµÄ session ÒıÓÃ¼ÆÊı»á -1
+    // å¦‚æœè¯¥ UID å·²ç»å­˜åœ¨ï¼Œè¦†ç›–å®ƒ (é¡¶å·é€»è¾‘çš„ä¸€ç§ç®€å•å®ç°)
+    // åŒæ—¶ä¹Ÿæ„å‘³ç€æ—§çš„ session å¼•ç”¨è®¡æ•°ä¼š -1
     _uid_to_session[uid] = session;
 
     std::cout << "[SessionMgr] User " << uid << " registered. Total: " << _uid_to_session.size() << std::endl;
@@ -28,7 +28,7 @@ void SessionMgr::RemoveSession(int uid)
 {
     std::lock_guard<std::mutex> lock(_mutex);
 
-    // ²éÕÒ²¢É¾³ı
+    // æŸ¥æ‰¾å¹¶åˆ é™¤
     auto it = _uid_to_session.find(uid);
     if (it != _uid_to_session.end())
     {
@@ -47,5 +47,5 @@ std::shared_ptr<CSession> SessionMgr::GetSession(int uid)
         return it->second;
     }
 
-    return nullptr; // Ã»ÕÒµ½·µ»Ø¿ÕÖ¸Õë
+    return nullptr; // æ²¡æ‰¾åˆ°è¿”å›ç©ºæŒ‡é’ˆ
 }

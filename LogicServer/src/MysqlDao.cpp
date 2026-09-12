@@ -1,4 +1,5 @@
 #include "LogicServer/MysqlDao.h"
+#include "Logger/Logger.h"
 #include "LogicServer/ConfigMgr.h"
 #include "LogicServer/message.pb.h"
 
@@ -10,12 +11,12 @@ MysqlDao::MysqlDao()
 	const auto& pwd = cfg["Mysql"]["Password"];
 	const auto& user = cfg["Mysql"]["User"];
 	const auto& schema = cfg["Mysql"]["Schema"];
-	std::cout << "¶ÁÈ¡µ½µÄMysql Host: " << host << std::endl;
-	std::cout << "¶ÁÈ¡µ½µÄMysql port: " << port << std::endl;
-	std::cout << "¶ÁÈ¡µ½µÄMysql password: " << pwd << std::endl;
-	std::cout << "¶ÁÈ¡µ½µÄMysql user: " << user << std::endl;
-	std::cout << "¶ÁÈ¡µ½µÄMysql schema: " << schema << std::endl;
-	_mysqlPool.reset(new MysqlPool("tcp://" + host + ":" + port, user, pwd, schema, 5));	// 5ÎªÁ¬½Ó³Ø´óĞ¡
+	std::cout << "è¯»å–åˆ°çš„Mysql Host: " << host << std::endl;
+	std::cout << "è¯»å–åˆ°çš„Mysql port: " << port << std::endl;
+	LOG_DEBUG_CTX("MysqlDao::MysqlDao", "å·²è¯»å– MySQL é…ç½®ï¼ˆå¯†ç å·²éšè—ï¼‰");
+	std::cout << "è¯»å–åˆ°çš„Mysql user: " << user << std::endl;
+	std::cout << "è¯»å–åˆ°çš„Mysql schema: " << schema << std::endl;
+	_mysqlPool.reset(new MysqlPool("tcp://" + host + ":" + port, user, pwd, schema, 5));	// 5ä¸ºè¿æ¥æ± å¤§å°
 }
 
 MysqlDao::~MysqlDao()
@@ -23,7 +24,7 @@ MysqlDao::~MysqlDao()
 
 }
 
-//×¢²á
+//æ³¨å†Œ
 int MysqlDao::Register(const std::string& name, const std::string& email, const std::string& password,
 	int sex, const std::string& avatar, const std::string& signature)
 {
@@ -32,7 +33,7 @@ int MysqlDao::Register(const std::string& name, const std::string& email, const 
 		auto con = _mysqlPool->getConnection();
 		if (!con)
 		{
-			std::cout << "Register Error: »ñÈ¡Á¬½ÓÊ§°Ü" << std::endl;
+			std::cout << "Register Error: è·å–è¿æ¥å¤±è´¥" << std::endl;
 			return -1;
 		}
 		// defer
@@ -46,7 +47,7 @@ int MysqlDao::Register(const std::string& name, const std::string& email, const 
 			)
 		);
 
-		// °ó¶¨ 6 ¸ö²ÎÊı
+		// ç»‘å®š 6 ä¸ªå‚æ•°
 		pstmt->setString(1, name);
 		pstmt->setString(2, email);
 		pstmt->setString(3, password);
@@ -54,32 +55,31 @@ int MysqlDao::Register(const std::string& name, const std::string& email, const 
 		pstmt->setString(5, avatar);
 		pstmt->setString(6, signature);
 
-		// Ö´ĞĞ
+		// æ‰§è¡Œ
 		pstmt->executeUpdate();
 
-		//»ñÈ¡×ÔÔöid
-		std::unique_ptr<sql::Statement> stmt(con->createStatement());	// ´´½¨Statement
-        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT LAST_INSERT_ID()"));	// Ö´ĞĞ²éÑ¯
+		//è·å–è‡ªå¢id
+		std::unique_ptr<sql::Statement> stmt(con->createStatement());	// åˆ›å»ºStatement
+        std::unique_ptr<sql::ResultSet> res(stmt->executeQuery("SELECT LAST_INSERT_ID()"));	// æ‰§è¡ŒæŸ¥è¯¢
 		if (res->next())
         {
             int uid = res->getInt(1);
             std::cout << "Register Success: uid = " << uid << std::endl;
             return uid;
         }
-		std::cout << "Register Error: »ñÈ¡×ÔÔöidÊ§°Ü" << std::endl;
+		std::cout << "Register Error: è·å–è‡ªå¢idå¤±è´¥" << std::endl;
 		return -1;
 	}
 	catch (sql::SQLException& e)
 	{
 
-		if (e.getErrorCode() == 1062)// 1062 ÊÇ MySQL Duplicate entry(ÖØ¸´ÌõÄ¿) µÄ´íÎóÂë
+		if (e.getErrorCode() == 1062)// 1062 æ˜¯ MySQL Duplicate entry(é‡å¤æ¡ç›®) çš„é”™è¯¯ç 
 		{
-			std::cout << "Register Error: ÓÊÏäÒÑ´æÔÚ (Duplicate entry)" << std::endl;
+			std::cout << "Register Error: é‚®ç®±å·²å­˜åœ¨ (Duplicate entry)" << std::endl;
 			return message::ErrorCodes::UserExist;
 		}
-		std::cerr << "SQLException: " << e.what();
-		std::cerr << "(MYSQL error code: )" << e.getErrorCode();
-		std::cerr << ",SQLState: " << e.getSQLState() << ")" << std::endl;
+		LOG_ERROR_CTX("MysqlDao::Register", "SQLException: " << e.what()
+			<< " (MYSQL error code: " << e.getErrorCode() << ", SQLState: " << e.getSQLState() << ")");
 		return -1;
 	}
 }
@@ -91,45 +91,45 @@ int MysqlDao::ResetPassword(const std::string& email, const std::string& verifyc
 		auto con = _mysqlPool->getConnection();
 		if (!con)
 		{
-            std::cout << "ResetPassword Error: »ñÈ¡Á¬½ÓÊ§°Ü" << std::endl;
+            std::cout << "ResetPassword Error: è·å–è¿æ¥å¤±è´¥" << std::endl;
 			return message::ErrorCodes::RPCFailed;
 		}
-		// RAII: ÎŞÂÛºóĞø·¢ÉúÊ²Ã´£¬È·±£Á¬½Ó±»¹é»¹µ½Á¬½Ó³Ø
-        Defer defer([&]() {		//»ØÊÕ
+		// RAII: æ— è®ºåç»­å‘ç”Ÿä»€ä¹ˆï¼Œç¡®ä¿è¿æ¥è¢«å½’è¿˜åˆ°è¿æ¥æ± 
+        Defer defer([&]() {		//å›æ”¶
             _mysqlPool->returnConnection(std::move(con)); 
             });
 
-		//×¼±¸updateÓï¾ä
+		//å‡†å¤‡updateè¯­å¥
 		std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(
 			"UPDATE user SET passwd = ? WHERE email = ?"
 		));
 
-		// °ó¶¨²ÎÊı
+		// ç»‘å®šå‚æ•°
 		pstmt->setString(1, password);
         pstmt->setString(2, email);
 
-		int rows = pstmt->executeUpdate();	//¸üĞÂĞĞÊı
+		int rows = pstmt->executeUpdate();	//æ›´æ–°è¡Œæ•°
 
 		if (rows == 0)
 		{
-			// Èç¹ûÓ°ÏìĞĞÊıÎª 0£¬ËµÃ÷ÒªÃ´ÓÊÏä²»´æÔÚ£¬ÒªÃ´ĞÂÃÜÂëºÍÀÏÃÜÂëÍêÈ«Ò»Ñù
-			std::cout << "ResetPassword Warning: ÓÊÏä²»´æÔÚ»òĞÂ¾ÉÃÜÂëÏàÍ¬. email: " << email << std::endl;
+			// å¦‚æœå½±å“è¡Œæ•°ä¸º 0ï¼Œè¯´æ˜è¦ä¹ˆé‚®ç®±ä¸å­˜åœ¨ï¼Œè¦ä¹ˆæ–°å¯†ç å’Œè€å¯†ç å®Œå…¨ä¸€æ ·
+			std::cout << "ResetPassword Warning: é‚®ç®±ä¸å­˜åœ¨æˆ–æ–°æ—§å¯†ç ç›¸åŒ. email: " << email << std::endl;
 			return message::ErrorCodes::UserNotExist;
 		}
-		std::cout << "ResetPassword Success: ÃÜÂëÒÑ³É¹¦ÖØÖÃ. email: " << email << std::endl;
-		return message::ErrorCodes::SUCCESS;	//³É¹¦
+		std::cout << "ResetPassword Success: å¯†ç å·²æˆåŠŸé‡ç½®. email: " << email << std::endl;
+		return message::ErrorCodes::SUCCESS;	//æˆåŠŸ
     }
 	catch (sql::SQLException& e)
 	{
 		std::cerr << "ResetPassword SQLException: " << e.what()
 			<< " (MySQL error code: " << e.getErrorCode()
 			<< ", SQLState: " << e.getSQLState() << ")" << std::endl;
-		return message::ErrorCodes::PasswdUpFailed; // ¶ÔÓ¦ ErrorCodes::PasswdUpFailed
+		return message::ErrorCodes::PasswdUpFailed; // å¯¹åº” ErrorCodes::PasswdUpFailed
 	}
 	catch (std::exception& e)
 	{
 		std::cerr << "ResetPassword std::exception: " << e.what() << std::endl;
-		return message::ErrorCodes::PasswdUpFailed; // ¶ÔÓ¦ ErrorCodes::PasswdUpFailed
+		return message::ErrorCodes::PasswdUpFailed; // å¯¹åº” ErrorCodes::PasswdUpFailed
 	}
 }
 
@@ -146,34 +146,34 @@ bool MysqlDao::CheckPassword(const std::string& email, const std::string& pwd, U
 		});
 
 	try {
-		// ×¼±¸ SQL: ²éÑ¯ uid, name, passwd , avatar
+		// å‡†å¤‡ SQL: æŸ¥è¯¢ uid, name, passwd , avatar
 		std::unique_ptr<sql::PreparedStatement> pstmt(
 			con->prepareStatement("SELECT id, name, email, passwd, avatar FROM user WHERE email = ?"));
 
 		pstmt->setString(1, email);
 
-		// Ö´ĞĞ²éÑ¯
+		// æ‰§è¡ŒæŸ¥è¯¢
 		std::unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
 
 		if (res->next())
 		{
-			// È¡³öÊı¾İ¿â´æµÄÃÜÂë
+			// å–å‡ºæ•°æ®åº“å­˜çš„å¯†ç 
 			std::string db_pwd = res->getString("passwd");
 			if (pwd != db_pwd)
 			{
-				return false; // ÃÜÂë²»Æ¥Åä
+				return false; // å¯†ç ä¸åŒ¹é…
 			}
 
-			// ÃÜÂëÆ¥Åä£¬Ìî³ä userInfo
+			// å¯†ç åŒ¹é…ï¼Œå¡«å…… userInfo
 			userInfo.uid = res->getInt("id");
 			userInfo.name = res->getString("name");
 			userInfo.email = res->getString("email");
 			userInfo.password = db_pwd;
-			userInfo.avatar = res->getString("avatar"); // »ñÈ¡Í·Ïñ
+			userInfo.avatar = res->getString("avatar"); // è·å–å¤´åƒ
 
 			return true;
 		}
-		return false; // ÓÃ»§²»´æÔÚ
+		return false; // ç”¨æˆ·ä¸å­˜åœ¨
 	}
 	catch (sql::SQLException& e)
 	{
@@ -188,44 +188,44 @@ int MysqlDao::UpdateAvatar(const int& uid, const std::string& avatar)
 		auto con = _mysqlPool->getConnection();
 		if (!con)
 		{
-			std::cout << "[MysqlDao] UpdateAvatar Error: »ñÈ¡Á¬½ÓÊ§°Ü" << std::endl;
+			std::cout << "[MysqlDao] UpdateAvatar Error: è·å–è¿æ¥å¤±è´¥" << std::endl;
 			return message::ErrorCodes::RPCFailed;
 		}
-		// RAII: ÎŞÂÛºóĞø·¢ÉúÊ²Ã´£¬È·±£Á¬½Ó±»¹é»¹µ½Á¬½Ó³Ø
-		Defer defer([&]() {		//»ØÊÕ
+		// RAII: æ— è®ºåç»­å‘ç”Ÿä»€ä¹ˆï¼Œç¡®ä¿è¿æ¥è¢«å½’è¿˜åˆ°è¿æ¥æ± 
+		Defer defer([&]() {		//å›æ”¶
 			_mysqlPool->returnConnection(std::move(con));
 			});
 
-		//×¼±¸updateÓï¾ä
+		//å‡†å¤‡updateè¯­å¥
 		std::unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement(
 			"UPDATE user SET avatar = ? WHERE id = ?"
 		));
 
-		// °ó¶¨²ÎÊı
+		// ç»‘å®šå‚æ•°
 		pstmt->setString(1, avatar);
 		pstmt->setInt(2, uid);
 
-		int rows = pstmt->executeUpdate();	//¸üĞÂĞĞÊı
+		int rows = pstmt->executeUpdate();	//æ›´æ–°è¡Œæ•°
 
 		if (rows == 0)
 		{
-			// Èç¹ûÓ°ÏìĞĞÊıÎª 0£¬ËµÃ÷ÒªÃ´ÓÊÏä²»´æÔÚ£¬ÒªÃ´ĞÂÃÜÂëºÍÀÏÃÜÂëÍêÈ«Ò»Ñù
+			// å¦‚æœå½±å“è¡Œæ•°ä¸º 0ï¼Œè¯´æ˜è¦ä¹ˆé‚®ç®±ä¸å­˜åœ¨ï¼Œè¦ä¹ˆæ–°å¯†ç å’Œè€å¯†ç å®Œå…¨ä¸€æ ·
 			std::cout << "[MysqlDao] UpdateAvatar Error:  " << avatar << std::endl;
 			return message::ErrorCodes::UserNotExist;
 		}
-		std::cout << "[MysqlDao] UpdateAvatar ³É¹¦ " << avatar << std::endl;
-		return message::ErrorCodes::SUCCESS;	//³É¹¦
+		std::cout << "[MysqlDao] UpdateAvatar æˆåŠŸ " << avatar << std::endl;
+		return message::ErrorCodes::SUCCESS;	//æˆåŠŸ
 	}
 	catch (sql::SQLException& e)
 	{
 		std::cerr << "UpdateAvatar SQLException: " << e.what()
 			<< " (MySQL error code: " << e.getErrorCode()
 			<< ", SQLState: " << e.getSQLState() << ")" << std::endl;
-		return message::ErrorCodes::PasswdUpFailed; // ¶ÔÓ¦ ErrorCodes::PasswdUpFailed
+		return message::ErrorCodes::PasswdUpFailed; // å¯¹åº” ErrorCodes::PasswdUpFailed
 	}
 	catch (std::exception& e)
 	{
 		std::cerr << "UpdateAvatar std::exception: " << e.what() << std::endl;
-		return message::ErrorCodes::PasswdUpFailed; // ¶ÔÓ¦ ErrorCodes::PasswdUpFailed
+		return message::ErrorCodes::PasswdUpFailed; // å¯¹åº” ErrorCodes::PasswdUpFailed
 	}
 }

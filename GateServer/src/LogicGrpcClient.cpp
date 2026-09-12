@@ -3,39 +3,39 @@
 
 LogicGrpcClient::LogicGrpcClient()
 { 
-    //´ÓÅäÖÃÎÄ¼ş¶ÁÈ¡ LogicServer µÄµØÖ·
+    //ä»é…ç½®æ–‡ä»¶è¯»å– LogicServer çš„åœ°å€
     auto& gCfgMgr = ConfigMgr::Inst();
     std::string host = gCfgMgr["LogicServer"]["Host"];
     std::string port = gCfgMgr["LogicServer"]["Port"];
     std::string address = host + ":" + port;
 
-    //´´½¨ gRPC Í¨µÀ£¬Insecure ±íÊ¾²»Ê¹ÓÃ SSL Ö¤Êé
+    //åˆ›å»º gRPC é€šé“ï¼ŒInsecure è¡¨ç¤ºä¸ä½¿ç”¨ SSL è¯ä¹¦
     std::shared_ptr<Channel> channel =
         grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
-    //´´½¨ stub£¬²¢°ó¶¨µ½Í¨µÀ
+    //åˆ›å»º stubï¼Œå¹¶ç»‘å®šåˆ°é€šé“
     _stub = LogicService::NewStub(channel);
 
 }
 
-// ×¢²áÒµÎñ·½·¨µÄÊµÏÖ
+// æ³¨å†Œä¸šåŠ¡æ–¹æ³•çš„å®ç°
 RegisterRsp LogicGrpcClient::RegisterUser(RegisterReq req)
 {
-    ClientContext context;  // ÉÏÏÂÎÄ£ºÓÃÓÚÉèÖÃ³¬Ê±¡¢»ñÈ¡ÔªÊı¾İµÈ
-    RegisterRsp rsp;        // ÏìÓ¦£ºÓÃÓÚ½ÓÊÕ LogicServer µÄ·µ»ØÖµ
-    grpc::Status status;    // ×´Ì¬£ºÓÃÓÚÅĞ¶Ï RPC µ÷ÓÃ±¾ÉíÊÇ·ñ³É¹¦
+    ClientContext context;  // ä¸Šä¸‹æ–‡ï¼šç”¨äºè®¾ç½®è¶…æ—¶ã€è·å–å…ƒæ•°æ®ç­‰
+    RegisterRsp rsp;        // å“åº”ï¼šç”¨äºæ¥æ”¶ LogicServer çš„è¿”å›å€¼
+    grpc::Status status;    // çŠ¶æ€ï¼šç”¨äºåˆ¤æ–­ RPC è°ƒç”¨æœ¬èº«æ˜¯å¦æˆåŠŸ
 
-    // µ÷ÓÃ LogicServer µÄ RegisterUser ·½·¨
+    // è°ƒç”¨ LogicServer çš„ RegisterUser æ–¹æ³•
     status = _stub->RegisterUser(&context, req, &rsp);
 
     if (status.ok())
     {
-        // RPC µ÷ÓÃ³É¹¦£¬Ö±½Ó·µ»Ø LogicServer ¸ø³öµÄ½á¹û
+        // RPC è°ƒç”¨æˆåŠŸï¼Œç›´æ¥è¿”å› LogicServer ç»™å‡ºçš„ç»“æœ
         return rsp;
     }
     else
     {
-        // RPC µ÷ÓÃÊ§°Ü£¨ÍøÂçÎÊÌâ¡¢·şÎñÆ÷¹ÒÁËµÈ£©
-        // ÉèÖÃÒ»¸ö´íÎóÂë£¬¸æËßÉÏ²ãÊÇ RPC ÕâÒ»²ã³öÎÊÌâÁË
+        // RPC è°ƒç”¨å¤±è´¥ï¼ˆç½‘ç»œé—®é¢˜ã€æœåŠ¡å™¨æŒ‚äº†ç­‰ï¼‰
+        // è®¾ç½®ä¸€ä¸ªé”™è¯¯ç ï¼Œå‘Šè¯‰ä¸Šå±‚æ˜¯ RPC è¿™ä¸€å±‚å‡ºé—®é¢˜äº†
         rsp.set_error(message::ErrorCodes::RPCFailed);
         return rsp;
     }
@@ -43,21 +43,21 @@ RegisterRsp LogicGrpcClient::RegisterUser(RegisterReq req)
 
 ResetPasswordRsp LogicGrpcClient::ResetPassword(ResetPasswordReq req)
 {
-    ClientContext context;  // ÉÏÏÂÎÄ£ºÓÃÓÚÉèÖÃ³¬Ê±¡¢»ñÈ¡ÔªÊı¾İµÈ
-    ResetPasswordRsp rsp;        // ÏìÓ¦£ºÓÃÓÚ½ÓÊÕ LogicServer µÄ·µ»ØÖµ
-    grpc::Status status;    // ×´Ì¬£ºÓÃÓÚÅĞ¶Ï RPC µ÷ÓÃ±¾ÉíÊÇ·ñ³É¹¦
+    ClientContext context;  // ä¸Šä¸‹æ–‡ï¼šç”¨äºè®¾ç½®è¶…æ—¶ã€è·å–å…ƒæ•°æ®ç­‰
+    ResetPasswordRsp rsp;        // å“åº”ï¼šç”¨äºæ¥æ”¶ LogicServer çš„è¿”å›å€¼
+    grpc::Status status;    // çŠ¶æ€ï¼šç”¨äºåˆ¤æ–­ RPC è°ƒç”¨æœ¬èº«æ˜¯å¦æˆåŠŸ
 
-    // µ÷ÓÃ LogicServer µÄ ResetPassword ·½·¨
+    // è°ƒç”¨ LogicServer çš„ ResetPassword æ–¹æ³•
     status = _stub->ResetPassword(&context, req, &rsp);
     if (status.ok())
     {
-        // RPC µ÷ÓÃ³É¹¦£¬Ö±½Ó·µ»Ø LogicServer ¸ø³öµÄ½á¹û
+        // RPC è°ƒç”¨æˆåŠŸï¼Œç›´æ¥è¿”å› LogicServer ç»™å‡ºçš„ç»“æœ
         return rsp;
     }
     else
     {
-        // RPC µ÷ÓÃÊ§°Ü£¨ÍøÂçÎÊÌâ¡¢·şÎñÆ÷¹ÒÁËµÈ£©
-        // ÉèÖÃÒ»¸ö´íÎóÂë£¬¸æËßÉÏ²ãÊÇ RPC ÕâÒ»²ã³öÎÊÌâÁË
+        // RPC è°ƒç”¨å¤±è´¥ï¼ˆç½‘ç»œé—®é¢˜ã€æœåŠ¡å™¨æŒ‚äº†ç­‰ï¼‰
+        // è®¾ç½®ä¸€ä¸ªé”™è¯¯ç ï¼Œå‘Šè¯‰ä¸Šå±‚æ˜¯ RPC è¿™ä¸€å±‚å‡ºé—®é¢˜äº†
         rsp.set_error(message::ErrorCodes::RPCFailed);
         return rsp;
     }
@@ -68,16 +68,16 @@ LoginRsp LogicGrpcClient::Login(LoginReq req)
     ClientContext context;
     LoginRsp reply;
 
-    Status status = _stub->Login(&context, req, &reply);  // µ÷ÓÃ LogicServer µÄ Login ·½·¨
+    Status status = _stub->Login(&context, req, &reply);  // è°ƒç”¨ LogicServer çš„ Login æ–¹æ³•
     if (status.ok())
     {
-        // RPC µ÷ÓÃ³É¹¦£¬Ö±½Ó·µ»Ø LogicServer ¸ø³öµÄ½á¹û
+        // RPC è°ƒç”¨æˆåŠŸï¼Œç›´æ¥è¿”å› LogicServer ç»™å‡ºçš„ç»“æœ
         return reply;
     }
     else
     {
-        // RPC µ÷ÓÃÊ§°Ü£¨ÍøÂçÎÊÌâ¡¢·şÎñÆ÷¹ÒÁËµÈ£©
-        // ´´½¨Ò»¸ö´íÎóÂë£¬¸æËßÉÏ²ãÊÇ RPC ÕâÒ»²ã³öÎÊÌâÁË
+        // RPC è°ƒç”¨å¤±è´¥ï¼ˆç½‘ç»œé—®é¢˜ã€æœåŠ¡å™¨æŒ‚äº†ç­‰ï¼‰
+        // åˆ›å»ºä¸€ä¸ªé”™è¯¯ç ï¼Œå‘Šè¯‰ä¸Šå±‚æ˜¯ RPC è¿™ä¸€å±‚å‡ºé—®é¢˜äº†
         reply.set_error(message::ErrorCodes::RPCFailed);
         std::cout << "[GateServer] Call LogicServer Login Failed. Error: "
             << status.error_code() << ": " << status.error_message() << std::endl;
@@ -93,16 +93,33 @@ UpdateAvatarRsp LogicGrpcClient::UpdateAvatar(UpdateAvatarReq req)
 
     if (status.ok())
     {
-        // RPC µ÷ÓÃ³É¹¦£¬Ö±½Ó·µ»Ø LogicServer ¸ø³öµÄ½á¹û
+        // RPC è°ƒç”¨æˆåŠŸï¼Œç›´æ¥è¿”å› LogicServer ç»™å‡ºçš„ç»“æœ
         return rsp;
     }
     else
     {
-        // RPC µ÷ÓÃÊ§°Ü£¨ÍøÂçÎÊÌâ¡¢·şÎñÆ÷¹ÒÁËµÈ£©
-        // ´´½¨Ò»¸ö´íÎóÂë£¬¸æËßÉÏ²ãÊÇ RPC ÕâÒ»²ã³öÎÊÌâÁË
+        // RPC è°ƒç”¨å¤±è´¥ï¼ˆç½‘ç»œé—®é¢˜ã€æœåŠ¡å™¨æŒ‚äº†ç­‰ï¼‰
+        // åˆ›å»ºä¸€ä¸ªé”™è¯¯ç ï¼Œå‘Šè¯‰ä¸Šå±‚æ˜¯ RPC è¿™ä¸€å±‚å‡ºé—®é¢˜äº†
         rsp.set_error(message::ErrorCodes::RPCFailed);
         std::cout << "[GateServer] Call LogicServer UpdateAvatar Failed. Error: "
             << status.error_code() << ": " << status.error_message() << std::endl;
         return rsp;
     }
+}
+
+VerifyTokenRsp LogicGrpcClient::VerifyToken(VerifyTokenReq req)
+{
+    ClientContext context;
+    VerifyTokenRsp rsp;
+    Status status = _stub->VerifyToken(&context, req, &rsp);
+
+    if (status.ok())
+    {
+        return rsp;
+    }
+
+    rsp.set_error(message::ErrorCodes::RPCFailed);
+    std::cout << "[GateServer] Call LogicServer VerifyToken Failed. Error: "
+        << status.error_code() << ": " << status.error_message() << std::endl;
+    return rsp;
 }

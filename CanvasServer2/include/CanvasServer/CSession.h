@@ -14,19 +14,19 @@ class Room;
 class CSession : public std::enable_shared_from_this<CSession>
 { 
 public:
-	CSession(boost::asio::io_context& io_context);		// ¹¹Ôìº¯Êı
+	CSession(boost::asio::io_context& io_context);		// æ„é€ å‡½æ•°
 	~CSession();
 
-	boost::asio::ip::tcp::socket& GetSocket();			// »ñÈ¡socket
-	std::string& GetSessionId();						// »ñÈ¡sessionId
-	void SetUserId(int uid);							// ÉèÖÃÓÃ»§id
-	int GetUserId();									// »ñÈ¡ÓÃ»§id
-	std::string GetName();								// »ñÈ¡ÓÃ»§Ãû
-	std::string GetAvatarUrl();							// »ñÈ¡ÓÃ»§Í·Ïñ
-	std::shared_ptr<Room> GetRoomLocked();					// »ñÈ¡·¿¼ä
-	bool IsClosed();									// ÅĞ¶ÏÊÇ·ñ¹Ø±Õ
+	boost::asio::ip::tcp::socket& GetSocket();			// è·å–socket
+	std::string& GetSessionId();						// è·å–sessionId
+	void SetUserId(int uid);							// è®¾ç½®ç”¨æˆ·id
+	int GetUserId();									// è·å–ç”¨æˆ·id
+	std::string GetName();								// è·å–ç”¨æˆ·å
+	std::string GetAvatarUrl();							// è·å–ç”¨æˆ·å¤´åƒ
+	std::shared_ptr<Room> GetRoomLocked();					// è·å–æˆ¿é—´
+	bool IsClosed();									// åˆ¤æ–­æ˜¯å¦å…³é—­
 
-	// °ó¶¨·¿¼ä (Ê¹ÓÃ weak_ptr ·ÀÖ¹Ñ­»·ÒıÓÃ)
+	// ç»‘å®šæˆ¿é—´ (ä½¿ç”¨ weak_ptr é˜²æ­¢å¾ªç¯å¼•ç”¨)
 	void SetRoom(std::shared_ptr<Room> room);
 	void SetName(const std::string& name);
     void SetAvatarUrl(const std::string& avatar_url);
@@ -37,30 +37,30 @@ public:
 private:
 
 
-	// ºËĞÄ¶ÁÈ¡Âß¼­
+	// æ ¸å¿ƒè¯»å–é€»è¾‘
 	void ReadHead();
 	void ReadBody(short msg_id, short msg_len);
-	void HandleWrite(const boost::system::error_code& error, std::shared_ptr<CSession> self);// Òì²½Ğ´»Øµ÷
+	void HandleWrite(const boost::system::error_code& error, std::shared_ptr<CSession> self);// å¼‚æ­¥å†™å›è°ƒ
 
-	boost::asio::ip::tcp::socket _socket;	// Ì×½Ó×Ö
+	boost::asio::ip::tcp::socket _socket;	// å¥—æ¥å­—
 	std::string _session_id;				// session id
-	int _uid;								// ÓÃ»§id
-	std::string _name;						// ÓÃ»§Ãû
-	std::string _avatar_url;				// ÓÃ»§Í·Ïñ
-	std::atomic<bool> _b_close;				// ÊÇ·ñ¹Ø±Õ
+	int _uid;								// ç”¨æˆ·id
+	std::string _name;						// ç”¨æˆ·å
+	std::string _avatar_url;				// ç”¨æˆ·å¤´åƒ
+	std::atomic<bool> _b_close;				// æ˜¯å¦å…³é—­
 
-	// Í·²¿»º´æ
+	// å¤´éƒ¨ç¼“å­˜
 	MsgHead _head_buffer;
 
-	// ·¿¼äÒıÓÃ
+	// æˆ¿é—´å¼•ç”¨
 	std::weak_ptr<Room> _room;
 
-	// ·¢ËÍ¶ÓÁĞ(Ïß³Ì°²È«ÊØ»¤)
+	// å‘é€é˜Ÿåˆ—(çº¿ç¨‹å®‰å…¨å®ˆæŠ¤)
 	std::queue<std::shared_ptr<SendNode>> _send_queue;
 	std::mutex _send_mutex;
 };
 
-// Âß¼­½Úµã (ÓÃÓÚÍ¶µİ¸ø LogicSystem)
+// é€»è¾‘èŠ‚ç‚¹ (ç”¨äºæŠ•é€’ç»™ LogicSystem)
 class LogicNode
 {
 public:

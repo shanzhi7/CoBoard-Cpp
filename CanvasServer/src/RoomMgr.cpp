@@ -1,6 +1,6 @@
 #include "CanvasServer/RoomMgr.h"
 #include "CanvasServer/Room.h"
-#include <iostream>
+#include "Logger/Logger.h"
 
 RoomMgr::RoomMgr()
 {
@@ -16,17 +16,17 @@ std::shared_ptr<Room> RoomMgr::GetOrCreateRoom(const std::string& room_id)
 {
 	std::lock_guard<std::mutex> lock(_mutex);
 
-	//ÏÈ²éÕÒÊÇ·ñ´æÔÚÕâ¸ö·¿¼ä
+	//å…ˆæŸ¥æ‰¾æ˜¯å¦å­˜åœ¨è¿™ä¸ªæˆ¿é—´
 	auto it = _rooms.find(room_id);
     if (it != _rooms.end())
     {
         return it->second;
     }
 
-	//²»´æÔÚÔò´´½¨
+	//ä¸å­˜åœ¨åˆ™åˆ›å»º
 	auto new_room = std::make_shared<Room>(room_id);
 	_rooms[room_id] = new_room;
-	std::cout << "[RoomMgr] New room created: " << room_id << ". Total rooms: " << _rooms.size() << std::endl;
+	LOG_INFO_CTX("RoomMgr::GetOrCreateRoom", "åˆ›å»ºæˆ¿é—´ room_id=" << room_id << " total=" << _rooms.size());
 	return new_room;
 }
 
@@ -51,6 +51,6 @@ void RoomMgr::RemoveRoom(const std::string& room_id)
 	if (it != _rooms.end())
 	{
 		_rooms.erase(it);
-		std::cout << "[RoomMgr] Room removed: " << room_id << ". Total rooms: " << _rooms.size() << std::endl;
+		LOG_INFO_CTX("RoomMgr::RemoveRoom", "ç§»é™¤æˆ¿é—´ room_id=" << room_id << " total=" << _rooms.size());
 	}
 }

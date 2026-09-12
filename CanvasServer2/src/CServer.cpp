@@ -1,27 +1,28 @@
 #include "CanvasServer/CServer.h"
 #include "CanvasServer/CSession.h"
+#include "Logger/Logger.h"
 
 CServer::CServer(boost::asio::io_context& ioc, short port)
 	:_io_context(ioc), _port(port),_acceptor(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
 {
-	std::cout << "[CServer] Server initialized on port: " << _port << std::endl;
+	LOG_INFO_CTX("CServer::CServer", "ÊúçÂä°Âô®ÂàùÂßãÂåñ port=" << _port);
 	Start();	// Start
 }
 CServer::~CServer()
 {
-	std::cout << "[CServer] Server stopped." << std::endl;
+	LOG_INFO_CTX("CServer::~CServer", "ÊúçÂä°Âô®ÂÅúÊ≠¢");
 }
 void CServer::Start()
 {
-	StartAccept();	//ø™ ºº‡Ã˝–¬¡¨Ω”
+	StartAccept();	//ÂºÄÂßãÁõëÂê¨Êñ∞ËøûÊé•
 }
 void CServer::StartAccept()
 { 
-	auto& worker_io_context = AsioIOServicePool::getInstance()->GetIOService();	// ªÒ»°io_context
-	// ¥¥Ω®“ª∏ˆSession
+	auto& worker_io_context = AsioIOServicePool::getInstance()->GetIOService();	// Ëé∑Âèñio_context
+	// ÂàõÂª∫‰∏Ä‰∏™Session
 	std::shared_ptr<CSession> new_session = std::make_shared<CSession>(worker_io_context);
 
-	//“Ï≤ΩΩ” ‹–¬¡¨Ω”
+	//ÂºÇÊ≠•Êé•ÂèóÊñ∞ËøûÊé•
 	_acceptor.async_accept(new_session->GetSocket(),
 		[this, new_session](const boost::system::error_code& error)
 		{
@@ -33,14 +34,14 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session, const boost::s
 {
 	if (!error)
 	{
-		// ∆Ù∂ØSession
+		// ÂêØÂä®Session
 		new_session->Start();
 	}
 	else
 	{
-		std::cout << "[CServer] Accept error: " << error.message() << std::endl;
+		LOG_ERROR_CTX("CServer::HandleAccept", "Êé•Êî∂ËøûÊé•Â§±Ë¥•: " << error.message());
 	}
 
-	// ºÃ–¯º‡Ã˝–¬¡¨Ω”
+	// ÁªßÁª≠ÁõëÂê¨Êñ∞ËøûÊé•
 	StartAccept();
 }

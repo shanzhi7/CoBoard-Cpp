@@ -12,13 +12,13 @@ class SessionMgr : public Singleton<SessionMgr>
 public:
 	~SessionMgr();
 
-	//Ìí¼Ó»á»°£¬µÇÂ¼³É¹¦ºóµ÷ÓÃ
+	//æ·»åŠ ä¼šè¯ï¼Œç™»å½•æˆåŠŸåè°ƒç”¨
 	void AddSession(int uid, std::shared_ptr<CSession> session);
 
-	//ÒÆ³ı»á»°£¬ÓÃ»§¶Ï¿ªÁ¬½Ó»ò±»Ìß³öÊ±µ÷ÓÃ
+	//ç§»é™¤ä¼šè¯ï¼Œç”¨æˆ·æ–­å¼€è¿æ¥æˆ–è¢«è¸¢å‡ºæ—¶è°ƒç”¨
 	void RemoveSession(int uid);
 
-	//»ñÈ¡»á»°
+	//è·å–ä¼šè¯
 	std::shared_ptr<CSession> GetSession(int uid);
 
 private:

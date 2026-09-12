@@ -1,4 +1,4 @@
-﻿// CanvasServer.cpp: 定义应用程序的入口点。
+// CanvasServer.cpp: 定义应用程序的入口点。
 //
 
 #include "CanvasServer/CanvasServer.h"
@@ -9,40 +9,59 @@
 #include "CanvasServer/SessionMgr.h"
 #include "CanvasServer/RoomMgr.h"
 #include "CanvasServer/AsioIOServicePool.h"
+#include "Logger/Logger.h"
 
 #include <iostream>
 #include <memory>
 #include <string>
 #include <thread>
+#include <clocale>
 #include <boost/asio.hpp>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 using namespace std;
 
+static void ConfigureConsoleUtf8()
+{
+#ifdef _WIN32
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
+#else
+    std::setlocale(LC_ALL, "C.UTF-8");
+#endif
+}
+
 int main()
 {
+    ConfigureConsoleUtf8();
+    Logger::Init("CanvasServer2", "logs/CanvasServer2.log");
+    LOG_INFO_CTX("CanvasServer2::main", "服务启动");
     try
     {
         // 初始化配置
         auto& cfg = ConfigMgr::Inst();
-        std::cout << "[CanvasServer] Config loaded." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "配置加载完成");
 
         // 初始化 Redis
         RedisMgr::getInstance();
-        std::cout << "[CanvasServer] RedisMgr initialized." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "RedisMgr 初始化完成");
 
         // 初始化线程池 (AsioIOServicePool)
         // 要在 Server 启动前把 IO 线程跑起来
         AsioIOServicePool::getInstance();
-        std::cout << "[CanvasServer] IO Thread Pool initialized." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "IO 线程池初始化完成");
 
         // 初始化业务逻辑系统 (LogicSystem 构造时会启动业务处理线程)
         LogicSystem::getInstance();
-        std::cout << "[CanvasServer] LogicSystem initialized (Worker thread started)." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "LogicSystem 初始化完成");
 
         // 初始化管理器
         SessionMgr::getInstance();
         RoomMgr::getInstance();
-        std::cout << "[CanvasServer] SessionMgr & RoomMgr initialized." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "SessionMgr 和 RoomMgr 初始化完成");
 
         // 准备网络环境
         std::string host = cfg["SelfServer"]["Host"];
@@ -58,7 +77,7 @@ int main()
             {
                 if (!error)
                 {
-                    std::cout << "[CanvasServer] Catch signal " << signal_number << ", stopping..." << std::endl;
+                    LOG_INFO_CTX("CanvasServer2::main", "收到停止信号 signal=" << signal_number);
 
                     // 停止 Accept
                     io_context.stop();
@@ -71,23 +90,26 @@ int main()
         // 启动 TCP 服务器
         // CServer 构造函数里已经写了 StartAccept()，所以实例化就会开始监听
         CServer server(io_context, port);
-        std::cout << "[CanvasServer] TCP Server listening on port " << port << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "TCP 服务监听 port=" << port);
 
         // 阻塞主线程，处理连接请求
         // 之后的 Read/Write 操作会由 AsioIOServicePool 里的线程去跑，不占用这里
         io_context.run();
 
-        std::cout << "[CanvasServer] Server stopped successfully." << std::endl;
+        LOG_INFO_CTX("CanvasServer2::main", "服务正常停止");
     }
     catch (const std::exception& e)
     {
-        std::cerr << "[CanvasServer] Crashed with exception: " << e.what() << std::endl;
+		LOG_ERROR_CTX("CanvasServer2::main", "服务异常: " << e.what());
+        Logger::Shutdown();
         return -1;
     }
     catch (...)
     {
-        std::cerr << "[CanvasServer] Crashed with unknown exception." << std::endl;
+		LOG_ERROR_CTX("CanvasServer2::main", "服务发生未知异常");
+        Logger::Shutdown();
         return -1;
     }
+	Logger::Shutdown();
 	return 0;
 }

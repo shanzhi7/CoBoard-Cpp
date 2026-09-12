@@ -1,6 +1,6 @@
 #pragma once
 /*
-	iocontext Ïß³Ì³Ø£¬Ò»¸öio_context¶ÔÓ¦Ò»¸öÏß³Ì£¬´¦ÀíioµÄÈÎÎñ
+	iocontext çº¿ç¨‹æ± ï¼Œä¸€ä¸ªio_contextå¯¹åº”ä¸€ä¸ªçº¿ç¨‹ï¼Œå¤„ç†ioçš„ä»»åŠ¡
 */
 #include <vector>
 #include <thread>
@@ -8,9 +8,9 @@
 #include <boost/asio.hpp>
 #include "GateServer/Singleton.h"
 
-using IOService = boost::asio::io_context;										//ÓÃÓÚ´¦ÀíÒì²½¶ÁĞ´
-using WorkGuard = boost::asio::executor_work_guard<IOService::executor_type>;	//ÓÃÓÚ×èÖ¹io_contextÍË³ö
-using WorkGuardPtr = std::unique_ptr<WorkGuard>;								//Ö¸Õë
+using IOService = boost::asio::io_context;										//ç”¨äºå¤„ç†å¼‚æ­¥è¯»å†™
+using WorkGuard = boost::asio::executor_work_guard<IOService::executor_type>;	//ç”¨äºé˜»æ­¢io_contexté€€å‡º
+using WorkGuardPtr = std::unique_ptr<WorkGuard>;								//æŒ‡é’ˆ
 
 class AsioIOServicePool : public Singleton<AsioIOServicePool>
 {
@@ -24,17 +24,17 @@ public:
 
 	AsioIOServicePool& operator=(const AsioIOServicePool&) = delete;
 
-	// Ê¹ÓÃ round-robin µÄ·½Ê½·µ»ØÒ»¸ö io_service(io_context)
+	// ä½¿ç”¨ round-robin çš„æ–¹å¼è¿”å›ä¸€ä¸ª io_service(io_context)
 	IOService& GetIOService();
 
 	void Stop();
 
 private:
 
-	explicit AsioIOServicePool(std::size_t size = 2); // Ä¬ÈÏÁ½¸öÏß³Ì
+	explicit AsioIOServicePool(std::size_t size = 2); // é»˜è®¤ä¸¤ä¸ªçº¿ç¨‹
 
-	std::vector<IOService> _ioServices;			//´æ´¢io_contextµÄÊı×é
-	std::vector<WorkGuardPtr> _workGuards;		//´æ´¢WorkGuardPtrµÄÊı×é
-	std::vector<std::thread> _threads;			//´æ´¢std::threadµÄÊı×é
-	std::size_t _nextIOService = 0;				//ÏÂÒ»¸öio_context
+	std::vector<IOService> _ioServices;			//å­˜å‚¨io_contextçš„æ•°ç»„
+	std::vector<WorkGuardPtr> _workGuards;		//å­˜å‚¨WorkGuardPtrçš„æ•°ç»„
+	std::vector<std::thread> _threads;			//å­˜å‚¨std::threadçš„æ•°ç»„
+	std::size_t _nextIOService = 0;				//ä¸‹ä¸€ä¸ªio_context
 };

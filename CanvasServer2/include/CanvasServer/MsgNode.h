@@ -4,16 +4,16 @@
 #include <memory>
 #include <cstring>
 #include <boost/asio.hpp>
-#include "const.h" // °üº¬ MAX_LENGTH, ID_DRAW_REQ µÈ¶¨Òå
-// È·±£×Ö½Ú¶ÔÆë£¬·ÀÖ¹²»Í¬±àÒëÆ÷²¹Æëµ¼ÖÂ½âÎö´íÎó
+#include "const.h" // åŒ…å« MAX_LENGTH, ID_DRAW_REQ ç­‰å®šä¹‰
+// ç¡®ä¿å­—èŠ‚å¯¹é½ï¼Œé˜²æ­¢ä¸åŒç¼–è¯‘å™¨è¡¥é½å¯¼è‡´è§£æé”™è¯¯
 #pragma pack(push, 1)
 struct MsgHead {
     std::uint16_t msg_id;
-    std::uint16_t msg_len; // body ³¤¶È
+    std::uint16_t msg_len; // body é•¿åº¦
 };
 #pragma pack(pop)
 
-// »ù´¡ÏûÏ¢½Úµã
+// åŸºç¡€æ¶ˆæ¯èŠ‚ç‚¹
 class MsgNode {
 public:
     MsgNode(uint16_t  max_len) : _total_len(max_len), _cur_len(0)
@@ -35,7 +35,7 @@ public:
     char* _data;
 };
 
-// ½ÓÊÕ½Úµã (ÓÃÓÚ ReadBody)
+// æ¥æ”¶èŠ‚ç‚¹ (ç”¨äº ReadBody)
 class RecvNode : public MsgNode
 {
 public:
@@ -43,20 +43,20 @@ public:
     uint16_t  _msg_id;
 };
 
-// 4. ·¢ËÍ½Úµã (ÓÃÓÚ Send Queue)
+// 4. å‘é€èŠ‚ç‚¹ (ç”¨äº Send Queue)
 class SendNode : public MsgNode
 {
 public:
     SendNode(const char* msg, uint16_t  max_len, uint16_t  msg_id) : MsgNode(max_len + sizeof(MsgHead)), _msg_id(msg_id)
     {
-        // ÏÈĞ´Í·²¿
-        uint16_t  msg_id_host = boost::asio::detail::socket_ops::host_to_network_short(msg_id);     //×ªÎªÍøÂç×Ö½ÚĞò(´ó¶ËĞò)
+        // å…ˆå†™å¤´éƒ¨
+        uint16_t  msg_id_host = boost::asio::detail::socket_ops::host_to_network_short(msg_id);     //è½¬ä¸ºç½‘ç»œå­—èŠ‚åº(å¤§ç«¯åº)
         uint16_t  msg_len_host = boost::asio::detail::socket_ops::host_to_network_short(max_len);
 
         memcpy(_data, &msg_id_host, sizeof(uint16_t));
         memcpy(_data + sizeof(uint16_t), &msg_len_host, sizeof(uint16_t));
 
-        // ÔÙĞ´ Body
+        // å†å†™ Body
         memcpy(_data + sizeof(MsgHead), msg, max_len);
     }
     uint16_t  _msg_id;

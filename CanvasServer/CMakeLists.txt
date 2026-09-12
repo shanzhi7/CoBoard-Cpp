@@ -1,4 +1,4 @@
-﻿# CMakeList.txt: CanvasServer 的 CMake 项目，在此处包括源代码并定义
+# CMakeList.txt: CanvasServer 的 CMake 项目，在此处包括源代码并定义
 # 项目特定的逻辑。
 #
 cmake_minimum_required (VERSION 3.20)
@@ -31,6 +31,13 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 源文件和字符串字面量统一使用 UTF-8。
+if(MSVC)
+  add_compile_options(/utf-8)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+  add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 # 3. 宏定义 (MySQL必需)
 add_definitions(-DSTATIC_CONCPP)
 if(WIN32)
@@ -55,6 +62,8 @@ find_package(zstd CONFIG REQUIRED)
 
 # 5. 生成
 add_executable (CanvasServer "src/CanvasServer.cpp"
+"../Common/Logger/Logger.cpp"
+"../Common/Logger/Logger.h"
 "include/CanvasServer/CanvasServer.h"
 "include/CanvasServer/message.grpc.pb.h" 
  
@@ -86,6 +95,7 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 # 5.1 头文件路径
 target_include_directories(CanvasServer PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/../Common
 )
 
 # 6. 链接

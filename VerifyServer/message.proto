@@ -2,8 +2,18 @@ syntax = "proto3";
 
 package message;
 
+// 语音 Token 错误码，与各 C++ 服务的 ErrorCodes 保持一致
+enum VoiceErrorCodes {
+  VOICE_SUCCESS = 0;
+  VOICE_TOKEN_INVALID_ARGUMENT = 1060;
+  VOICE_TOKEN_CONFIG_INVALID = 1061;
+  VOICE_TOKEN_GENERATE_FAILED = 1062;
+  VOICE_AUTH_FAILED = 1063;
+}
+
 service VarifyService {
   rpc GetVarifyCode (GetVarifyReq) returns (GetVarifyRsp) {}
+  rpc CreateVoiceToken (CreateVoiceTokenReq) returns (CreateVoiceTokenRsp) {}
 }
 
 message GetVarifyReq {
@@ -14,4 +24,18 @@ message GetVarifyRsp {
   int32 error = 1;
   string email = 2;
   string code = 3;
+}
+
+message CreateVoiceTokenReq {
+  int32 uid = 1;
+  string room_id = 2;
+}
+
+message CreateVoiceTokenRsp {
+  int32 error = 1;
+  string url = 2;
+  string room = 3;
+  string identity = 4;
+  string token = 5;
+  int32 expires_in = 6;
 }

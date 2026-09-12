@@ -5,20 +5,20 @@ class MysqlMgr : public Singleton<MysqlMgr>
 {
 	friend class Singleton<MysqlMgr>;
 public:
-	~MysqlMgr();		//¹«ÓĞÎö¹¹º¯Êı
+	~MysqlMgr();		//å…¬æœ‰ææ„å‡½æ•°
 
-	//×¢²á
+	//æ³¨å†Œ
 	int Register(const std::string& name, const std::string& email, const std::string& password,
 		int sex = 0, const std::string& avatar = "", const std::string& signature = "");
-	//ÖØÖÃÃÜÂë
+	//é‡ç½®å¯†ç 
 	int ResetPassword(const std::string& email, const std::string& verifycode, const std::string& password);
 
-	//Ğ£ÑéÃÜÂë
+	//æ ¡éªŒå¯†ç 
 	bool CheckPassword(const std::string& email, const std::string& pwd, UserInfo& userInfo);
 
-	//¸üĞÂÍ·Ïñ
+	//æ›´æ–°å¤´åƒ
 	bool UpdateAvatar(const int& uid, const std::string& avatar);
 private:
-	MysqlMgr();			//Ë½ÓĞ¹¹Ôìº¯Êı
-	MysqlDao _dao;		//Êı¾İ·ÃÎÊ¶ÔÏó
+	MysqlMgr();			//ç§æœ‰æ„é€ å‡½æ•°
+	MysqlDao _dao;		//æ•°æ®è®¿é—®å¯¹è±¡
 };

@@ -75,7 +75,6 @@ DBClient/build/
 GateServer/out/
 VerifyServer/.VSCodeCounter/
 .agents/
-AGENTS.md
 ANGENTS.md
 configs/*
 !configs/prod/
@@ -86,9 +85,17 @@ docker-compose.yml
 导学-SyncCanvas.md
 面经-SyncCanvas.md
 docker-deploy.md
+docs/新功能建议文档.md
+毕业设计开题报告/
 
 # --- 敏感配置文件 ---
 .env
+.env.*
+!.env.example
+*.local
+*.secret
+*.pem
+*.key
 config.ini
 config.json
 !config.json.example

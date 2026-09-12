@@ -13,21 +13,21 @@ class RedisMgr : public Singleton<RedisMgr>
 public:
 	~RedisMgr();
 
-	//³õÊ¼»¯Á¬½Ó
+	//åˆå§‹åŒ–è¿æ¥
 	bool Connect(const std::string& host, int port,const std::string& pwd);
 
-	bool Get(const std::string& key, std::string& value);			//»ñÈ¡key¶ÔÓ¦µÄvalue
-    bool Set(const std::string& key, const std::string& value, int timeout = 0);		//ÉèÖÃkey¶ÔÓ¦µÄvalue
-    bool Del(const std::string& key);								//É¾³ıkey
-    bool ExistsKey(const std::string& key);							//ÅĞ¶ÏkeyÊÇ·ñ´æÔÚ
+	bool Get(const std::string& key, std::string& value);			//è·å–keyå¯¹åº”çš„value
+    bool Set(const std::string& key, const std::string& value, int timeout = 0);		//è®¾ç½®keyå¯¹åº”çš„value
+    bool Del(const std::string& key);								//åˆ é™¤key
+    bool ExistsKey(const std::string& key);							//åˆ¤æ–­keyæ˜¯å¦å­˜åœ¨
 
-	//List²Ù×÷
-	bool LPush(const std::string& key, const std::string& value);	//Ìí¼ÓÔªËØ
-	bool LPop(const std::string& key, std::string& value);			//»ñÈ¡ÔªËØ£¬É¾³ıÔªËØ
+	//Listæ“ä½œ
+	bool LPush(const std::string& key, const std::string& value);	//æ·»åŠ å…ƒç´ 
+	bool LPop(const std::string& key, std::string& value);			//è·å–å…ƒç´ ï¼Œåˆ é™¤å…ƒç´ 
 
-	//HSet²Ù×÷
-	bool HSet(const std::string& key, const std::string& hkey, const std::string& value);	//ÉèÖÃkey¶ÔÓ¦µÄhkey¶ÔÓ¦µÄvalue
-    bool HGet(const std::string& key, const std::string& hkey, std::string& value);			//»ñÈ¡key¶ÔÓ¦µÄhkey¶ÔÓ¦µÄvalue
+	//HSetæ“ä½œ
+	bool HSet(const std::string& key, const std::string& hkey, const std::string& value);	//è®¾ç½®keyå¯¹åº”çš„hkeyå¯¹åº”çš„value
+    bool HGet(const std::string& key, const std::string& hkey, std::string& value);			//è·å–keyå¯¹åº”çš„hkeyå¯¹åº”çš„value
 
 	void Close();
 

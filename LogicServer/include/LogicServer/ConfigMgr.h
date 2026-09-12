@@ -5,14 +5,14 @@
 
 struct SectionInfo {
 	SectionInfo() {}
-	~SectionInfo() { _section_datas.clear(); }			//Îö¹¹Çå³ımapÀïµÄÄÚÈİ
+	~SectionInfo() { _section_datas.clear(); }			//ææ„æ¸…é™¤mapé‡Œçš„å†…å®¹
 
-	SectionInfo(const SectionInfo& src)					//¿½±´¹¹Ôì
+	SectionInfo(const SectionInfo& src)					//æ‹·è´æ„é€ 
 	{
 		_section_datas = src._section_datas;
 	}
 
-	SectionInfo& operator = (const SectionInfo& src)	//ÖØÔØ=
+	SectionInfo& operator = (const SectionInfo& src)	//é‡è½½=
 	{
 		if (&src == this)
 		{
@@ -22,8 +22,8 @@ struct SectionInfo {
 		return *this;
 	}
 
-	std::map<std::string, std::string> _section_datas;	//´æ´¢key_value(¶Ë¿Ú)
-	std::string operator[](const std::string& key)		//ÖØÔØ[]
+	std::map<std::string, std::string> _section_datas;	//å­˜å‚¨key_value(ç«¯å£)
+	std::string operator[](const std::string& key)		//é‡è½½[]
 	{
 		if (_section_datas.find(key) == _section_datas.end())
 		{
@@ -37,9 +37,9 @@ class ConfigMgr
 public:
 	~ConfigMgr()
 	{
-		_config_map.clear();									//Îö¹¹Çå³ımapÀïµÄÄÚÈİ
+		_config_map.clear();									//ææ„æ¸…é™¤mapé‡Œçš„å†…å®¹
 	}
-	SectionInfo operator[](const std::string& section)			//ÖØÔØ[],value Îª SectionInfo
+	SectionInfo operator[](const std::string& section)			//é‡è½½[],value ä¸º SectionInfo
 	{
 		if (_config_map.find(section) == _config_map.end())
 		{
@@ -54,12 +54,12 @@ public:
 		return cfg_mgr;
 	}
 
-	ConfigMgr(const ConfigMgr& src)								//ÊµÏÖ¿½±´¹¹Ôì
+	ConfigMgr(const ConfigMgr& src)								//å®ç°æ‹·è´æ„é€ 
 	{
 		this->_config_map = src._config_map;
 	}
 
-	ConfigMgr& operator = (const ConfigMgr& src)				//ÖØÔØ=
+	ConfigMgr& operator = (const ConfigMgr& src)				//é‡è½½=
 	{
 		if (&src == this)
 		{
@@ -68,8 +68,8 @@ public:
 		_config_map = src._config_map;
 	}
 private:
-	ConfigMgr();												//¶¨Òå¹¹Ôìº¯Êı
+	ConfigMgr();												//å®šä¹‰æ„é€ å‡½æ•°
 
-	std::map<std::string, SectionInfo> _config_map;		//´æ´¢SectionInfo½á¹¹Ìå
+	std::map<std::string, SectionInfo> _config_map;		//å­˜å‚¨SectionInfoç»“æ„ä½“
 };
 

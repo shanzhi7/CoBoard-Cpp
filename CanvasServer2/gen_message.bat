@@ -1,47 +1,47 @@
 @ECHO OFF
 setlocal
 
-:: ================= 1. ×Ô¶¯Ê¶±ðÏîÄ¿Ãû =================
+:: ================= 1. è‡ªåŠ¨è¯†åˆ«é¡¹ç›®å =================
 for %%I in ("%~dp0.") do set "PROJECT_NAME=%%~nxI"
 
-:: ================= 2. ÅäÖÃÇøÓò =================
-:: ÉèÖÃ¹¤¾ßÂ·¾¶
+:: ================= 2. é…ç½®åŒºåŸŸ =================
+:: è®¾ç½®å·¥å…·è·¯å¾„
 SET PROTOC="D:\cppsoft\vcpkg-new\installed\x64-windows-static\tools\protobuf\protoc.exe"
 SET PLUGIN="D:\cppsoft\vcpkg-new\installed\x64-windows\tools\grpc\grpc_cpp_plugin.exe"
 
-:: ÉèÖÃÄ¿±êÄ¿Â¼
+:: è®¾ç½®ç›®æ ‡ç›®å½•
 SET DEST_INC=include\%PROJECT_NAME%
 SET DEST_SRC=src
 :: ===============================================
 
 ECHO -----------------------------------------------
-ECHO ¼ì²âµ½µ±Ç°ÏîÄ¿Ãû: %PROJECT_NAME%
+ECHO æ£€æµ‹åˆ°å½“å‰é¡¹ç›®å: %PROJECT_NAME%
 ECHO -----------------------------------------------
 
-ECHO [1/3] ÕýÔÚÉú³É Protobuf ^& gRPC ´úÂë...
-:: Éú³ÉÏûÏ¢´úÂë
+ECHO [1/3] æ­£åœ¨ç”Ÿæˆ Protobuf ^& gRPC ä»£ç ...
+:: ç”Ÿæˆæ¶ˆæ¯ä»£ç 
 %PROTOC% --cpp_out=. "message.proto"
-:: Éú³É gRPC ·þÎñ´úÂë
+:: ç”Ÿæˆ gRPC æœåŠ¡ä»£ç 
 %PROTOC% --grpc_out=. --plugin=protoc-gen-grpc=%PLUGIN% "message.proto"
 
-:: ¼ì²é±àÒëÊÇ·ñ³ö´í£¬Èç¹û³ö´í¾Í²»ÒÆ¶¯ÎÄ¼þÁË
+:: æ£€æŸ¥ç¼–è¯‘æ˜¯å¦å‡ºé”™ï¼Œå¦‚æžœå‡ºé”™å°±ä¸ç§»åŠ¨æ–‡ä»¶äº†
 IF %ERRORLEVEL% NEQ 0 (
     ECHO.
-    ECHO [´íÎó] Protobuf ±àÒëÊ§°Ü£¬Çë¼ì²é message.proto ÎÄ¼þÄÚÈÝ£¡
+    ECHO [é”™è¯¯] Protobuf ç¼–è¯‘å¤±è´¥ï¼Œè¯·æ£€æŸ¥ message.proto æ–‡ä»¶å†…å®¹ï¼
     PAUSE
     EXIT /B
 )
 
 ECHO.
-ECHO [2/3] ÕýÔÚÒÆ¶¯Í·ÎÄ¼þ (.h) µ½ %DEST_INC% ...
+ECHO [2/3] æ­£åœ¨ç§»åŠ¨å¤´æ–‡ä»¶ (.h) åˆ° %DEST_INC% ...
 if not exist "%DEST_INC%" mkdir "%DEST_INC%"
-:: Ö»ÓÐÎÄ¼þ´æÔÚ²ÅÒÆ¶¯£¬±ÜÃâ±¨´í
+:: åªæœ‰æ–‡ä»¶å­˜åœ¨æ‰ç§»åŠ¨ï¼Œé¿å…æŠ¥é”™
 if exist *.pb.h MOVE /Y *.pb.h "%DEST_INC%\" >NUL
 
-ECHO [3/3] ÕýÔÚÒÆ¶¯Ô´ÎÄ¼þ (.cc) µ½ %DEST_SRC% ...
+ECHO [3/3] æ­£åœ¨ç§»åŠ¨æºæ–‡ä»¶ (.cc) åˆ° %DEST_SRC% ...
 if not exist "%DEST_SRC%" mkdir "%DEST_SRC%"
 if exist *.pb.cc MOVE /Y *.pb.cc "%DEST_SRC%\" >NUL
 
 ECHO.
-ECHO [³É¹¦] ËùÓÐÎÄ¼þÒÑ×Ô¶¯¹éÎ»µ½ %PROJECT_NAME% ÏàÓ¦Ä¿Â¼ÏÂ¡£
+ECHO [æˆåŠŸ] æ‰€æœ‰æ–‡ä»¶å·²è‡ªåŠ¨å½’ä½åˆ° %PROJECT_NAME% ç›¸åº”ç›®å½•ä¸‹ã€‚
 PAUSE

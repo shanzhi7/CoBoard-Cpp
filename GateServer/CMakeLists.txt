@@ -28,6 +28,13 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 源文件和字符串字面量统一使用 UTF-8。
+if(MSVC)
+    add_compile_options(/utf-8)
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-finput-charset=UTF-8 -fexec-charset=UTF-8)
+endif()
+
 # 3. 宏定义 (MySQL必需)
 add_definitions(-DSTATIC_CONCPP)
 if(WIN32)
@@ -52,6 +59,8 @@ find_package(zstd CONFIG REQUIRED)
 
 # 5. 生成
 add_executable (GateServer "src/GateServer.cpp" 
+"../Common/Logger/Logger.cpp"
+"../Common/Logger/Logger.h"
 "include/GateServer/Singleton.h"
 "include/GateServer/RedisMgr.h" 
 "src/RedisMgr.cpp" 
@@ -77,6 +86,7 @@ add_executable (GateServer "src/GateServer.cpp"
 # 5.1 头文件路径
 target_include_directories(GateServer PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/../Common
 )
 
 # 6. 链接

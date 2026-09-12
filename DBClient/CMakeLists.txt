@@ -17,6 +17,14 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(protobuf CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
+# LiveKit C++ SDK (Windows x64, prebuilt Release package)
+set(LIVEKIT_SDK_ROOT "D:/cppsoft/livekit-sdk-windows-x64-1.10.0")
+find_package(LiveKit CONFIG REQUIRED
+    PATHS "${LIVEKIT_SDK_ROOT}/lib/cmake/LiveKit"
+    NO_DEFAULT_PATH
+)
+set_property(TARGET LiveKit::livekit PROPERTY MAP_IMPORTED_CONFIG_DEBUG Release)
+
 
 # 强制开启资源自动编译
 set(CMAKE_AUTORCC ON)
@@ -42,6 +50,7 @@ qt_add_executable(DBClient
     registerwidget.h registerwidget.cpp registerwidget.ui
     singleton.h
     httpmgr.h httpmgr.cpp
+    voicemanager.h voicemanager.cpp
     tipwidget.h tipwidget.cpp
     config.ini
     userdata.h
@@ -66,6 +75,8 @@ target_include_directories(DBClient PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+target_compile_features(DBClient PRIVATE cxx_std_17)
+
 target_link_libraries(DBClient
     PRIVATE
         Qt::Core
@@ -75,6 +86,20 @@ target_link_libraries(DBClient
         #链接 Google 的库
         protobuf::libprotobuf
         gRPC::grpc++
+        LiveKit::livekit
+
+        # LiveKit Windows system dependencies
+        ntdll
+        userenv
+        winmm
+        iphlpapi
+        msdmo
+        dmoguids
+        wmcodecdspuuid
+        ws2_32
+        secur32
+        bcrypt
+        crypt32
 )
 target_link_libraries(DBClient PRIVATE Qt6::Widgets)
 target_link_libraries(DBClient PRIVATE Qt6::Widgets)
@@ -105,4 +130,14 @@ add_custom_command(TARGET DBClient POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_CURRENT_SOURCE_DIR}/config.ini"
     "$<TARGET_FILE_DIR:DBClient>/config.ini"
+)
+
+# LiveKit SDK 的运行时 DLL 必须与 DBClient.exe 位于同一目录。
+add_custom_command(TARGET DBClient POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${LIVEKIT_SDK_ROOT}/bin/livekit.dll"
+        "$<TARGET_FILE_DIR:DBClient>/livekit.dll"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${LIVEKIT_SDK_ROOT}/bin/livekit_ffi.dll"
+        "$<TARGET_FILE_DIR:DBClient>/livekit_ffi.dll"
 )

@@ -1,6 +1,7 @@
 #include "GateServer/CServer.h"
 #include "GateServer/HttpConnection.h"
 #include "GateServer/AsioIOServicePool.h"
+#include "Logger/Logger.h"
 
 CServer::CServer(boost::asio::io_context& ioc, short port)
 	:_ioc(ioc), _acceptor(ioc, boost::asio::ip::tcp::endpoint(boost::asio::ip::tcp::v4(), port))
@@ -8,35 +9,35 @@ CServer::CServer(boost::asio::io_context& ioc, short port)
 
 }
 
-// Æô¶¯·şÎñ,¼àÌıÇëÇó
+// å¯åŠ¨æœåŠ¡,ç›‘å¬è¯·æ±‚
 void CServer::Start()
 {
-	auto self(shared_from_this());		//ÑÓ³¤·şÎñµÄÉúÃüÖÜÆÚ
+	auto self(shared_from_this());		//å»¶é•¿æœåŠ¡çš„ç”Ÿå‘½å‘¨æœŸ
 
-	//»ñÈ¡io_context,HttpConnectionÊ¹ÓÃÕâ¸öio_context´¦ÀíIO
+	//è·å–io_context,HttpConnectionä½¿ç”¨è¿™ä¸ªio_contextå¤„ç†IO
 	auto& io_context = AsioIOServicePool::getInstance()->GetIOService();
 	std::shared_ptr<HttpConnection> new_con = std::make_shared<HttpConnection>(io_context);
-	//¼àÌıÁ¬½Ó
+	//ç›‘å¬è¿æ¥
 	_acceptor.async_accept(new_con->GetSocket(), [this, self, new_con](boost::system::error_code ec) {
 		try
 		{
 			if (ec)
 			{
-				//³ö´í·ÅÆúÁ¬½Ó£¬¼ÌĞø¼àÌıÆäËûÁ¬½Ó
+				//å‡ºé”™æ”¾å¼ƒè¿æ¥ï¼Œç»§ç»­ç›‘å¬å…¶ä»–è¿æ¥
                 self->Start();
-                std::cout << "CServer::Start() error:" << ec.message() << std::endl;
+                LOG_ERROR_CTX("CServer::Start", "æ¥æ”¶è¿æ¥å¤±è´¥: " << ec.message());
 				return;
 			}
-			//½»¸øHttpConnection´¦ÀíÕâ¸öÁ¬½Ó£¬½øĞĞÊı¾İµÄ½ÓÊÕºÍ·¢ËÍ
+			//äº¤ç»™HttpConnectionå¤„ç†è¿™ä¸ªè¿æ¥ï¼Œè¿›è¡Œæ•°æ®çš„æ¥æ”¶å’Œå‘é€
 			new_con->Start();
 
-			//¼ÌĞø¼àÌı
+			//ç»§ç»­ç›‘å¬
             self->Start();
 		}
 		catch (std::exception& e)
 		{
-            std::cout << "CServer::Start() exception:" << e.what() << std::endl;
-			self->Start();	//¼ÌĞø¼àÌı
+            LOG_ERROR_CTX("CServer::Start", "å¤„ç†è¿æ¥å¼‚å¸¸: " << e.what());
+			self->Start();	//ç»§ç»­ç›‘å¬
 		}
 		});
 }
