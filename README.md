@@ -16,6 +16,8 @@ SyncCanvas 是一个基于 Qt 的多人协作画板。用户可以注册并登�
 - 房主授权或取消成员的编辑权限；普通成员默认只读。
 - 头像选择、OSS 签名上传和头像地址保存。
 - TCP 断线检测、指数退避重连；重连后自动重新进行 Canvas 登录并尝试回到原房间。
+- LiveKit Cloud 房间语音：进入在线房间后自动获取短期 Token、连接语音房间并发布麦克风；离开房间时自动断开。
+- 语音支持麦克风开关、听筒开关、连接状态和活动说话人事件，UI 控件可按需接入。
 
 ### 服务端
 
@@ -77,6 +79,7 @@ DBClient 上传头像时，先从 GateServer 获取 OSS 签名，再直接上传
 - `GateServer/src/LogicSystem.cpp`：HTTP 路由实现。
 - `LogicServer/src/LogicServiceImpl.cpp`：注册、登录、重置密码和头像更新。
 - `CanvasServer/src/CSession.cpp`、`CanvasServer/src/Room.cpp`：TCP 会话、绘画快通道、广播和历史回放。
+- `DBClient/voicemanager.cpp`：LiveKit Token 请求、房间连接、麦克风发布和语音状态管理。
 
 ## 通信与数据流
 
@@ -96,6 +99,7 @@ GateServer 当前注册的 HTTP 路由如下：
 | `POST` | `/user_register` | 注册账号 |
 | `POST` | `/reset_password` | 重置密码 |
 | `POST` | `/user_login` | 登录并获取 Token/CanvasServer 地址 |
+| `POST` | `/voice_token` | 校验客户端登录 Token 并获取 LiveKit 短期语音 Token |
 | `POST` | `/get_oss_token` | 获取头像上传签名 |
 | `POST` | `/save_avator` | 保存头像公开地址（路径名称与源码保持一致） |
 
@@ -104,6 +108,24 @@ GateServer 当前注册的 HTTP 路由如下：
 1. 创建房间时，CanvasServer 生成六位房间号，将房间名称、房主、画布宽高和所属实例写入 Redis（房间元数据默认 24 小时过期）。
 2. 加入房间时，服务端从 Redis 查找房间归属。如果房间属于另一实例，返回 `NeedRedirect`、目标 host/port；客户端自动切换连接并重试加入。
 3. 首次加入内存中的房间时，服务端会把当前历史操作回放给新成员，并广播成员加入/离开事件。
+
+### 房间语音
+
+1. DBClient 加入或创建在线房间成功后，向 GateServer 的 `/voice_token` 发送 `uid`、`room_id` 和当前登录 `app_token`。
+2. GateServer 先调用 LogicServer 校验登录 Token 和 UID，再调用 VerifyServer 生成 LiveKit Cloud 短期 Token。
+3. VerifyServer 使用服务端保存的 LiveKit API Key/API Secret 生成 Token，客户端只接收 LiveKit URL、房间名、身份和短期 Token。
+4. DBClient 使用 LiveKit C++ SDK 连接语音房间，`PlatformAudio` 负责系统麦克风采集、远端音频播放以及 WebRTC 回声消除、降噪和自动增益。
+5. 离开画板房间、切换离线模式或客户端退出时，VoiceManager 会断开 LiveKit 房间并释放音频资源。
+
+```text
+DBClient --HTTP /voice_token--> GateServer --gRPC VerifyToken--> LogicServer
+    |                                  |
+    |                                  +--gRPC CreateVoiceToken--> VerifyServer
+    |
+    +---------- WebSocket/WebRTC + 短期 Token ----------> LiveKit Cloud
+```
+
+LiveKit API Key 和 API Secret 只配置在 VerifyServer，禁止写入 DBClient、GateServer 或公开配置模板。
 
 ### 绘画同步
 
@@ -137,6 +159,7 @@ message_len 字节 message body
 
 - Qt 6.5（Core、Widgets、Network）
 - 与服务端一致的 Protobuf/gRPC C++ 库
+- Qt 6.5.3 MSVC x64 客户端还需要 LiveKit C++ SDK 1.10.x Windows x64 预编译包。
 
 ### 验证码服务依赖
 
@@ -215,6 +238,17 @@ cmake -S DBClient -B DBClient/build -G Ninja \
 cmake --build DBClient/build
 ```
 
+Windows 下建议使用 Qt 6.5.3 MSVC x64 Kit 和 Visual Studio 2022。DBClient 的 CMake 需要能够找到 LiveKit SDK 的 `include/`、`lib/` 和 `bin/` 目录；SDK 根目录只用于本机构建，不需要提交到仓库。
+
+Release 构建完成后，使用 Qt 官方工具部署 Qt 依赖，并将以下两个 LiveKit 运行时 DLL 复制到 `DBClient.exe` 同目录：
+
+```text
+livekit.dll
+livekit_ffi.dll
+```
+
+最终将包含 `DBClient.exe`、Qt DLL、`platforms/qwindows.dll`、上述 LiveKit DLL 和客户端 `config.ini` 的目录压缩发布即可。发布包不需要携带 LiveKit SDK 的头文件、`.lib` 文件或 API Secret。
+
 运行 `DBClient` 前，在可执行文件同目录放置 `config.ini`：
 
 ```ini
@@ -235,6 +269,9 @@ npm run serve
 ## 配置与安全
 
 - `config.ini`、`config.json` 和 `.env` 可能包含数据库密码、Redis 密码、邮箱授权码、OSS 密钥，生产环境应使用独立的密钥管理或运行时挂载，禁止把真实凭据提交到仓库。
+- LiveKit API Key/API Secret 只允许出现在 VerifyServer 的运行时 `config.json` 中；仓库只保留 `VerifyServer/config.json.example` 和 `configs/prod/VerifyServer.config.json.example`。
+- DBClient 只保存登录 Token 和 LiveKit 短期 Token，不应保存 LiveKit API Key/API Secret。
+- `config.ini`、`config.json`、`.env`、构建目录、Qt Creator `.user` 文件、`node_modules` 和发布压缩包均不应加入 Git 跟踪；对应的脱敏模板可以提交。
 - GateServer 当前使用 HTTP，内部 gRPC 默认使用不带 TLS 的连接；部署到公网前应增加 HTTPS/TLS、访问控制和反向代理。
 - OSS 上传需要配置 `AliyunOSS` 的密钥、Bucket、Endpoint 和 Host；不需要头像功能时可以关闭对应入口。
 - 修改任一 `message.proto` 后，应使用项目中的 `gen_message.bat` 或 `protoc`/gRPC 工具重新生成各目录下的 `.pb.*` 文件，并确保所有模块使用同一份协议。
