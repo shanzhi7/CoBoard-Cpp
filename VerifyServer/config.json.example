@@ -1,0 +1,21 @@
+{
+    "email": {
+        "user": "YOUR_EMAIL",
+        "pass": "YOUR_EMAIL_PASSWORD"
+    },
+    "mysql": {
+        "host": "127.0.0.1",
+        "port": 3306,
+        "passwd": "YOUR_MYSQL_PASSWORD"
+    },
+    "redis": {
+        "host": "127.0.0.1",
+        "port": 6380,
+        "passwd": "YOUR_REDIS_PASSWORD"
+    },
+    "livekit": {
+        "url": "wss://YOUR_PROJECT.livekit.cloud",
+        "api_key": "YOUR_LIVEKIT_API_KEY",
+        "api_secret": "YOUR_LIVEKIT_API_SECRET"
+    }
+}

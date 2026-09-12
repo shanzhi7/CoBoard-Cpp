@@ -1,36 +1,30 @@
 [GateServer]
 Port = 8080
 [VarifyServer]
-Host=127.0.0.1
-Port=50057
+Host = verifyserver
+Port = 50057
 [LogicServer]
-Host=127.0.0.1
-Port=50058
+Host = logicserver
+Port = 50058
 [Mysql]
-Host = 127.0.0.1
+Host = mysql
 Port = 3306
 Password = YOUR_MYSQL_PASSWORD
-User = YOUR_MYSQL_USER
+User = root
 Schema = synccanvas
 [Redis]
-Host = 127.0.0.1
-Port = 6380
+Host = redis
+Port = 6379
 Password = YOUR_REDIS_PASSWORD
 [SelfServer]
-Host = 0.0.0.0
+Host = YOUR_SERVER_IP
 Port = 8092
 Name = CanvasServer1
 RPCPort = 50059
 [PeerServer]
 Servers = CanvasServer2
 [CanvasServer2]
-Host = 127.0.0.1
+Host = YOUR_SERVER_IP
 Port = 8093
 Name = CanvasServer2
 RPCPort = 50060
-[AliyunOSS]
-AccessKeyId = YOUR_ACCESS_KEY_ID
-AccessKeySecret = YOUR_ACCESS_KEY_SECRET
-BucketName = YOUR_BUCKET_NAME
-Endpoint = YOUR_OSS_ENDPOINT
-Host = YOUR_OSS_HOST

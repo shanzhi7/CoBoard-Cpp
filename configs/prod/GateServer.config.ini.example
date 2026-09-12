@@ -1,0 +1,14 @@
+[GateServer]
+Port = 8080
+[VarifyServer]
+Host = verifyserver
+Port = 50057
+[LogicServer]
+Host = logicserver
+Port = 50058
+[AliyunOSS]
+AccessKeyId = YOUR_OSS_ACCESS_KEY_ID
+AccessKeySecret = YOUR_OSS_ACCESS_KEY_SECRET
+BucketName = YOUR_OSS_BUCKET_NAME
+Endpoint = YOUR_OSS_ENDPOINT
+Host = YOUR_OSS_HOST
