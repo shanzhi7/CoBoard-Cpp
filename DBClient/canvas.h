@@ -29,6 +29,7 @@ public:
     void setRoomInfo(std::shared_ptr<RoomInfo> room_info);                      //设置房间信息
     void enterOfflineMode();                                                    //进入离线画板模式
     void resetForReconnect();                                                   //断线回大厅时调用
+    void resumeVoice();                                                         //从大厅返回画板时恢复语音音频
 protected:
     virtual bool eventFilter(QObject* watched,QEvent* event) override;          //事件过滤器
 
@@ -65,6 +66,10 @@ private slots:
 
     // ===== 语音 UI 预留接口（当前暂不启用） =====
     // 下面的槽函数对应后续麦克风、听筒、连接状态和说话人 UI。
+    // 麦克风开关最终调用 LiveKit LocalAudioTrack::mute/unmute，听筒开关
+    // 通过远端音频轨的订阅状态控制，不会重新创建或连接语音房间。
+    // 设备选择界面可调用 VoiceManager::recordingDevices/playoutDevices 获取列表，
+    // 再调用 setRecordingDevice/setPlayoutDevice 按稳定 ID 切换设备。
     // 接入按钮和标签后，取消注释声明、实现及 canvas.cpp 中的 connect 即可使用。
     // void slot_toggle_microphone();
     // void slot_toggle_speaker();

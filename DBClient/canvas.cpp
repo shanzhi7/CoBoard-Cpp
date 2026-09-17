@@ -172,6 +172,13 @@ void Canvas::enterOfflineMode()
     }
 }
 
+void Canvas::resumeVoice()
+{
+    // 返回大厅期间只暂停了音频，回到原房间时恢复暂停前的麦克风和听筒状态。
+    // 不重复执行 Canvas 加入流程，也不重新请求 LiveKit Token。
+    VoiceManager::getInstance()->resumeAudio();
+}
+
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
     // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
@@ -1047,7 +1054,16 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
 
 void Canvas::on_return_btn_clicked()    //返回大厅
 {
-    VoiceManager::getInstance()->leaveRoom();
+    if (_room_info && !_room_info->offline)
+    {
+        // 在线房间保留 LiveKit Room，只暂停音频，返回房间时可以立即恢复通话。
+        VoiceManager::getInstance()->suspendAudio();
+    }
+    else
+    {
+        // 离线画板没有语音连接，沿用完整释放流程清理可能残留的语音资源。
+        VoiceManager::getInstance()->leaveRoom();
+    }
 
     // 离线画板没有大厅房间状态，返回时直接清空本地画布和离线房间信息。
     if (_room_info && _room_info->offline)
@@ -1059,15 +1075,23 @@ void Canvas::on_return_btn_clicked()    //返回大厅
 // ===== 语音 UI 预留实现（当前暂不启用） =====
 // void Canvas::slot_toggle_microphone()
 // {
+//     // LiveKit 通过 LocalAudioTrack::mute/unmute 停止或恢复麦克风发送。
 //     const bool enabled = !VoiceManager::getInstance()->microphoneEnabled();
 //     VoiceManager::getInstance()->setMicrophoneEnabled(enabled);
 // }
 //
 // void Canvas::slot_toggle_speaker()
 // {
+//     // LiveKit 通过远端音频轨订阅状态停止或恢复听筒播放。
 //     const bool enabled = !VoiceManager::getInstance()->speakerEnabled();
 //     VoiceManager::getInstance()->setSpeakerEnabled(enabled);
 // }
+//
+// // 设备选择框示例：显示 name，提交时使用对应的 id，避免设备序号变化导致选错设备。
+// const auto devices = VoiceManager::getInstance()->playoutDevices();
+// for (const auto& device : devices)
+//     speakerComboBox->addItem(device.name, device.id);
+// VoiceManager::getInstance()->setPlayoutDevice(speakerComboBox->currentData().toString());
 //
 // void Canvas::slot_voice_state_changed(VoiceManager::State state)
 // {

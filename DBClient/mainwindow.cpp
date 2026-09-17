@@ -349,6 +349,10 @@ void MainWindow::slotLobbyReturnRoom()
     {
         return;
     }
+
+    // 返回大厅期间 Canvas 主动断开了 LiveKit，重新显示画板时恢复当前房间语音。
+    // Canvas TCP 房间仍由原有流程维护，这里只触发语音 Token 和 LiveKit 重连。
+    canvas->resumeVoice();
     canvas->show();
     this->hide();
 }

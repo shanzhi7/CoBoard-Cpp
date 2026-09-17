@@ -19,6 +19,7 @@
 #include <QString>
 #include <QStringList>
 #include <QThread>
+#include <QVector>
 
 #include <atomic>
 #include <memory>
@@ -33,6 +34,13 @@ class VoiceManager : public QObject,
     friend class Singleton<VoiceManager>;
 
 public:
+    // 音频设备的显示名称和稳定 ID，UI 应保存 id，不要保存设备序号。
+    struct AudioDevice
+    {
+        QString name;
+        QString id;
+    };
+
     // 语音房间当前连接状态，UI 可根据该状态更新提示文字或图标。
     enum class State
     {
@@ -47,6 +55,13 @@ public:
 
     void joinRoom(const QString& room_id);       // 请求 Token 并加入语音房间
     void leaveRoom();                            // 断开语音房间并释放音频资源
+    void suspendAudio();                         // 暂停大厅期间的麦克风和远端音频
+    void resumeAudio();                          // 恢复大厅前保存的音频状态
+
+    QVector<AudioDevice> recordingDevices() const; // 获取可用麦克风列表
+    QVector<AudioDevice> playoutDevices() const;   // 获取可用扬声器/耳机列表
+    bool setRecordingDevice(const QString& device_id); // 切换麦克风，不重连房间
+    bool setPlayoutDevice(const QString& device_id);   // 切换扬声器/耳机，不重连房间
 
     void setMicrophoneEnabled(bool enabled);     // 打开或关闭本地麦克风
     void setSpeakerEnabled(bool enabled);        // 打开或关闭远端语音接收
@@ -63,6 +78,7 @@ signals:
     void sig_microphone_changed(bool enabled);          // 麦克风状态变化通知
     void sig_speaker_changed(bool enabled);             // 听筒状态变化通知
     void sig_active_speakers_changed(const QStringList& identities); // 正在说话的成员
+    void sig_audio_device_changed(bool recording, const QString& device_id); // 设备切换成功通知
 
 private:
     VoiceManager();
@@ -110,4 +126,10 @@ private:
     std::atomic<State> _state{State::Disconnected};    // 当前状态
     std::atomic<bool> _microphone_enabled{true};       // 默认打开麦克风
     std::atomic<bool> _speaker_enabled{true};          // 默认打开听筒
+    std::atomic<bool> _audio_suspended{false};          // 是否因暂离大厅而暂停音频
+    bool _microphone_before_suspend = true;             // 暂停前的麦克风状态
+    bool _speaker_before_suspend = true;                // 暂停前的听筒状态
+
+    mutable QMap<QString,AudioDevice> _cached_recording_devices;    //缓存麦克风设备
+    mutable QMap<QString,AudioDevice> _cached_playout_devices;      //缓存扬声器设备
 };
