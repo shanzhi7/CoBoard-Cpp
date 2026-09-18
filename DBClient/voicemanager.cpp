@@ -375,6 +375,14 @@ void VoiceManager::publishMicrophone()
     if (!_room || !_platform_audio) //livekit房间对象或者声卡硬件层未初始化
         return;
 
+    // LiveKit 在首次连接和自动重连恢复时都可能回调 Connected。
+    // 同一个 Room 只能保留一条麦克风轨道，否则远端会听到重复声音。
+    if (_audio_track)
+    {
+        setMicrophoneEnabled(_microphone_enabled.load());
+        return;
+    }
+
     try
     {
         // PlatformAudio 使用 WebRTC 系统音频设备，并自带回声消除、降噪和自动增益。
@@ -396,6 +404,9 @@ void VoiceManager::publishMicrophone()
     }
     catch (const std::exception& exception)
     {
+        // publishTrack 失败时释放已创建的对象，允许后续真正的连接恢复再次尝试。
+        _audio_track.reset();
+        _audio_source.reset();
         qWarning() << "[VoiceManager] microphone init failed:"
                    << QString::fromUtf8(exception.what());
         emit sig_error(QStringLiteral("麦克风初始化失败: ") + QString::fromUtf8(exception.what()));
@@ -409,8 +420,21 @@ void VoiceManager::handleConnected()
 
     try
     {
+        const bool audio_initialized = _platform_audio && _audio_track;
         // delegate 回调必须尽快返回，音频设备初始化放到 Qt 线程异步执行。
-        _platform_audio = std::make_unique<livekit::PlatformAudio>();
+        if (!_platform_audio)
+            _platform_audio = std::make_unique<livekit::PlatformAudio>();
+
+        if (audio_initialized)
+        {
+            // 重连成功会再次触发 Connected，但原有音轨会由 SDK 自动恢复发布。
+            // 这里只重新应用听筒状态，不能再次创建或发布本地音轨。
+            applySpeakerState();
+            setState(State::Connected);
+            qInfo() << "[VoiceManager] duplicate Connected ignored; audio already initialized";
+            return;
+        }
+
         publishMicrophone();    //发布麦克风音轨
         applySpeakerState();    //订阅远端音频
         setState(State::Connected);
@@ -455,13 +479,18 @@ void VoiceManager::setState(State state)
 }
 
 void VoiceManager::onConnectionStateChanged(
-    livekit::Room&, const livekit::ConnectionStateChangedEvent& event)
+    livekit::Room& room, const livekit::ConnectionStateChangedEvent& event)
 {
     // 连接回调来自 LiveKit 线程，不能在这里初始化音频设备或发布轨道，交给UI线程初始化，防止阻塞过长导致连接超时。
     if (event.state == livekit::ConnectionState::Connected)
     {
-        QMetaObject::invokeMethod(this, &VoiceManager::handleConnected,
-                                  Qt::QueuedConnection);
+        // 连接切换期间，旧 Room 的排队回调不能初始化新 Room 的音频资源。
+        livekit::Room* connected_room = &room;
+        QMetaObject::invokeMethod(this, [this, connected_room]() {
+            if (_room.get() != connected_room)
+                return;
+            handleConnected();
+        }, Qt::QueuedConnection);
     }
     else if (event.state == livekit::ConnectionState::Reconnecting)
     {
