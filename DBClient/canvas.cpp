@@ -18,6 +18,8 @@
 #include <QElapsedTimer>
 #include <QtMath>
 
+#include <algorithm>
+
 Canvas::Canvas(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Canvas)
@@ -85,22 +87,6 @@ Canvas::Canvas(QWidget *parent)
     connect(ui->input_edit,&QLineEdit::returnPressed,this,&Canvas::slot_onSendChatClicked);
     connect(ui->send_btn,&QPushButton::clicked,this,&Canvas::slot_onSendChatClicked);
 
-    // ===== 语音 UI 预留连接（当前暂不启用） =====
-    // 后续在 canvas.ui 增加对应控件后，取消下面代码的注释。
-    // connect(ui->microphoneButton, &QPushButton::clicked,
-    //         this, &Canvas::slot_toggle_microphone);
-    // connect(ui->speakerButton, &QPushButton::clicked,
-    //         this, &Canvas::slot_toggle_speaker);
-    // connect(VoiceManager::getInstance().get(),
-    //         &VoiceManager::sig_state_changed,
-    //         this, &Canvas::slot_voice_state_changed);
-    // connect(VoiceManager::getInstance().get(),
-    //         &VoiceManager::sig_error,
-    //         this, &Canvas::slot_voice_error);
-    // connect(VoiceManager::getInstance().get(),
-    //         &VoiceManager::sig_active_speakers_changed,
-    //         this, &Canvas::slot_active_speakers_changed);
-
     // TcpMgr -> Canvas (接收广播)
     connect(TcpMgr::getInstance().get(), &TcpMgr::sig_draw_broadcast,
             this, &Canvas::slot_onDrawBroadcast);
@@ -120,14 +106,20 @@ Canvas::~Canvas()
 
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
+    // 首次进入房间时，JoinRoomRsp 后面的历史绘画包可能已经先到达并进入队列。
+    // 此时 _room_info 为空，不能清队列，否则会丢掉房主已有的绘画内容。
+    // 从已有房间切换到另一个房间时仍需清理旧队列，避免旧房间图元串到新房间。
+    if (_room_info)
+        _remoteDrawQueue.clear();
+
     this->_room_info = room_info;
-    _remoteDrawQueue.clear();
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start();
     if (_remoteDrawTimer && !_remoteDrawTimer->isActive())
         _remoteDrawTimer->start();
     applyRoomCanvasSize();
     refreshRoomCollaborationState();
+    refreshCurrentUserProfile();
 }
 
 void Canvas::enterOfflineMode()
@@ -399,6 +391,159 @@ void Canvas::initToolBtn()
     QPixmap originMap(":/res/pen.png");
     ui->pen_tool->setIcon(QIcon(originMap));
 
+    // 语音按钮图标统一使用白色，避免资源原色与工具栏背景产生对比不一致。
+    const QPixmap microphone_icon = applyColor(
+        QPixmap(":/res/microphoneopen.png"), Qt::white);
+    const QPixmap speaker_icon = applyColor(
+        QPixmap(":/res/Speakeropen.png"), Qt::white);
+    ui->mic_toolBtn->setIcon(QIcon(microphone_icon));
+    ui->speaker_toolBtn->setIcon(QIcon(speaker_icon));
+
+    // 覆盖系统原生菜单按钮绘制，避免蓝色背景和箭头遮挡语音图标。
+    const QString voice_tool_style = QStringLiteral(
+        "QToolButton { padding-right: 8px; }"
+        "QToolButton::menu-button {"
+        "  width: 10px; border: none; background: transparent; }"
+        "QToolButton::menu-arrow {"
+        "  image: url(:/res/voice_arrow_down.svg);"
+        "  width: 8px; height: 5px; }"
+    );
+    ui->mic_toolBtn->setStyleSheet(voice_tool_style);
+    ui->speaker_toolBtn->setStyleSheet(voice_tool_style);
+
+    // 根据当前麦克风状态切换白色的开启/关闭图标。
+    auto update_microphone_icon = [this]() {
+        const QString icon_path = VoiceManager::getInstance()->microphoneEnabled()
+                                      ? QStringLiteral(":/res/microphoneopen.png")
+                                      : QStringLiteral(":/res/microphoneclose.png");
+        ui->mic_toolBtn->setIcon(QIcon(applyColor(QPixmap(icon_path), Qt::white)));
+    };
+    // 根据当前扬声器状态切换白色的开启/关闭图标。
+    auto update_speaker_icon = [this]() {
+        const QString icon_path = VoiceManager::getInstance()->speakerEnabled()
+                                      ? QStringLiteral(":/res/Speakeropen.png")
+                                      : QStringLiteral(":/res/Speakerclose.png");
+        ui->speaker_toolBtn->setIcon(QIcon(applyColor(QPixmap(icon_path), Qt::white)));
+    };
+
+    update_microphone_icon();   // 更新麦克风图标
+    update_speaker_icon();      // 更新听筒图标
+
+    // VoiceManager 可能因大厅恢复或其他逻辑改变状态，UI 需要同步刷新图标。
+    connect(VoiceManager::getInstance().get(), &VoiceManager::sig_microphone_changed,
+            this, [update_microphone_icon](bool) { update_microphone_icon(); });
+    connect(VoiceManager::getInstance().get(), &VoiceManager::sig_speaker_changed,
+            this, [update_speaker_icon](bool) { update_speaker_icon(); });
+    connect(VoiceManager::getInstance().get(), &VoiceManager::sig_audio_device_changed,
+            this, [this](bool recording, const QString& device_id) {
+        if (recording)
+            _selected_recording_device_id = device_id;
+        else
+            _selected_playout_device_id = device_id;
+    });
+
+    // 点击按钮主体只切换开关，点击右侧菜单箭头则由设备菜单处理。
+    connect(ui->mic_toolBtn, &QToolButton::clicked, this, [this, update_microphone_icon]() {
+        VoiceManager* voice_manager = VoiceManager::getInstance().get();
+        const bool enabled = !voice_manager->microphoneEnabled();
+        voice_manager->setMicrophoneEnabled(enabled);
+        update_microphone_icon();
+        qDebug() << "[Voice UI] microphone enabled:" << enabled;
+    });
+    connect(ui->speaker_toolBtn, &QToolButton::clicked, this, [this, update_speaker_icon]() {
+        VoiceManager* voice_manager = VoiceManager::getInstance().get();
+        const bool enabled = !voice_manager->speakerEnabled();
+        voice_manager->setSpeakerEnabled(enabled);
+        update_speaker_icon();
+        qDebug() << "[Voice UI] speaker enabled:" << enabled;
+    });
+
+    // 菜单每次展开时重新枚举设备，避免设备插拔后仍显示旧列表。
+    auto* microphone_menu = new QMenu(ui->mic_toolBtn);
+    microphone_menu->setTitle(QStringLiteral("选择麦克风"));
+    microphone_menu->setStyleSheet(QStringLiteral(
+        "QMenu::item:checked { background-color: #c4c4c4; color: #202020; }"
+        "QMenu::item:checked:selected { background-color: #aaaaaa; color: #101010; }"));
+    connect(microphone_menu, &QMenu::aboutToShow, this, [this, microphone_menu]() {
+        microphone_menu->clear();
+        const auto devices = VoiceManager::getInstance()->recordingDevices();
+        if (devices.isEmpty())
+        {
+            microphone_menu->addAction(QStringLiteral("没有可用麦克风"))->setEnabled(false);
+            return;
+        }
+        const bool recording_selected = std::any_of(
+            devices.cbegin(), devices.cend(), [this](const auto& device) {
+                return device.id == _selected_recording_device_id;
+            });
+        if (!recording_selected)
+            _selected_recording_device_id = devices.first().id;
+        for (const auto& device : devices)
+        {
+            QAction* action = microphone_menu->addAction(device.name);
+            action->setCheckable(true);
+            action->setChecked(device.id == _selected_recording_device_id);
+            QObject::connect(action, &QAction::triggered, microphone_menu,
+                             [this, device]() {
+                const bool success = VoiceManager::getInstance()->setRecordingDevice(device.id);
+                if (success)
+                    _selected_recording_device_id = device.id;
+                qDebug() << "[Voice UI] recording device:" << device.name
+                         << "id:" << device.id << "success:" << success;
+            });
+        }
+    });
+    ui->mic_toolBtn->setMenu(microphone_menu);
+
+    // 扬声器菜单与麦克风菜单保持相同的动态刷新策略。
+    auto* speaker_menu = new QMenu(ui->speaker_toolBtn);
+    speaker_menu->setTitle(QStringLiteral("选择扬声器"));
+    speaker_menu->setStyleSheet(QStringLiteral(
+        "QMenu::item:checked { background-color: #c4c4c4; color: #202020; }"
+        "QMenu::item:checked:selected { background-color: #aaaaaa; color: #101010; }"));
+    connect(speaker_menu, &QMenu::aboutToShow, this, [this, speaker_menu]() {
+        speaker_menu->clear();
+        const auto devices = VoiceManager::getInstance()->playoutDevices();
+        if (devices.isEmpty())
+        {
+            speaker_menu->addAction(QStringLiteral("没有可用扬声器"))->setEnabled(false);
+            return;
+        }
+        const bool playout_selected = std::any_of(
+            devices.cbegin(), devices.cend(), [this](const auto& device) {
+                return device.id == _selected_playout_device_id;
+            });
+        if (!playout_selected)
+            _selected_playout_device_id = devices.first().id;
+        for (const auto& device : devices)
+        {
+            QAction* action = speaker_menu->addAction(device.name);
+            action->setCheckable(true);
+            action->setChecked(device.id == _selected_playout_device_id);
+            QObject::connect(action, &QAction::triggered, speaker_menu,
+                             [this, device]() {
+                const bool success = VoiceManager::getInstance()->setPlayoutDevice(device.id);
+                if (success)
+                    _selected_playout_device_id = device.id;
+                qDebug() << "[Voice UI] playout device:" << device.name
+                         << "id:" << device.id << "success:" << success;
+            });
+        }
+    });
+    ui->speaker_toolBtn->setMenu(speaker_menu);
+
+}
+
+void Canvas::refreshCurrentUserProfile()
+{
+    // Canvas 在登录前就创建，构造函数阶段拿不到当前用户信息；
+    // 进入房间后再刷新，避免工具栏一直显示 UI 文件中的默认头像和名称。
+    const auto my_info = UserMgr::getInstance()->getMyInfo();
+    if (!my_info)
+        return;
+
+    ui->username_label->setText(my_info->_name);
+    UserMgr::getInstance()->loadAvatar(my_info->_avatar, ui->avator_label);
 }
 
 void Canvas::applyRoomCanvasSize()
@@ -530,6 +675,7 @@ QString Canvas::formatMemberDisplayName(const UserInfo& info) const // 格式化
 void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
     _room_info = room_info;
+    refreshCurrentUserProfile();
     refreshRoomCollaborationState();
 
     if (room_info && !room_info->offline)
@@ -556,6 +702,7 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
 void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
 {
     _room_info = room_info;
+    refreshCurrentUserProfile();
     refreshRoomCollaborationState();
 
     if (room_info && !room_info->offline)
@@ -911,6 +1058,10 @@ void Canvas::flushRemoteDrawQueue()
 {
     if (!_paintScene)
         return;
+    // JoinRoomRsp 到达后，Canvas 还需要完成房间状态和画布尺寸初始化。
+    // 历史绘画包先保留在队列里，等 connected 为 true 后再应用，避免初始化时序导致丢图。
+    if (!_room_info || !_room_info->connected)
+        return;
     if (_room_info && _room_info->offline)
     {
         _remoteDrawQueue.clear();
@@ -1071,42 +1222,3 @@ void Canvas::on_return_btn_clicked()    //返回大厅
 
     emit sig_return_lobby();            //发送信号给mainWindow接收
 }
-
-// ===== 语音 UI 预留实现（当前暂不启用） =====
-// void Canvas::slot_toggle_microphone()
-// {
-//     // LiveKit 通过 LocalAudioTrack::mute/unmute 停止或恢复麦克风发送。
-//     const bool enabled = !VoiceManager::getInstance()->microphoneEnabled();
-//     VoiceManager::getInstance()->setMicrophoneEnabled(enabled);
-// }
-//
-// void Canvas::slot_toggle_speaker()
-// {
-//     // LiveKit 通过远端音频轨订阅状态停止或恢复听筒播放。
-//     const bool enabled = !VoiceManager::getInstance()->speakerEnabled();
-//     VoiceManager::getInstance()->setSpeakerEnabled(enabled);
-// }
-//
-// // 设备选择框示例：显示 name，提交时使用对应的 id，避免设备序号变化导致选错设备。
-// const auto devices = VoiceManager::getInstance()->playoutDevices();
-// for (const auto& device : devices)
-//     speakerComboBox->addItem(device.name, device.id);
-// VoiceManager::getInstance()->setPlayoutDevice(speakerComboBox->currentData().toString());
-//
-// void Canvas::slot_voice_state_changed(VoiceManager::State state)
-// {
-//     // 根据 state 更新语音连接状态标签或图标。
-//     Q_UNUSED(state);
-// }
-//
-// void Canvas::slot_voice_error(const QString& message)
-// {
-//     // 根据项目现有提示控件展示错误，不在 VoiceManager 内直接操作 UI。
-//     TipWidget::showTip(this, message);
-// }
-//
-// void Canvas::slot_active_speakers_changed(const QStringList& identities)
-// {
-//     // identities 中的值类似 uid-1001，可映射到成员列表并显示“说话中”状态。
-//     Q_UNUSED(identities);
-// }

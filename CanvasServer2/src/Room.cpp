@@ -75,14 +75,23 @@ void Room::Join(std::shared_ptr<CSession> session)
         if (_sessions.find(uid) == _sessions.end())
             first_join = true;
 
-        _sessions[uid] = session;
-        session->SetRoom(shared_from_this());   //这样 Session 断开时知道通知哪个房间,session有room的弱指针
-
         // 只给“首次加入”的人回放历史
         if (first_join && !_history.empty())
         {
             history_snapshot = _history;
         }
+
+        // 历史包必须在房间锁内先进入该会话的发送队列，再把会话加入房间。
+        // 否则历史包通过 executor 异步投递期间，其他用户的新绘画可能先入队，
+        // 接收端会先收到 MOVE/END，再收到 START，表现为加入房间后图形不完整。
+        if (first_join)
+        {
+            for (const auto& data : history_snapshot)
+                session->Send(data, ID_DRAW_RSP);
+        }
+
+        _sessions[uid] = session;
+        session->SetRoom(shared_from_this());   //这样 Session 断开时知道通知哪个房间,session有room的弱指针
 
         LOG_INFO_CTX("Room::Join", "用户加入 room_id=" << _room_id << " uid=" << uid
             << " total=" << _sessions.size());
@@ -94,24 +103,6 @@ void Room::Join(std::shared_ptr<CSession> session)
             _sessions.erase(uid); // 立即回滚
             return;
         }
-    }
-
-    //先回放历史 (只给加入者)
-    if (first_join && !history_snapshot.empty())
-    {
-        auto weak_sess = std::weak_ptr<CSession>(session);
-
-        // 投递到该 session 的 IO executor 线程串行执行
-        boost::asio::post(session->GetSocket().get_executor(),
-            [weak_sess, history_snapshot]() {
-                auto sess = weak_sess.lock();
-                if (!sess || sess->IsClosed()) return;
-
-                for (const auto& data : history_snapshot)
-                {
-                    sess->Send(data, ID_DRAW_RSP);
-                }
-            });
     }
 
         // 只有第一次 join 才广播进入，通知其他用户，更新客户端ui

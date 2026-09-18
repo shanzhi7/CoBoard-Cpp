@@ -64,19 +64,6 @@ private slots:
 
     void on_return_btn_clicked();                //返回大厅槽函数
 
-    // ===== 语音 UI 预留接口（当前暂不启用） =====
-    // 下面的槽函数对应后续麦克风、听筒、连接状态和说话人 UI。
-    // 麦克风开关最终调用 LiveKit LocalAudioTrack::mute/unmute，听筒开关
-    // 通过远端音频轨的订阅状态控制，不会重新创建或连接语音房间。
-    // 设备选择界面可调用 VoiceManager::recordingDevices/playoutDevices 获取列表，
-    // 再调用 setRecordingDevice/setPlayoutDevice 按稳定 ID 切换设备。
-    // 接入按钮和标签后，取消注释声明、实现及 canvas.cpp 中的 connect 即可使用。
-    // void slot_toggle_microphone();
-    // void slot_toggle_speaker();
-    // void slot_voice_state_changed(VoiceManager::State state);
-    // void slot_voice_error(const QString& message);
-    // void slot_active_speakers_changed(const QStringList& identities);
-
 private:
     Ui::Canvas *ui;
     QLabel *statusDot;                              // 状态栏标签
@@ -86,6 +73,9 @@ private:
     QMap<int,QTreeWidgetItem*> _userItemMap;        // 用户列表
 
     QButtonGroup* _toolGroup;                       // toolbtn按钮组
+
+    QString _selected_recording_device_id;          // 当前高亮的麦克风设备 ID
+    QString _selected_playout_device_id;            // 当前高亮的扬声器设备 ID
 
     // ====== Pen/Eraser MOVE 节流缓存 ======
     struct PendingStrokePoints {
@@ -114,6 +104,7 @@ private:
 
     void initCanvasUi();        //初始化ui界面
     void initToolBtn();         //初始化tool按钮
+    void refreshCurrentUserProfile(); // 刷新当前用户头像和名称
     void applyRoomCanvasSize();                                           // 按房间信息应用画布尺寸
     void initMemberContextMenu();                                          // 初始化成员列表右键菜单
     void showMemberContextMenu(const QPoint& pos);                         // 显示房主授权菜单

@@ -60,8 +60,8 @@ public:
 
     QVector<AudioDevice> recordingDevices() const; // 获取可用麦克风列表
     QVector<AudioDevice> playoutDevices() const;   // 获取可用扬声器/耳机列表
-    bool setRecordingDevice(const QString& device_id); // 切换麦克风，不重连房间
-    bool setPlayoutDevice(const QString& device_id);   // 切换扬声器/耳机，不重连房间
+    bool setRecordingDevice(const QString& device_id); // 保存麦克风选择并重建语音连接
+    bool setPlayoutDevice(const QString& device_id);   // 保存扬声器选择并重建语音连接
 
     void setMicrophoneEnabled(bool enabled);     // 打开或关闭本地麦克风
     void setSpeakerEnabled(bool enabled);        // 打开或关闭远端语音接收
@@ -87,6 +87,7 @@ private:
     void connectLiveKit(const QString& url, const QString& token); // 在工作线程连接房间
     void handleConnected();                             // 在 Qt 线程完成音频初始化
     void publishMicrophone();                          // 创建并发布平台麦克风
+    void applyPreferredAudioDevices();                  // 在建立房间连接前应用设备选择
     void applySpeakerState();                           // 应用远端音轨订阅状态
     void setState(State state);                        // 更新状态并发出信号
 
@@ -123,6 +124,8 @@ private:
     std::shared_ptr<livekit::LocalAudioTrack> _audio_track; // 本地发布的语音轨道
 
     QString _room_id;                                  // 当前语音房间 ID
+    QString _preferred_recording_device_id;             // 用户选择的麦克风 ID
+    QString _preferred_playout_device_id;               // 用户选择的扬声器 ID
     std::atomic<State> _state{State::Disconnected};    // 当前状态
     std::atomic<bool> _microphone_enabled{true};       // 默认打开麦克风
     std::atomic<bool> _speaker_enabled{true};          // 默认打开听筒

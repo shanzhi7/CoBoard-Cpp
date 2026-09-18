@@ -13,5 +13,10 @@
         <file>res/pen_width.png</file>
         <file>res/line.png</file>
         <file>res/return.png</file>
+        <file>res/microphoneclose.png</file>
+        <file>res/microphoneopen.png</file>
+        <file>res/Speakerclose.png</file>
+        <file>res/Speakeropen.png</file>
+        <file>res/voice_arrow_down.svg</file>
     </qresource>
 </RCC>

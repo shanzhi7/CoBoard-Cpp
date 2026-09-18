@@ -6,7 +6,7 @@
 #include <QJsonObject>
 #include <QJsonArray>
 
-TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0)
+TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_reconnect_timer(new QTimer(this)),_reconnect_cnt(0)
 {
     //连接成功
     QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
@@ -127,8 +127,8 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
                          }
                      });
 
-    _reconnect_timer.setSingleShot(true);   //设置单次定时器
-    QObject::connect(&_reconnect_timer, &QTimer::timeout, this, &TcpMgr::slot_do_reconnect);     //连接定时器timeout 重新连接服务器
+    _reconnect_timer->setSingleShot(true);   //设置单次定时器
+    QObject::connect(_reconnect_timer, &QTimer::timeout, this, &TcpMgr::slot_do_reconnect);     //连接定时器timeout 重新连接服务器
 
     // disconnected监听
     QObject::connect(&_socket,&QTcpSocket::disconnected,this,[this](){
@@ -345,7 +345,7 @@ void TcpMgr::initHandlers()
         {
             qDebug() << "[TcpMgr] offline reconnect: join ok, back to canvas";
             _is_offline_reconnect = false;
-            _reconnect_timer.stop();
+            _reconnect_timer->stop();
             _reconnect_cnt = 0;
 
             emit sig_resume_join_finish(room_info);
@@ -478,6 +478,11 @@ void TcpMgr::slot_tcp_connect(ServerInfo si)
 {
     qDebug()<<"接收到 tcp connect singal";
 
+    // 新一轮主动登录不应继承上一次掉线重连的退避次数。
+    _reconnect_timer->stop();
+    _reconnect_cnt = 0;
+    _is_offline_reconnect = false;
+
     //尝试连接服务器
     qDebug()<<"Connnecting to Server......";
     _host = si.Host;
@@ -533,6 +538,8 @@ void TcpMgr::slot_switch_server(const QString &host, int port,const QString& roo
 {
 
     _is_offline_reconnect = false; // 切服不是掉线重连
+    _reconnect_timer->stop();
+    _reconnect_cnt = 0;
     // 先把任务记在小本本上
     _pending_room_id = room_id;
     _pending_uid = uid;
@@ -556,16 +563,31 @@ int TcpMgr::calc_backoff_ms()   //计算指数退避ms，也就是下次发送�
 
 void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
 {
+    // QTimer 只能在所属线程的事件循环中启动。网络错误信号通常来自
+    // QTcpSocket 线程，但保留线程保护可以避免未来跨线程调用时触发 Qt 警告。
+    if (QThread::currentThread() != thread())
+    {
+        QMetaObject::invokeMethod(this, &TcpMgr::slot_start_reconnect, Qt::QueuedConnection);
+        return;
+    }
+
     // 如果已经在等 timer，就别重复启动
-    if (_reconnect_timer.isActive())
+    if (_reconnect_timer->isActive())
         return;
     int backoff = calc_backoff_ms();
     qDebug() << "[TcpMgr] will reconnect in" << backoff << "ms, cnt=" << _reconnect_cnt;
-    _reconnect_timer.start(backoff);    //启动定时器,backoff ms 后开始重连
+    _reconnect_timer->start(backoff);    //启动定时器,backoff ms 后开始重连
 }
 
 void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
 {
+    // 定时器回调原则上已经在对象线程执行，保留保护以防止外部直接调用槽函数。
+    if (QThread::currentThread() != thread())
+    {
+        QMetaObject::invokeMethod(this, &TcpMgr::slot_do_reconnect, Qt::QueuedConnection);
+        return;
+    }
+
     //优先连接 "房间所属服务器", 没有就连接当前 _host/_post
     QString host = !_room_host.isEmpty() ? _room_host : _host;
     uint16_t port = (_room_port != 0) ? _room_port : _port;

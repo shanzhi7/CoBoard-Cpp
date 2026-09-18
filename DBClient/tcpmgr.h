@@ -10,6 +10,7 @@
 #include <QByteArray>
 #include <functional>
 #include <QTimer>
+#include <QThread>
 
 class TcpMgr : public QObject,public Singleton<TcpMgr>,public std::enable_shared_from_this<TcpMgr>
 {
@@ -33,7 +34,7 @@ private:
     int _pending_uid = 0;
 
     // --断线重连 (指数退避) 相关--
-    QTimer _reconnect_timer;        //重连定时器 (singleShot)
+    QTimer* _reconnect_timer = nullptr; //重连定时器 (singleShot)，挂到 TcpMgr 保证线程随对象迁移
     int _reconnect_cnt;             //重连失败次数 (用于指数退避)
     bool _is_offline_reconnect = false; //用于是否处于 "掉线重连流程" (区分重定向切服流程)
 

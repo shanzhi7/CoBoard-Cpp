@@ -81,7 +81,14 @@ void UserMgr::loadAvatar(const QString &url, QLabel *label)
     if(QFile::exists(localPath)) //如果本地已经有这个文件了
     {
         QPixmap pix(localPath);
-        label->setPixmap(pix.scaled(label->size(),Qt::KeepAspectRatio,Qt::SmoothTransformation));
+        if (!pix.isNull())
+        {
+            // UI 文件中的 border-image 只是默认头像；设置真实头像前必须移除，
+            // 否则 QLabel 会同时绘制默认头像和 pixmap，产生重叠效果。
+            label->setStyleSheet(QString());
+            label->setPixmap(pix.scaled(label->size(), Qt::IgnoreAspectRatio,
+                                        Qt::SmoothTransformation));
+        }
         qDebug()<<"加载头像(命中缓存)";
         return;
     }
@@ -101,7 +108,10 @@ void UserMgr::loadAvatar(const QString &url, QLabel *label)
             QPixmap pix;
             if (pix.loadFromData(data))
             {
-                label->setPixmap(pix.scaled(label->size(), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                // 清除默认 border-image，避免默认头像和网络头像叠加绘制。
+                label->setStyleSheet(QString());
+                label->setPixmap(pix.scaled(label->size(), Qt::IgnoreAspectRatio,
+                                            Qt::SmoothTransformation));
 
                 // 保存到本地缓存，下次就不用下载了
                 QFile file(localPath);

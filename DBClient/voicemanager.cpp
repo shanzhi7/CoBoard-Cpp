@@ -9,6 +9,8 @@
 #include <QNetworkRequest>
 #include <QUrl>
 
+#include <algorithm>
+
 // VoiceManager 只保存客户端拿到的短期 Token，不保存 LiveKit API Secret。
 VoiceManager::VoiceManager()
     : _network_manager(new QNetworkAccessManager(this))
@@ -176,8 +178,16 @@ bool VoiceManager::setRecordingDevice(const QString& device_id)
     // 3. 校验通过，安全下发到底层
     try
     {
-        _platform_audio->setRecordingDevice(device_id.toStdString());
-        emit sig_audio_device_changed(true, device_id);
+        // 1.10.x 的 C++ SDK 只提供初始化前的 setRecordingDevice，
+        // 音频已经启动后直接调用会返回 Device not found。保存选择并完整重连，
+        // 让设备在创建音频源和发布麦克风轨道之前生效，避免重复发布音轨。
+        _preferred_recording_device_id = device_id;
+        const QString room_id = _room_id;
+        if (!_room || room_id.isEmpty())
+            return false;
+
+        leaveRoom();
+        joinRoom(room_id);
         return true;
     }
     catch (const std::exception& exception)
@@ -212,8 +222,14 @@ bool VoiceManager::setPlayoutDevice(const QString& device_id)
     // 3. 校验通过，安全下发到底层
     try
     {
-        _platform_audio->setPlayoutDevice(device_id.toStdString());
-        emit sig_audio_device_changed(false, device_id);
+        // 与麦克风相同，输出设备必须在 ADM 开始播放前设置。
+        _preferred_playout_device_id = device_id;
+        const QString room_id = _room_id;
+        if (!_room || room_id.isEmpty())
+            return false;
+
+        leaveRoom();
+        joinRoom(room_id);
         return true;
     }
     catch (const std::exception& exception)
@@ -329,6 +345,21 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
 {
     // LiveKit 的 connect 是阻塞调用，必须放到独立线程，不能阻塞 Qt UI 线程。
     qInfo() << "[VoiceManager] connecting to LiveKit";
+    try
+    {
+        // 必须在 Room::connect 前创建 ADM 并设置设备；连接后切换会被
+        // WebRTC ADM 拒绝为 Device not found。
+        _platform_audio = std::make_unique<livekit::PlatformAudio>();
+        applyPreferredAudioDevices();
+    }
+    catch (const std::exception& exception)
+    {
+        qWarning() << "[VoiceManager] platform audio init failed:"
+                   << QString::fromUtf8(exception.what());
+        emit sig_error(QStringLiteral("平台音频初始化失败: ") + QString::fromUtf8(exception.what()));
+        _platform_audio.reset();
+    }
+
     _room = std::make_unique<livekit::Room>();
     _room->setDelegate(this);       //设置livekit代理对象
     setState(State::Connecting);
@@ -368,6 +399,56 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
     connect(_connect_thread, &QThread::finished,
             _connect_thread, &QObject::deleteLater);
     _connect_thread->start();
+}
+
+void VoiceManager::applyPreferredAudioDevices()
+{
+    if (!_platform_audio)
+        return;
+
+    if (!_preferred_recording_device_id.isEmpty())
+    {
+        try
+        {
+            const auto devices = _platform_audio->recordingDevices();
+            const auto found = std::find_if(
+                devices.cbegin(), devices.cend(), [this](const auto& device) {
+                    return QString::fromStdString(device.id) == _preferred_recording_device_id;
+                });
+            if (found != devices.cend())
+            {
+                _platform_audio->setRecordingDevice(_preferred_recording_device_id.toStdString());
+                emit sig_audio_device_changed(true, _preferred_recording_device_id);
+            }
+        }
+        catch (const std::exception& exception)
+        {
+            qWarning() << "[VoiceManager] apply recording device failed:"
+                       << QString::fromUtf8(exception.what());
+        }
+    }
+
+    if (!_preferred_playout_device_id.isEmpty())
+    {
+        try
+        {
+            const auto devices = _platform_audio->playoutDevices();
+            const auto found = std::find_if(
+                devices.cbegin(), devices.cend(), [this](const auto& device) {
+                    return QString::fromStdString(device.id) == _preferred_playout_device_id;
+                });
+            if (found != devices.cend())
+            {
+                _platform_audio->setPlayoutDevice(_preferred_playout_device_id.toStdString());
+                emit sig_audio_device_changed(false, _preferred_playout_device_id);
+            }
+        }
+        catch (const std::exception& exception)
+        {
+            qWarning() << "[VoiceManager] apply playout device failed:"
+                       << QString::fromUtf8(exception.what());
+        }
+    }
 }
 
 void VoiceManager::publishMicrophone()
