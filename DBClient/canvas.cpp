@@ -14,6 +14,7 @@
 #include <QScrollBar>
 #include <QMenu>
 #include <QAction>
+#include <QKeySequence>
 #include <QDateTime>
 #include <QElapsedTimer>
 #include <QtMath>
@@ -339,6 +340,8 @@ void Canvas::initCanvasUi()
 
     //添加册小action，并且限制只有离线模式可以使用
     QAction* undoAction = editMenu->addAction(QStringLiteral("撤销"));
+    QAction* reset_zoom_action = editMenu->addAction(QStringLiteral("重置缩放（100%）"));
+    reset_zoom_action->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_0));
     ui->edit_btn->setMenu(editMenu);
     connect(undoAction, &QAction::triggered, this, [this]() {
         if (!_room_info || !_room_info->offline)
@@ -354,6 +357,10 @@ void Canvas::initCanvasUi()
 
         // 第一版只撤销离线本地图元；联机撤销以后需要走服务端校验和广播。
         _paintScene->undoLastLocalItem();
+    });
+    connect(reset_zoom_action, &QAction::triggered, this, [this]() {
+        if (ui->graphicsView)
+            ui->graphicsView->resetZoom();
     });
 
     //状态栏
