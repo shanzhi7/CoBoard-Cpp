@@ -20,6 +20,7 @@
 #include "resetwidget.h"
 #include "canvas.h"
 #include "lobbywidget.h"
+#include "testmode.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -32,7 +33,8 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(const LatencyTestOptions& test_options = LatencyTestOptions(),
+                        QWidget *parent = nullptr); // 创建主窗口和测试配置
     ~MainWindow();
 
 protected:

@@ -301,7 +301,7 @@ QToolButton:hover {
      <number>0</number>
     </property>
     <item row="1" column="0">
-     <widget class="QGraphicsView" name="graphicsView"/>
+     <widget class="CanvasGraphicsView" name="graphicsView"/>
     </item>
     <item row="0" column="0">
      <widget class="QFrame" name="topNavBar">
@@ -789,6 +789,11 @@ QToolButton:hover {
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>CanvasGraphicsView</class>
+   <extends>QGraphicsView</extends>
+   <header>canvasgraphicsview.h</header>
+  </customwidget>
   <customwidget>
    <class>UserListTree</class>
    <extends>QTreeWidget</extends>

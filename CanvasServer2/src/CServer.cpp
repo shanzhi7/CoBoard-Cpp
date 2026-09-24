@@ -34,6 +34,13 @@ void CServer::HandleAccept(std::shared_ptr<CSession> new_session, const boost::s
 {
 	if (!error)
 	{
+		boost::system::error_code option_ec;
+		new_session->GetSocket().set_option(boost::asio::ip::tcp::no_delay(true), option_ec);
+		if (option_ec)
+		{
+			LOG_WARN_CTX("CServer::HandleAccept", "设置 TCP_NODELAY 失败: " << option_ec.message());
+		}
+
 		// 启动Session
 		new_session->Start();
 	}

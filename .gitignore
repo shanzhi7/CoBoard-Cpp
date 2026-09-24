@@ -109,3 +109,9 @@ config.json
 # 配置模板允许提交，真实配置仅保留在本地
 !**/config.ini.example
 !**/config.json.example
+
+# 延迟测试运行结果只保存在本机，不进入版本库
+test/results/
+
+# Python 分析脚本运行产生的缓存不进入版本库
+__pycache__/

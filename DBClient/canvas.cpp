@@ -20,7 +20,7 @@
 
 #include <algorithm>
 
-Canvas::Canvas(QWidget *parent)
+Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Canvas)
 {
@@ -91,6 +91,9 @@ Canvas::Canvas(QWidget *parent)
     connect(TcpMgr::getInstance().get(), &TcpMgr::sig_draw_broadcast,
             this, &Canvas::slot_onDrawBroadcast);
 
+    if (test_options.enabled)
+        _latencyTestController = new LatencyTestController(test_options, this);
+
     //开启鼠标追踪，鼠标不点击也把事件传给scene
     ui->graphicsView->setMouseTracking(true);
     ui->graphicsView->viewport()->setMouseTracking(true);
@@ -99,6 +102,8 @@ Canvas::Canvas(QWidget *parent)
 
 Canvas::~Canvas()
 {
+    if (_latencyTestController)
+        _latencyTestController->stop();
     VoiceManager::getInstance()->leaveRoom();
     qApp->removeEventFilter(this);  // 移除事件过滤器
     delete ui;
@@ -113,6 +118,9 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
         _remoteDrawQueue.clear();
 
     this->_room_info = room_info;
+    // 每个新房间从统一的 100% 视图状态开始，缩放比例不属于房间共享状态。
+    if (ui->graphicsView)
+        ui->graphicsView->resetZoom();
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start();
     if (_remoteDrawTimer && !_remoteDrawTimer->isActive())
@@ -124,6 +132,8 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 
 void Canvas::enterOfflineMode()
 {
+    if (_latencyTestController)
+        _latencyTestController->stop();
     VoiceManager::getInstance()->leaveRoom();
 
     // 离线模式复用同一套 PaintScene 绘图能力，但不创建房间、不连接服务器。
@@ -143,6 +153,10 @@ void Canvas::enterOfflineMode()
         _paintScene->resetScene();
         _paintScene->setEditable(true);
     }
+
+    // 离线画布也是独立的本地画布，不继承上一个房间的视图缩放比例。
+    if (ui->graphicsView)
+        ui->graphicsView->resetZoom();
 
     _room_info = std::make_shared<RoomInfo>();
     _room_info->id = QStringLiteral("offline");
@@ -173,6 +187,9 @@ void Canvas::resumeVoice()
 
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
+    if (_latencyTestController)
+        _latencyTestController->stop();
+
     // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
     if (_strokeFlushTimer)
         _strokeFlushTimer->stop();
@@ -194,6 +211,10 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
         _paintScene->setEditable(false);
         _paintScene->resetScene();
     }
+
+    // 断线回大厅时清理本地视图状态，下一次进入画布从 100% 开始。
+    if (ui->graphicsView)
+        ui->graphicsView->resetZoom();
 
     // 4) 清空用户列表 UI + map
     _userItemMap.clear();
@@ -289,6 +310,7 @@ void Canvas::initCanvasUi()
     ui->graphicsView->setScene(_paintScene);            //为view设置舞台
     ui->graphicsView->setRenderHint(QPainter::Antialiasing);    //设置渲染质量，让线条抗锯齿（更平滑，不带狗牙）
     ui->graphicsView->ensureVisible(0, 0, 10, 10);              // 强制把镜头聚焦在画板的左上角 (0,0),保证 (0,0) 这个点附近的区域是可见的
+    ui->graphicsView->resetZoom();                              // 初始化视图缩放状态，状态栏从 100% 开始显示
     //初始化 paintScene(end)
 
     //初始化 _widthPopup(begin)
@@ -350,10 +372,16 @@ void Canvas::initCanvasUi()
         posLabel->setText(QString("X: %1, Y: %2").arg(x).arg(y));
     });
 
-    // 中间/右侧：缩放信息
-    QLabel *zoomLabel = new QLabel("缩放：100%", this);
-    zoomLabel->setStyleSheet("color: #333; font-weight: bold; font-size: 12px;");
-    bar->addPermanentWidget(zoomLabel); // addPermanentWidget 加在最右边
+    // 中间/右侧：缩放信息，显示值始终来自 QGraphicsView 的实际变换矩阵。
+    _zoomLabel = new QLabel("缩放：100%", this);
+    _zoomLabel->setStyleSheet("color: #333; font-weight: bold; font-size: 12px;");
+    bar->addPermanentWidget(_zoomLabel); // addPermanentWidget 加在最右边
+    connect(ui->graphicsView, &CanvasGraphicsView::zoomChanged, this,
+            [this](qreal zoom_factor) {
+        if (_zoomLabel)
+            _zoomLabel->setText(QStringLiteral("缩放：%1%")
+                                .arg(qRound(zoom_factor * 100.0)));
+    });
 
     // 右侧：连接状态
     statusDot = new QLabel("● 未连接", this);
@@ -697,6 +725,8 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start(16);
 
+    startLatencyTestIfReady();
+
 }
 
 void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
@@ -722,6 +752,24 @@ void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
     }
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())
         _strokeFlushTimer->start(16);
+
+    startLatencyTestIfReady();
+}
+
+void Canvas::startLatencyTestIfReady()
+{
+    if (!_latencyTestController || !_room_info || !_room_info->connected)
+        return;
+
+    // 测试发送端必须拥有编辑权限，接收端则只需要成功加入房间。
+    _latencyTestController->startForRoom(
+        _room_info->id,
+        UserMgr::getInstance()->getUid(),
+        _room_info->can_edit);
+
+    // 测试期间固定关闭人工绘画输入，避免污染发送频率和接收队列。
+    if (_latencyTestController->isRunning() && _paintScene)
+        _paintScene->setEditable(false);
 }
 
 void Canvas::slot_user_joined(UserInfo new_info)
@@ -997,8 +1045,17 @@ void Canvas::slot_onDrawBroadcast(QByteArray data)
     int myUid = UserMgr::getInstance()->getMyInfo()->_id;
     if (req.uid() == myUid) return;
 
+    const bool is_test_packet = _latencyTestController &&
+                                _latencyTestController->isTestPacket(req);
+
+    if (is_test_packet)
+    {
+        // 测试消息在入队前记录，便于和实际 apply 阶段区分网络/事件循环延迟。
+        _latencyTestController->recordReceived(req, _remoteDrawQueue.size());
+    }
+
     // ===== 延迟测量 =====
-    if (req.send_timestamp_ms() > 0)
+    if (!is_test_packet && req.send_timestamp_ms() > 0)
     {
         quint64 now = QDateTime::currentMSecsSinceEpoch();      //当前时间戳
         qint64 latency = now - static_cast<qint64>(req.send_timestamp_ms());    //延迟，现在 - 发送
@@ -1086,7 +1143,13 @@ void Canvas::flushRemoteDrawQueue()
     int handled = 0;
     while (!_remoteDrawQueue.isEmpty() && handled < maxPacketsThisFrame)
     {
-        _paintScene->applyRemoteDraw(_remoteDrawQueue.dequeue());
+        message::DrawReq request = _remoteDrawQueue.dequeue();
+        _paintScene->applyRemoteDraw(request);
+        if (_latencyTestController && _latencyTestController->isTestPacket(request))
+        {
+            // 测试消息在实际应用后记录，队列长度反映本地显示排队情况。
+            _latencyTestController->recordApplied(request, _remoteDrawQueue.size());
+        }
         ++handled;
     }
 }

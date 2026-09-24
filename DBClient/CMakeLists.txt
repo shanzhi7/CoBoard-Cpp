@@ -58,6 +58,8 @@ qt_add_executable(DBClient
     usermgr.h usermgr.cpp
     resetwidget.h resetwidget.cpp resetwidget.ui
     canvas.h canvas.cpp canvas.ui
+    canvasgraphicsview.h canvasgraphicsview.cpp canvasgraphicsview.ui
+    testmode.h testmode.cpp
     tcpmgr.h tcpmgr.cpp
     newroomdialog.h newroomdialog.cpp newroomdialog.ui
     paintscene.h paintscene.cpp

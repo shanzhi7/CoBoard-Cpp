@@ -6,7 +6,7 @@
 #include <QPainter>
 #include <QFile>
 
-MainWindow::MainWindow(QWidget *parent)
+MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent)
     //初始化大厅窗口 end
 
     // 初始化画布窗口
-    canvas = new Canvas();
+    canvas = new Canvas(test_options);
     canvas->setAttribute(Qt::WA_DeleteOnClose);     //关闭自动释放
 
     //连接点击欢迎页切换登录窗口

@@ -5,6 +5,7 @@
 #include "global.h"
 #include "userlisttree.h"
 #include "widthpopup.h"
+#include "testmode.h"
 #include <QTreeWidgetItem>
 #include <QMainWindow>
 #include <QLabel>
@@ -23,7 +24,8 @@ class Canvas : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit Canvas(QWidget *parent = nullptr);
+    explicit Canvas(const LatencyTestOptions& test_options = LatencyTestOptions(),
+                    QWidget *parent = nullptr); // 创建画布窗口和可选测试控制器
     ~Canvas();
 
     void setRoomInfo(std::shared_ptr<RoomInfo> room_info);                      //设置房间信息
@@ -74,6 +76,8 @@ private:
 
     QButtonGroup* _toolGroup;                       // toolbtn按钮组
 
+    QLabel* _zoomLabel = nullptr;                   // 状态栏中的缩放比例标签
+
     QString _selected_recording_device_id;          // 当前高亮的麦克风设备 ID
     QString _selected_playout_device_id;            // 当前高亮的扬声器设备 ID
 
@@ -112,6 +116,9 @@ private:
     void leaveUser(int uid);                                                    // 删除用户
     void refreshRoomCollaborationState();                                       // 刷新房间协作状态
     QString formatMemberDisplayName(const UserInfo& info) const;                // 格式化成员显示名
+    void startLatencyTestIfReady();                                              // 房间就绪后启动延迟测试
+
+    LatencyTestController* _latencyTestController = nullptr;                    // 延迟测试控制器
 };
 
 #endif // CANVAS_H
