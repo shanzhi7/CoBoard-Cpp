@@ -1,119 +1,126 @@
-#ifndef PAINTSCENE_H
-#define PAINTSCENE_H
+#pragma once
+
+#include "drawtool.h"
 
 #include <QGraphicsScene>
 #include <QGraphicsItem>
-#include <QObject>
-#include <QPainterPath>
-#include <QPointF>
 #include <QHash>
 #include <QStack>
-#include "global.h"
-#include "message.pb.h"
+
+#include <memory>
+
+class QGraphicsEllipseItem;
+class QGraphicsSceneMouseEvent;
 
 class PaintScene : public QGraphicsScene
 {
     Q_OBJECT
-public:
-    explicit PaintScene(QObject *parent = nullptr);     //构造函数
 
-    //设置画笔颜色和粗细的接口，给外部ui调用
+public:
+    explicit PaintScene(QObject* parent = nullptr);
+
+    // 设置本地绘制样式，新的笔画从下一次鼠标按下开始使用该样式。
     void setPenColor(const QColor& color);
     void setPenWidth(int width);
-    void setShapeType(ShapeType type);      //设置当前工具
-    void setEditable(bool editable);        //设置权限
-    bool isEditable() const;                //是否有编辑权限
 
-    //获取
+    // 切换当前绘图策略；切换时会先结束未完成的本地笔画。
+    void setShapeType(ShapeType type);
+
+    // 更新当前场景的本地编辑权限。
+    void setEditable(bool editable);
+
+    // 返回当前场景是否允许本地鼠标绘制。
+    bool isEditable() const;
+
+    // 读取工具栏显示所需的当前画笔颜色和宽度。
     QColor getPenColor();
     int getPenWidth();
 
-    void hideEraserCursor();        //供外部用来隐藏橡皮擦
+    // 鼠标离开画布或权限变化时隐藏橡皮擦范围光标。
+    void hideEraserCursor();
 
-    void applyRemoteDraw(const message::DrawReq& req);  //应用远端绘画，收到广播后调用
+    // 将远端 DrawReq 应用到当前场景中的对应操作。
+    void applyRemoteDraw(const message::DrawReq& req);
 
-    void resetScene();              //清空所有图元 + 远端缓存
+    // 清空图元、远端操作、本地撤销记录和当前未完成操作。
+    void resetScene();
 
-    bool canUndoLocal() const;      //是否存在可撤销的本地图元
-    void undoLastLocalItem();       //撤销最后一个本地图元
+    // 返回是否存在可撤销的本地图元。
+    bool canUndoLocal() const;
+
+    // 删除最后一个本地图元；远端图元不会进入该撤销栈。
+    void undoLastLocalItem();
 
 protected:
-    void mousePressEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseMoveEvent(QGraphicsSceneMouseEvent *event) override;
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent *event) override;
+    // 将鼠标按下事件转换为当前策略的一次本地操作。
+    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
+
+    // 将鼠标移动事件交给当前操作，并发送增量同步信号。
+    void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
+
+    // 结束当前操作、记录撤销信息并发送结束同步信号。
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
 
 private:
-    // --- 当前绘画状态 ---
-    ShapeType _currShapeType;     //当前工具类型
-    QPointF _lastPoint;           // 上一个点 (用于距离检测)
-    QString _currUuid;            // 当前笔画的唯一ID
-    QPointF _startPos;            //起始点
+    // 结束当前本地操作并发送一条完整的结束事件。
+    void finishCurrentOperation(const QPointF& end_pos);
 
-    // -- 图元指针 ---
-    QGraphicsPathItem* _currPathItem;           // 画笔
-    QGraphicsRectItem* _currRectItem;           // 矩形
-    QGraphicsEllipseItem* _currOvalItem;        // 椭圆
-    QGraphicsLineItem* _currLineItem;           // 直线
-    QGraphicsEllipseItem* _eraserCursorItem;    // 橡皮擦的光标圆圈 (仅显示)
+    // 清除当前操作引用，不删除场景中的图元。
+    void clearCurrentOperation();
 
-    QPainterPath _currPath; // 路径数据 (Pen/Eraser 用)
+    // 将已完成操作加入本地撤销栈和 item_id 索引。
+    void recordFinishedLocalItem(const QString& item_id,
+                                 const std::shared_ptr<IDrawTool>& operation);
 
-    // --- 画笔配置 ---
-    QColor _penColor;
-    int _penWidth;
-    bool _editable = true;       // 是否允许本地鼠标绘制
-
-    // 小于这个距离的移动将被忽略，防止抖动和节省流量
-    const qreal MIN_DIST_SQ = 4.0;
-
-
-    //辅助函数
-    void addPointToPath(const QPointF &pos);    // 添加点到路径
-    void initNewItem(const QPointF& pos);       // 初始化图元通用逻辑
-    void recordFinishedLocalItem(const QString& itemId, int shape, QGraphicsItem* item); //记录完成的本地图元
-
-    // 橡皮擦位置更新逻辑
+    // 根据当前鼠标位置更新橡皮擦范围光标。
     void updateEraserCursor(const QPointF& pos);
 
-    // --远端图元管理--
-    struct RemoteItem {
-        int shape = 0;
-        QPointF start;
-        QColor color;
-        int width = 1;
+    // 当前选择的形状类型和具体工具对象。
+    ShapeType _currShapeType = Shape_Pen;
+    std::shared_ptr<IDrawTool> _currentTool;
 
-        QGraphicsPathItem* pathItem = nullptr;
-        QPainterPath path;
+    // 当前正在进行的本地操作及其协议 ID。
+    QString _currUuid;
+    std::shared_ptr<IDrawTool> _currentOperation;
 
-        QGraphicsRectItem* rectItem = nullptr;
-        QGraphicsEllipseItem* ovalItem = nullptr;
-        QGraphicsLineItem* lineItem = nullptr;
+    // 当前画笔配置和本地编辑权限。
+    QColor _penColor = Qt::black;
+    int _penWidth = 3;
+    bool _editable = true;
+
+    // 只用于显示橡皮擦操作范围，不参与绘画和网络同步。
+    QGraphicsEllipseItem* _eraserCursorItem = nullptr;
+
+    // 远端每个 item_id 对应一个独立操作，允许多个笔画交错到达。
+    struct RemoteItem
+    {
+        ShapeType shape = Shape_Unknown;
+        std::shared_ptr<IDrawTool> operation;
     };
     QHash<QString, RemoteItem> _remoteItems;
 
-    // 本地图元记录使用 itemId 作为索引，后续联机撤销也可以复用这套映射关系。
-    struct DrawItemRecord {
-        QString itemId;
-        int shape = 0;
-        QGraphicsItem* item = nullptr;
+    // 本地撤销记录保存操作句柄，避免把具体图元类型暴露给撤销管理逻辑。
+    struct DrawItemRecord
+    {
+        QString item_id;
+        ShapeType shape = Shape_Unknown;
+        std::shared_ptr<IDrawTool> operation;
     };
-    QStack<DrawItemRecord> _localUndoStack;         //本地可撤销图元栈
-    QHash<QString, QGraphicsItem*> _localItems;     //哈希表，uuid-item
+    QStack<DrawItemRecord> _localUndoStack;
+
+    // 保留 item_id 到图元的索引，便于兼容现有撤销和后续联机撤销扩展。
+    QHash<QString, QGraphicsItem*> _localItems;
 
 signals:
-    // --- 网络同步信号 ---
-    // start: 发送UUID，颜色，线宽，起点
-    void sigStrokeStart(QString uuid,int type,QPointF startPos,QColor color,int width);
+    // 本地笔画开始时发送 UUID、类型、起点、颜色和宽度。
+    void sigStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width);
 
-    // move: 发送UUID，当前点，接收端接收到后执行lineTo
-    void sigStrokeMove(QString uuid,int type,QPointF currentPos);
+    // 本地笔画移动时发送新增点或当前几何终点。
+    void sigStrokeMove(QString uuid, int type, QPointF currentPos);
 
-    // end: 发送UUID，表示这一笔画完了
-    void sigStrokeEnd(QString uuid,int type,QPointF endPos);
+    // 本地笔画结束时发送 UUID、类型和最终位置。
+    void sigStrokeEnd(QString uuid, int type, QPointF endPos);
 
-    // 鼠标位置改变信号
+    // 鼠标坐标变化，用于状态栏显示当前位置。
     void sigCursorPosChanged(QPointF pos);
-
 };
-
-#endif // PAINTSCENE_H

@@ -1,299 +1,173 @@
 #include "paintscene.h"
+
+#include <QGraphicsEllipseItem>
 #include <QGraphicsSceneMouseEvent>
-#include <QGraphicsPathItem>
+#include <QMouseEvent>
+#include <QDebug>
 #include <QUuid>
 
-PaintScene::PaintScene(QObject *parent)
-    : QGraphicsScene{parent}
-    , _currShapeType(Shape_Pen) // 默认钢笔
-    , _currPathItem(nullptr)
-    , _currRectItem(nullptr)
-    , _currOvalItem(nullptr)
-    , _currLineItem(nullptr)
-    , _penColor(Qt::black)
-    , _penWidth(3)
-
+PaintScene::PaintScene(QObject* parent)
+    : QGraphicsScene(parent)
 {
-    // 初始化橡皮擦光标 (begin)
+    // 光标只是交互辅助层，禁止它接收鼠标，确保事件继续落到场景。
     _eraserCursorItem = new QGraphicsEllipseItem();
-    // 样式：黑色细边框
     _eraserCursorItem->setPen(QPen(Qt::black, 1));
-    // 样式：极淡的半透明灰色 (方便看清范围)
     _eraserCursorItem->setBrush(QBrush(QColor(200, 200, 200, 50)));
-
-    // 层级：保证永远浮在所有画作上面
     _eraserCursorItem->setZValue(9999);
-
-    // 关键：不接受鼠标点击，让鼠标事件能穿透它传给底下的图元
     _eraserCursorItem->setAcceptedMouseButtons(Qt::NoButton);
     _eraserCursorItem->setAcceptHoverEvents(false);
-
-    // 默认隐藏
     _eraserCursorItem->hide();
-
-    // 添加到场景
     addItem(_eraserCursorItem);
-    // 初始化橡皮擦光标 (end)
-}
-void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
-{
-    if (!_editable)
-        return;
 
-    // 只允许左键绘画
+    // 默认工具必须从工厂创建，避免 PaintScene 内部再维护一套类型分支。
+    _currentTool = DrawToolFactory::create(_currShapeType);
+}
+
+void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
+{
+    // 只允许拥有编辑权限的左键事件创建本地操作。
+    if (!_editable)
+    {
+        return;
+    }
+
     if (event->button() != Qt::LeftButton)
     {
-        // 如果是右键，可以把事件传给父类处理，或者直接 return
         QGraphicsScene::mousePressEvent(event);
         return;
     }
 
-    _currUuid = QUuid::createUuid().toString();
-    _startPos = event->scenePos(); // 记录绝对起点(用于矩形/圆)
-    _lastPoint = _startPos;        // 记录上一笔点(用于画笔)
-
-    // 根据当前类型创建不同的 Item
-    switch (_currShapeType)
+    // 如果上一个操作仍未结束，不覆盖它，避免两个本地 UUID 共用一个状态。
+    if (_currentOperation && _currentOperation->isStarted())
     {
-        case Shape_Pen:
-        case Shape_Eraser:
-        {
-            _currPath = QPainterPath();
-            _currPath.moveTo(_startPos);
-
-            _currPathItem = new QGraphicsPathItem();
-
-            // 橡皮擦逻辑：颜色白色，宽度稍大
-            QColor color = (_currShapeType == Shape_Eraser) ? Qt::white : _penColor;
-            int width = (_currShapeType == Shape_Eraser) ? (_penWidth * 3) : _penWidth;
-
-            QPen pen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin); //设置圆角笔触，拐弯更圆润
-            _currPathItem->setPen(pen);
-            _currPathItem->setPath(_currPath);
-
-            // 橡皮擦需要设置 ZValue 高一点，或者设置组合模式(但在 Scene 里直接覆盖白色最简单)
-            //if (_currShapeType == Shape_Eraser) _currPathItem->setZValue(100);
-
-            addItem(_currPathItem);
-            break;
-        }
-        case Shape_Rect:    //矩形模式
-        {
-            _currRectItem = new QGraphicsRectItem();
-            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin);
-            _currRectItem->setPen(pen);
-            // 初始矩形大小为 0
-            _currRectItem->setRect(QRectF(_startPos, _startPos));
-            addItem(_currRectItem);
-            break;
-        }
-        case Shape_Oval:    //椭圆模式
-        {
-            _currOvalItem = new QGraphicsEllipseItem();
-            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-            _currOvalItem->setPen(pen);
-            _currOvalItem->setRect(QRectF(_startPos, _startPos));
-            addItem(_currOvalItem);
-            break;
-        }
-        case Shape_Line:    //直线模式
-        {
-            _currLineItem = new QGraphicsLineItem();
-            QPen pen(_penColor, _penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
-            _currLineItem->setPen(pen);
-            // 初始直线，起点和终点都在按下的位置
-            _currLineItem->setLine(QLineF(_startPos, _startPos));
-            addItem(_currLineItem);
-            break;
-        }
-        default:
-            break;
+        return;
     }
 
-    // 发送开始信号
-    emit sigStrokeStart(_currUuid, (int)_currShapeType, _startPos, _penColor, _penWidth);
+    // 未注册的工具不创建图元，也不发送无法被远端解释的协议消息。
+    if (!_currentTool)
+    {
+        return;
+    }
+
+    const QPointF start_pos = event->scenePos();
+    _currUuid = QUuid::createUuid().toString();
+    _currentOperation = DrawToolFactory::create(_currShapeType);
+    if (!_currentOperation)
+    {
+        _currUuid.clear();
+        return;
+    }
+
+    // 操作对象负责具体 QGraphicsItem 的创建和初始样式设置。
+    const DrawStyle style{_penColor, _penWidth, static_cast<int>(Qt::SolidLine)};
+    _currentOperation->beginLocal(this, start_pos, style);
+
+    // 网络层继续使用原有信号，PaintScene 不直接依赖 TCP 发送逻辑。
+    emit sigStrokeStart(_currUuid,
+                        static_cast<int>(_currShapeType),
+                        start_pos,
+                        _penColor,
+                        _penWidth);
 }
 
-void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
+void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    emit sigCursorPosChanged(event->scenePos());     // 发送鼠标坐标信号
+    // 坐标信号与编辑权限无关，离线和只读画布都需要更新状态栏。
+    emit sigCursorPosChanged(event->scenePos());
 
     if (!_editable)
+    {
         return;
+    }
 
-    if (_currShapeType == Shape_Eraser)//如果是橡皮擦模式，更新光标位置
+    // 光标显示由工厂提供的工具属性决定，不再按 ShapeType 写分支。
+    if (DrawToolFactory::usesCursorOverlay(_currShapeType))
     {
         updateEraserCursor(event->scenePos());
     }
 
-    // 1. 【关键】必须按住左键移动才算数
-    if (!(event->buttons() & Qt::LeftButton)) return;
-
-    QPointF currPos = event->scenePos();
-
-    switch (_currShapeType)
+    // 没有按住左键或当前没有活动操作时，只更新辅助光标。
+    if (!(event->buttons() & Qt::LeftButton) ||
+        !_currentOperation ||
+        !_currentOperation->isStarted())
     {
-        case Shape_Pen:
-        case Shape_Eraser:
-        {
-            if (!_currPathItem) return;
-
-            // 距离检测 (防抖)
-            qreal dx = currPos.x() - _lastPoint.x();
-            qreal dy = currPos.y() - _lastPoint.y();
-            if ((dx * dx + dy * dy) < MIN_DIST_SQ) return;
-
-            addPointToPath(currPos);
-            _lastPoint = currPos;
-
-            // 发送移动信号 (发送的是新增点)
-            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
-            break;
-        }
-        case Shape_Rect:
-        {
-            if (!_currRectItem) return;
-            // 实时更新矩形大小
-            // normalized() 非常重要！它支持反向拖拽（从右下往左上画）
-            QRectF rect(_startPos, currPos);
-            _currRectItem->setRect(rect.normalized());
-
-            // 节流发送移动信号 (发送的是当前鼠标位置，用于预览)
-            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
-            break;
-        }
-        case Shape_Oval:
-        {
-            if (!_currOvalItem) return;
-            QRectF rect(_startPos, currPos);
-            _currOvalItem->setRect(rect.normalized());
-
-            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
-            break;
-        }
-        case Shape_Line:    // 直线模式
-        {
-            if (!_currLineItem) return;
-            // 动态更新线条，起点不变，终点跟着鼠标走
-            _currLineItem->setLine(QLineF(_startPos, currPos));
-            emit sigStrokeMove(_currUuid, (int)_currShapeType, currPos);
-            break;
-        }
-    }
-}
-void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
-{
-    if (event->button() != Qt::LeftButton) return;
-    if (!_editable) return;
-
-    QGraphicsItem* finishedItem = nullptr;  // 当前鼠标释放后真正完成的本地图元
-
-    switch (_currShapeType)
-    {
-        case Shape_Pen:
-        case Shape_Eraser:
-        {
-            if (_currPathItem)
-            {
-                addPointToPath(event->scenePos()); // 补上最后一点
-                finishedItem = _currPathItem;
-                _currPathItem = nullptr;
-            }
-            break;
-        }
-
-        case Shape_Rect:
-        {
-            if (_currRectItem)
-            {
-                // 确保最后形状正确
-                QRectF rect(_startPos, event->scenePos());
-                _currRectItem->setRect(rect.normalized());
-                finishedItem = _currRectItem;
-                _currRectItem = nullptr;
-            }
-            break;
-        }
-
-        case Shape_Oval:
-        {
-            if (_currOvalItem)
-            {
-                QRectF rect(_startPos, event->scenePos());
-                _currOvalItem->setRect(rect.normalized());
-                finishedItem = _currOvalItem;
-                _currOvalItem = nullptr;
-            }
-            break;
-        }
-        case Shape_Line:    //直线模式
-        {
-            if (_currLineItem)
-            {
-                // 确保最后形状正确
-                _currLineItem->setLine(QLineF(_startPos, event->scenePos()));
-                finishedItem = _currLineItem;
-                _currLineItem = nullptr;
-            }
-            break;
-        }
-    }
-
-    recordFinishedLocalItem(_currUuid, (int)_currShapeType, finishedItem);  //入栈
-
-    emit sigStrokeEnd(_currUuid, (int)_currShapeType, event->scenePos());   //发送网络信号
-    _currUuid = "";
-}
-
-void PaintScene::addPointToPath(const QPointF &pos)
-{
-    _currPath.lineTo(pos);
-    if (_currPathItem)
-    {
-        _currPathItem->setPath(_currPath);
-    }
-}
-
-void PaintScene::initNewItem(const QPointF &pos)
-{
-
-}
-
-void PaintScene::updateEraserCursor(const QPointF &pos)
-{
-    if(!_eraserCursorItem)
         return;
+    }
 
-    int eraserWidth = _penWidth * 3;
-    qreal radius = eraserWidth / 2.0;
-
-    // (鼠标中心x - 半径, 鼠标中心y - 半径)
-    _eraserCursorItem->setRect(pos.x() - radius, pos.y() - radius, eraserWidth, eraserWidth);
-
-    if (!_eraserCursorItem->isVisible())    //显示
+    // 策略内部决定是否因距离过小而忽略这次移动。
+    if (_currentOperation->moveLocal(event->scenePos()))
     {
-        _eraserCursorItem->show();
+        emit sigStrokeMove(_currUuid,
+                           static_cast<int>(_currShapeType),
+                           event->scenePos());
     }
 }
 
-void PaintScene::setPenColor(const QColor &color)
+void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+    // 非左键释放和只读场景都不应结束本地绘制。
+    if (event->button() != Qt::LeftButton || !_editable)
+    {
+        return;
+    }
+
+    if (!_currentOperation || !_currentOperation->isStarted())
+    {
+        return;
+    }
+
+    finishCurrentOperation(event->scenePos());
+}
+
+void PaintScene::finishCurrentOperation(const QPointF& end_pos)
+{
+    // 先让策略写入最后一点，再记录图元，确保撤销拿到最终几何状态。
+    const QString item_id = _currUuid;
+    const ShapeType shape = _currShapeType;
+    const std::shared_ptr<IDrawTool> operation = _currentOperation;
+    operation->endLocal(end_pos);
+
+    recordFinishedLocalItem(item_id, operation);
+    emit sigStrokeEnd(item_id, static_cast<int>(shape), end_pos);
+    clearCurrentOperation();
+}
+
+void PaintScene::clearCurrentOperation()
+{
+    // 操作对象由撤销栈持有到撤销完成；这里仅释放当前活动引用。
+    _currentOperation.reset();
+    _currUuid.clear();
+}
+
+void PaintScene::setPenColor(const QColor& color)
+{
+    // 样式只影响之后创建的操作，已经完成的图元保持原有颜色。
     _penColor = color;
 }
 
 void PaintScene::setPenWidth(int width)
 {
-    _penWidth = width;
+    // 防止负数或零宽度传入 QPen，沿用工具栏的整数配置。
+    _penWidth = qMax(1, width);
 }
 
 void PaintScene::setShapeType(ShapeType type)
 {
+    // 切换工具前结束当前操作，保证已发送 START 的笔画最终收到 END。
+    if (_currentOperation && _currentOperation->isStarted())
+    {
+        finishCurrentOperation(_currentOperation->currentPosition());
+    }
+
     _currShapeType = type;
-    // 控制橡皮擦显隐
-    if (_currShapeType == Shape_Eraser && _editable)
+    _currentTool = DrawToolFactory::create(type);
+
+    // 橡皮擦光标的显示完全由工厂属性控制。
+    if (DrawToolFactory::usesCursorOverlay(type) && _editable)
     {
         _eraserCursorItem->show();
-    } else
+    }
+    else
     {
         _eraserCursorItem->hide();
     }
@@ -301,9 +175,12 @@ void PaintScene::setShapeType(ShapeType type)
 
 void PaintScene::setEditable(bool editable)
 {
+    // 只读时隐藏交互光标，避免用户误以为仍可绘制。
     _editable = editable;
     if (!_editable)
+    {
         hideEraserCursor();
+    }
 }
 
 bool PaintScene::isEditable() const
@@ -323,188 +200,151 @@ int PaintScene::getPenWidth()
 
 void PaintScene::hideEraserCursor()
 {
+    // 光标不是绘画内容，隐藏它不会影响本地或远端操作。
     if (_eraserCursorItem)
     {
         _eraserCursorItem->hide();
     }
 }
 
+void PaintScene::updateEraserCursor(const QPointF& pos)
+{
+    if (!_eraserCursorItem)
+    {
+        return;
+    }
+
+    // 橡皮擦显示范围与实际擦除线宽保持一致。
+    const int eraser_width = _penWidth * 3;
+    const qreal radius = eraser_width / 2.0;
+    _eraserCursorItem->setRect(pos.x() - radius,
+                                pos.y() - radius,
+                                eraser_width,
+                                eraser_width);
+    _eraserCursorItem->show();
+}
+
 bool PaintScene::canUndoLocal() const
 {
+    // 远端操作不进入本地撤销栈，避免删除其他用户的图元。
     return !_localUndoStack.isEmpty();
 }
 
-void PaintScene::undoLastLocalItem()    //撤销栈顶图元
+void PaintScene::undoLastLocalItem()
 {
+    // 逐条跳过已被 resetScene 清理的失效记录，保证撤销不会解引用悬空图元。
     while (!_localUndoStack.isEmpty())
     {
-        DrawItemRecord record = _localUndoStack.pop();
-        QGraphicsItem* item = record.item;
-        _localItems.remove(record.itemId);
+        const DrawItemRecord record = _localUndoStack.pop();
+        _localItems.remove(record.item_id);
 
-        // resetScene/clear 之后旧指针可能已经失效，正常流程会先清空栈；这里再做一层保护。
-        if (!item || item->scene() != this)
+        if (!record.operation)
+        {
             continue;
+        }
 
+        QGraphicsItem* item = record.operation->item();
+        if (!item || item->scene() != this)
+        {
+            continue;
+        }
+
+        // removeItem 不负责 delete，场景所有权移除后必须显式释放图元。
         removeItem(item);
         delete item;
         return;
     }
 }
 
-void PaintScene::recordFinishedLocalItem(const QString& itemId, int shape, QGraphicsItem* item)
+void PaintScene::recordFinishedLocalItem(const QString& item_id,
+                                         const std::shared_ptr<IDrawTool>& operation)
 {
-    if (itemId.isEmpty() || !item)
-        return;
-
-    // 记录 itemId -> item 的关系，后续联机撤销可以直接复用 itemId 做协议字段。
-    _localItems.insert(itemId, item);
-    _localUndoStack.push(DrawItemRecord{itemId, shape, item});
-}
-
-static QColor ColorFromArgbInt(int32_t argb)    //将颜色转为Qt颜色
-{
-    // argb: 0xAARRGGBB
-    int a = (argb >> 24) & 0xFF;
-    int r = (argb >> 16) & 0xFF;
-    int g = (argb >> 8) & 0xFF;
-    int b = (argb) & 0xFF;
-    return QColor(r, g, b, a);
-}
-
-void PaintScene::applyRemoteDraw(const message::DrawReq& req)   //添加远端绘画
-{
-    const QString uuid = QString::fromStdString(req.item_id()); // 图元uuid
-    const int shape = (int)req.shape();                         // 图元类型
-    const int cmd = (int)req.cmd();                             // 图元命令（start，move，end）
-
-    const QPointF start(req.start_x(), req.start_y());          // startPos
-    const QPointF cur(req.current_x(), req.current_y());        // curPos
-    const QColor color = ColorFromArgbInt(req.color());         // 颜色
-    const int width = req.width();                              // 画笔粗细
-
-    // 拿到或创建 RemoteItem
-    RemoteItem &ri = _remoteItems[uuid];
-    if (cmd == message::CMD_START)
+    // 没有 ID 或图元的操作不能参与撤销，否则会污染撤销栈。
+    if (item_id.isEmpty() ||
+        !operation ||
+        !operation->item())
     {
-        ri = RemoteItem{};
-        ri.shape = shape;
-        ri.start = start;
-        ri.color = color;
-        ri.width = width;
-
-        if (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER)
-        {
-            ri.path = QPainterPath();
-            ri.path.moveTo(start);
-
-            ri.pathItem = new QGraphicsPathItem();
-            QColor penColor = (shape == message::SHAPE_ERASER) ? Qt::white : color;
-            int penWidth = (shape == message::SHAPE_ERASER) ? (width * 3) : width;
-            ri.pathItem->setPen(QPen(penColor, penWidth, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-            ri.pathItem->setPath(ri.path);
-            addItem(ri.pathItem);
-        }
-        else if (shape == message::SHAPE_RECT)
-        {
-            ri.rectItem = new QGraphicsRectItem();
-            ri.rectItem->setPen(QPen(color, width, Qt::SolidLine, Qt::SquareCap, Qt::MiterJoin));
-            ri.rectItem->setRect(QRectF(start, start).normalized());
-            addItem(ri.rectItem);
-        }
-        else if (shape == message::SHAPE_OVAL)
-        {
-            ri.ovalItem = new QGraphicsEllipseItem();
-            ri.ovalItem->setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-            ri.ovalItem->setRect(QRectF(start, start).normalized());
-            addItem(ri.ovalItem);
-        }
-        else if (shape == message::SHAPE_LINE)
-        {
-            ri.lineItem = new QGraphicsLineItem();
-            ri.lineItem->setPen(QPen(color, width, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
-            ri.lineItem->setLine(QLineF(start, start));
-            addItem(ri.lineItem);
-        }
         return;
     }
 
-    // MOVE / END
-    if (!_remoteItems.contains(uuid)) return;   //不存在这个 图元直接返回
+    _localItems.insert(item_id, operation->item());
+    _localUndoStack.push(DrawItemRecord{item_id, operation->shapeType(), operation});
+}
 
-    if (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER)
+void PaintScene::applyRemoteDraw(const message::DrawReq& request)
+{
+    // 远端协议中的 item_id 是同一笔画 START/MOVE/END 的关联键。
+    const QString item_id = QString::fromStdString(request.item_id());
+    const ShapeType shape = static_cast<ShapeType>(request.shape());
+
+    if (request.cmd() == message::CMD_START)
     {
-        if (!ri.pathItem) return;
-
-        // 方案：用 path_points 增量点（推荐）
-        if (req.path_points_size() > 0)
+        // 工厂不支持的类型直接丢弃，避免向远端未知图元写入半成品状态。
+        std::shared_ptr<IDrawTool> strategy = DrawToolFactory::create(shape);
+        if (!strategy)
         {
-            for (int i = 0; i < req.path_points_size(); ++i)
+            qWarning() << "[PaintScene] Ignore unknown remote shape:" << request.shape();
+            return;
+        }
+
+        // 重复 START 必须先移除旧图元，防止同一个 UUID 同时显示两个对象。
+        auto old_iterator = _remoteItems.find(item_id);
+        if (old_iterator != _remoteItems.end() && old_iterator->operation)
+        {
+            QGraphicsItem* old_item = old_iterator->operation->item();
+            if (old_item && old_item->scene() == this)
             {
-                const auto& p = req.path_points(i);
-                ri.path.lineTo(QPointF(p.x(), p.y()));
+                removeItem(old_item);
+                delete old_item;
             }
+            _remoteItems.erase(old_iterator);
         }
-        else
+        const std::shared_ptr<IDrawTool> operation = strategy;
+        if (!operation)
         {
-            // 兜底：如果你 MVP 阶段 MOVE 只填 current_x/current_y，也能画
-            ri.path.lineTo(cur);
+            return;
         }
-        ri.pathItem->setPath(ri.path);
-    }
-    else if (shape == message::SHAPE_RECT)
-    {
-        if (!ri.rectItem) return;
-        ri.rectItem->setRect(QRectF(ri.start, cur).normalized());
-    }
-    else if (shape == message::SHAPE_OVAL)
-    {
-        if (!ri.ovalItem) return;
-        ri.ovalItem->setRect(QRectF(ri.start, cur).normalized());
-    }
-    else if (shape == message::SHAPE_LINE)
-    {
-        if (!ri.lineItem) return;
-        ri.lineItem->setLine(QLineF(ri.start, cur));
+
+        operation->beginRemote(this, request);
+        _remoteItems.insert(item_id, RemoteItem{shape, operation});
+        return;
     }
 
-    // END：先不清理 map（以后做 Undo 会用到）
+    // MOVE/END 没有对应 START 时无法恢复完整图形，沿用原逻辑直接忽略。
+    auto iterator = _remoteItems.find(item_id);
+    if (iterator == _remoteItems.end() ||
+        !iterator->operation ||
+        iterator->shape != shape)
+    {
+        return;
+    }
+
+    iterator->operation->updateRemote(request);
 }
 
 void PaintScene::resetScene()
 {
-
-    // 1) 暂存橡皮擦光标（它是 scene 的 item，clear 会 delete）
-    QGraphicsEllipseItem* cursor = _eraserCursorItem;
-    if (cursor)
-    {
-        removeItem(cursor); // 先从 scene 拿出来，避免被 clear 删除
-    }
-
-    // 清掉所有 scene item（本地和远端的图元都在 scene 里）
-    this->clear();
-
-    // 清空远端 item 缓存（否则下一次 applyRemoteDraw 可能继续复用旧状态）
+    // 先释放所有保存图元裸指针的操作对象，再让 QGraphicsScene 删除图元。
+    _currentOperation.reset();
     _remoteItems.clear();
     _localUndoStack.clear();
     _localItems.clear();
-
-    // 清空当前正在画的本地状态（避免半笔残留）
     _currUuid.clear();
-    _currPath = QPainterPath();
-    _currPathItem = nullptr;
-    _currRectItem = nullptr;
-    _currOvalItem = nullptr;
-    _currLineItem = nullptr;
+
+    // 橡皮擦光标属于场景，clear() 会一起删除，因此先摘出并在末尾恢复。
+    QGraphicsEllipseItem* cursor = _eraserCursorItem;
+    if (cursor)
+    {
+        removeItem(cursor);
+    }
+
+    clear();
     _eraserCursorItem = nullptr;
 
-    _lastPoint = QPointF();
-    _startPos = QPointF();
-
-    // 4) 把光标加回去（并恢复属性）
-    _eraserCursorItem = cursor;
-    if (_eraserCursorItem)
+    // 恢复交互光标的固定属性，保证下一次进入房间或离线画板仍可使用。
+    if (cursor)
     {
+        _eraserCursorItem = cursor;
         addItem(_eraserCursorItem);
         _eraserCursorItem->setZValue(9999);
         _eraserCursorItem->setAcceptedMouseButtons(Qt::NoButton);

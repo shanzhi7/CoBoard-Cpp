@@ -305,6 +305,7 @@ void Canvas::initCanvasUi()
     ui->user_dock->setWindowTitle("在线用户");
 
     //初始化 paintScene(begin)
+    // PaintScene 和 Canvas 通过同一工厂获取工具能力，避免维护两份类型列表。
     _paintScene = new PaintScene(this);
     _paintScene->setSceneRect(0, 0, 5000, 5000);        // 默认占位尺寸，进入房间后会按房间信息重新设置
     _paintScene->setBackgroundBrush(Qt::white);         //背景白色
@@ -902,11 +903,10 @@ void Canvas::slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor
     if (_strokeFlushTimer && !_strokeFlushTimer->isActive())    // flush启动定时器
         _strokeFlushTimer->start(16);
 
-    // 只有 Pen/Eraser 才需要缓存点并走 16ms 批量发送
-    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
-                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+    // 路径型工具通过工厂声明，网络层不再重复维护 Pen/Eraser 类型判断。
+    const bool isPathBased = DrawToolFactory::isPathBased(static_cast<ShapeType>(type));
 
-    if (isPenLike)
+    if (isPathBased)
     {
         PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];
         pendingStroke.type = type;
@@ -947,11 +947,10 @@ void Canvas::slot_onStrokeMove(QString uuid, int type, QPointF currentPos)
     if (!_room_info) return;
     if (_room_info->offline) return;    // 离线模式只本地绘制，不发送 MOVE 网络包
 
-    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
-                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+    // 路径型工具只缓存点，几何工具继续直接发送预览位置。
+    const bool isPathBased = DrawToolFactory::isPathBased(static_cast<ShapeType>(type));
 
-    // Pen/Eraser：只缓存点，不立刻发包
-    if (isPenLike)
+    if (isPathBased)
     {
         // 正常流程下 START 会创建 entry；这里再保证一下健壮性（防止乱序/极端情况）
         PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];
@@ -1005,10 +1004,10 @@ void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
     if (!_room_info) return;
     if (_room_info->offline) return;    // 离线模式只本地绘制，不发送 END 网络包
 
-    const bool isPenLike = (type == Shape_Pen || type == Shape_Eraser ||
-                            type == message::SHAPE_PEN || type == message::SHAPE_ERASER);
+    // 结束时仍通过工厂识别路径型工具，以确保最后一个点先被 flush。
+    const bool isPathBased = DrawToolFactory::isPathBased(static_cast<ShapeType>(type));
 
-    if (isPenLike)
+    if (isPathBased)
     {
         // 把最后点塞进缓存，确保不丢
         PendingStrokePoints& pendingStroke = _pendingPointsByUuid[uuid];

@@ -63,6 +63,7 @@ qt_add_executable(DBClient
     tcpmgr.h tcpmgr.cpp
     newroomdialog.h newroomdialog.cpp newroomdialog.ui
     paintscene.h paintscene.cpp
+    drawtool.h drawtool.cpp
     message.grpc.pb.cc message.grpc.pb.h message.pb.cc message.pb.h
     message.proto
     lobbywidget.h lobbywidget.cpp lobbywidget.ui
