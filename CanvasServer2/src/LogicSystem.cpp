@@ -121,6 +121,9 @@ void LogicSystem::RegisterCallBacks()
     _fun_callbacks[ID_REVOKE_EDIT_REQ] = std::bind(&LogicSystem::HandleRevokeEdit, this,
         std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
+    // 图片操作属于低频结构化业务，必须经过同一条逻辑队列完成权限校验和房间状态更新。
+    _fun_callbacks[ID_IMAGE_OPERATION_REQ] = &ImageOperationHandler::Handle;
+
     //不需要注册 ID_DRAW_REQ (画画请求)
     // 画画请求在 CSession 层直接被拦截转发了，不会进这个队列
 }

@@ -314,7 +314,13 @@ void LobbyWidget::slot_lobby_mod_finish(ReqId reqid, QString res, ErrorCodes err
     }
     QJsonObject jsonObject = jsonDoc.object();
     //调用对应的处理函数
-    _handlers_map[reqid](jsonObject);
+    // 图片签名回包（ID_GET_IMAGE_UPLOAD_TOKEN / ID_GET_IMAGE_DOWNLOAD_TOKEN）同样走 MOD_LOBBY，
+    // 但由 Canvas 自己的连接处理；本表未注册的 ReqId 直接忽略，
+    // 不能用 operator[] 取值——QMap 会对缺失键默认构造空 std::function，调用它抛 bad_function_call 直接终止进程。
+    if (_handlers_map.contains(reqid))
+    {
+        _handlers_map[reqid](jsonObject);
+    }
 }
 
 void LobbyWidget::slot_go_lobby(QString tip)

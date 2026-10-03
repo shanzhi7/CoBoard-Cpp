@@ -1,10 +1,13 @@
 #include "paintscene.h"
+#include "canvasitems/imageitem.h"
 
 #include <QGraphicsEllipseItem>
 #include <QGraphicsSceneMouseEvent>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QDebug>
 #include <QUuid>
+#include <QTransform>
 
 PaintScene::PaintScene(QObject* parent)
     : QGraphicsScene(parent)
@@ -25,20 +28,47 @@ PaintScene::PaintScene(QObject* parent)
 
 void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    // 只允许拥有编辑权限的左键事件创建本地操作。
-    if (!_editable)
-    {
-        return;
-    }
-
     if (event->button() != Qt::LeftButton)
     {
         QGraphicsScene::mousePressEvent(event);
         return;
     }
 
-    // 如果上一个操作仍未结束，不覆盖它，避免两个本地 UUID 共用一个状态。
+    // 当前笔画尚未结束时不切换到图片拖动，避免同一鼠标序列同时持有两种交互状态。
     if (_currentOperation && _currentOperation->isStarted())
+    {
+        return;
+    }
+
+    // 图片图元需要保留 QGraphicsScene 的选择和拖动机制；不能把点击图片误当作新画笔的起点。
+    QGraphicsItem* hit_item = itemAt(event->scenePos(), QTransform());
+    auto* image_item = dynamic_cast<ImageItem*>(hit_item);
+    if (image_item)
+    {
+        if (!_editable)
+        {
+            // 只读场景不交给 QGraphicsScene 处理拖动，但仍保持与可编辑场景一致的单选/Ctrl 多选语义。
+            const bool append_selection = event->modifiers() & Qt::ControlModifier;
+            if (!append_selection)
+            {
+                clearSelection();
+            }
+            image_item->setSelected(append_selection
+                                        ? !image_item->isSelected()
+                                        : true);
+            event->accept();
+            return;
+        }
+
+        // 可编辑场景交给 QGraphicsScene 处理标准选择规则：普通点击单选，Ctrl 点击追加或取消选择。
+        _activeImageItem = image_item;
+        setFocus(Qt::MouseFocusReason);
+        QGraphicsScene::mousePressEvent(event);
+        return;
+    }
+
+    // 只允许拥有编辑权限的左键事件创建本地操作。
+    if (!_editable)
     {
         return;
     }
@@ -75,6 +105,13 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
     // 坐标信号与编辑权限无关，离线和只读画布都需要更新状态栏。
     emit sigCursorPosChanged(event->scenePos());
 
+    // 拖动图片时由 Qt 负责更新位置，CanvasItem 的几何信号会把最终状态交给同步层。
+    if (_activeImageItem)
+    {
+        QGraphicsScene::mouseMoveEvent(event);
+        return;
+    }
+
     if (!_editable)
     {
         return;
@@ -105,6 +142,13 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
+    if (_activeImageItem)
+    {
+        QGraphicsScene::mouseReleaseEvent(event);
+        _activeImageItem = nullptr;
+        return;
+    }
+
     // 非左键释放和只读场景都不应结束本地绘制。
     if (event->button() != Qt::LeftButton || !_editable)
     {
@@ -117,6 +161,63 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     }
 
     finishCurrentOperation(event->scenePos());
+}
+
+void PaintScene::keyPressEvent(QKeyEvent* event)
+{
+    if (!event)
+    {
+        return;
+    }
+
+    ImageItem* selected_image = nullptr;
+    for (QGraphicsItem* graphics_item : selectedItems())
+    {
+        selected_image = dynamic_cast<ImageItem*>(graphics_item);
+        if (selected_image)
+        {
+            break;
+        }
+    }
+    if (!selected_image || !_editable)
+    {
+        QGraphicsScene::keyPressEvent(event);
+        return;
+    }
+
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
+    {
+        // 删除只传递稳定 ID，资源引用和本地缓存不进入房间操作正文。
+        emit sigImageDeleteRequested(selected_image->itemId());
+        event->accept();
+        return;
+    }
+
+    const qreal current_scale_x = selected_image->transform().m11();
+    const qreal current_scale_y = selected_image->transform().m22();
+    if ((event->modifiers() & Qt::ControlModifier) &&
+        (event->key() == Qt::Key_Plus || event->key() == Qt::Key_Equal ||
+         event->key() == Qt::Key_Minus))
+    {
+        // 缩放使用固定步长并限制范围，连续按键不会产生服务端拒绝的极端变换。
+        const qreal factor = event->key() == Qt::Key_Minus ? 1.0 / 1.1 : 1.1;
+        const qreal next_scale_x = qBound(0.1, current_scale_x * factor, 8.0);
+        const qreal next_scale_y = qBound(0.1, current_scale_y * factor, 8.0);
+        selected_image->setTransform(QTransform::fromScale(next_scale_x, next_scale_y), false);
+        event->accept();
+        return;
+    }
+
+    if (event->key() == Qt::Key_BracketLeft || event->key() == Qt::Key_BracketRight)
+    {
+        // 方括号以五度步长旋转图片，几何信号会把变换同步给房间。
+        const qreal delta = event->key() == Qt::Key_BracketLeft ? -5.0 : 5.0;
+        selected_image->setRotation(selected_image->rotation() + delta);
+        event->accept();
+        return;
+    }
+
+    QGraphicsScene::keyPressEvent(event);
 }
 
 void PaintScene::finishCurrentOperation(const QPointF& end_pos)
@@ -236,6 +337,20 @@ void PaintScene::undoLastLocalItem()
     while (!_localUndoStack.isEmpty())
     {
         const DrawItemRecord record = _localUndoStack.pop();
+
+        if (record.is_image)
+        {
+            // 图片记录直接按 item_id 从索引删除；不发送网络删除操作，离线撤销只影响本地画布。
+            if (record.image_item && record.image_item->scene() == this)
+            {
+                _imageItems.remove(record.item_id);
+                removeItem(record.image_item);
+                delete record.image_item;
+                return;
+            }
+            continue;
+        }
+
         _localItems.remove(record.item_id);
 
         if (!record.operation)
@@ -268,7 +383,148 @@ void PaintScene::recordFinishedLocalItem(const QString& item_id,
     }
 
     _localItems.insert(item_id, operation->item());
-    _localUndoStack.push(DrawItemRecord{item_id, operation->shapeType(), operation});
+    _localUndoStack.push(DrawItemRecord{item_id,
+                                        operation->shapeType(),
+                                        operation,
+                                        nullptr,
+                                        false});
+}
+
+ImageItem* PaintScene::addImageItem(const QString& item_id,
+                                    const QString& asset_id,
+                                    const QString& asset_ref,
+                                    const QString& asset_sha256,
+                                    const QString& mime_type,
+                                    const QSize& original_size,
+                                    const QPixmap& pixmap,
+                                    const QPointF& scene_pos,
+                                    const QSizeF& display_size,
+                                    bool record_undo)
+{
+    if (item_id.isEmpty())
+    {
+        // 没有稳定 ID 或有效像素的图片无法参与本地撤销和远程历史，直接拒绝创建。
+        return nullptr;
+    }
+
+    // 历史回放可能重复收到同一个创建操作，先移除旧图元可以避免同一 ID 显示两份内容。
+    if (_imageItems.contains(item_id))
+    {
+        removeImageItemInternal(item_id, true);
+    }
+
+    auto* image_item = new ImageItem(item_id);
+    image_item->setAssetMetadata(asset_id, asset_ref, asset_sha256, mime_type);
+    image_item->setOriginalSize(original_size);
+    if (!pixmap.isNull())
+    {
+        image_item->setPixmap(pixmap);
+    }
+    if (display_size.isValid() && !display_size.isEmpty())
+    {
+        image_item->setDisplaySize(display_size);
+    }
+    image_item->setPos(scene_pos);
+    addItem(image_item);
+    _imageItems.insert(item_id, image_item);
+    connect(image_item, &CanvasItem::sigGeometryChanged,
+            this, &PaintScene::sigImageGeometryChanged);
+    // 失败占位图支持双击重试；信号对信号转发，PaintScene 不接触网络层，重试仍由 Canvas 统一排队。
+    connect(image_item, &ImageItem::sigRetryRequested,
+            this, &PaintScene::sigImageRetryRequested);
+
+    if (record_undo)
+    {
+        // 离线导入加入与传统图元相同的撤销栈；远程历史通过 false 避免污染本地操作记录。
+        _localUndoStack.push(DrawItemRecord{item_id,
+                                            Shape_Unknown,
+                                            nullptr,
+                                            image_item,
+                                            true});
+    }
+
+    // Canvas 可以在这里接入在线上传和 ImageOperation 序列化，PaintScene 不直接依赖网络层。
+    emit sigImageInserted(item_id,
+                          asset_id,
+                          asset_ref,
+                          asset_sha256,
+                          mime_type,
+                          original_size,
+                          scene_pos,
+                          image_item->displaySize());
+    return image_item;
+}
+
+bool PaintScene::removeImageItem(const QString& item_id)
+{
+    // 公共删除默认移除本地撤销记录，防止用户删除后又通过撤销恢复一份已不存在的图元。
+    return removeImageItemInternal(item_id, true);
+}
+
+ImageItem* PaintScene::findImageItem(const QString& item_id) const
+{
+    // QHash 查找不会遍历场景图元，历史回放和资源下载完成时可安全地按 ID 定位。
+    return _imageItems.value(item_id, nullptr);
+}
+
+bool PaintScene::updateImageTransform(const QString& item_id,
+                                      const QPointF& scene_pos,
+                                      const QSizeF& display_size,
+                                      qreal scale_x,
+                                      qreal scale_y,
+                                      qreal rotation)
+{
+    ImageItem* image_item = findImageItem(item_id);
+    if (!image_item || !display_size.isValid() || display_size.isEmpty() ||
+        scale_x <= 0.0 || scale_y <= 0.0)
+    {
+        // 远端变换数据必须先经过调用方的协议范围检查；这里仍拒绝会产生无效包围盒的值。
+        return false;
+    }
+
+    // 先更新局部尺寸，再设置位置和变换矩阵，确保最终 boundingRect 与场景坐标保持一致。
+    image_item->setDisplaySize(display_size);
+    image_item->setPos(scene_pos);
+    image_item->setScale(1.0);
+    image_item->setTransform(QTransform::fromScale(scale_x, scale_y), false);
+    image_item->setRotation(rotation);
+    return true;
+}
+
+bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_undo_record)
+{
+    auto iterator = _imageItems.find(item_id);
+    if (iterator == _imageItems.end() || !iterator.value())
+    {
+        return false;
+    }
+
+    ImageItem* image_item = iterator.value();
+    _imageItems.erase(iterator);
+    if (_activeImageItem == image_item)
+    {
+        _activeImageItem = nullptr;
+    }
+    if (remove_undo_record)
+    {
+        // 只删除对应记录，保留其他图片和传统图元的撤销顺序。
+        for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+        {
+            if (_localUndoStack[index].is_image &&
+                _localUndoStack[index].item_id == item_id)
+            {
+                _localUndoStack.removeAt(index);
+                break;
+            }
+        }
+    }
+
+    if (image_item->scene() == this)
+    {
+        removeItem(image_item);
+    }
+    delete image_item;
+    return true;
 }
 
 void PaintScene::applyRemoteDraw(const message::DrawReq& request)
@@ -329,7 +585,9 @@ void PaintScene::resetScene()
     _remoteItems.clear();
     _localUndoStack.clear();
     _localItems.clear();
+    _imageItems.clear();
     _currUuid.clear();
+    _activeImageItem = nullptr;
 
     // 橡皮擦光标属于场景，clear() 会一起删除，因此先摘出并在末尾恢复。
     QGraphicsEllipseItem* cursor = _eraserCursorItem;

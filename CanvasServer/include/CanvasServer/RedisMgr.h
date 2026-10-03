@@ -38,6 +38,7 @@ public:
 
 	//用户加入房间(写入Hash)
 	bool AddUserToRoom(const std::string& room_id, const std::string& uid);
+	bool RemoveUserFromRoom(const std::string& room_id, const std::string& uid); // 用户离开房间时移除成员，防止离线用户继续通过网关获取资源签名。
 
 	void Close();
 

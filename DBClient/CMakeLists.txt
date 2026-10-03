@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.19)
 
 project(DBClient LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Network Concurrent)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Widgets)
 find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -63,6 +63,9 @@ qt_add_executable(DBClient
     tcpmgr.h tcpmgr.cpp
     newroomdialog.h newroomdialog.cpp newroomdialog.ui
     paintscene.h paintscene.cpp
+    canvasitems/canvasitem.h canvasitems/canvasitem.cpp
+    canvasitems/imageitem.h canvasitems/imageitem.cpp
+    imageassetmanager.h imageassetmanager.cpp
     drawtool.h drawtool.cpp
     message.grpc.pb.cc message.grpc.pb.h message.pb.cc message.pb.h
     message.proto
@@ -85,6 +88,7 @@ target_link_libraries(DBClient
         Qt::Core
         Qt::Widgets
         Qt::Network
+        Qt6::Concurrent
 
         #链接 Google 的库
         protobuf::libprotobuf

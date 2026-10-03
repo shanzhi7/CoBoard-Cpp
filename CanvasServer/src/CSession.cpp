@@ -287,7 +287,8 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				ReadHead();	//读取下一个消息头
 				return;
 			}
-			// 慢通道：业务逻辑 (登录、加入房间)，扔进队列
+			// 慢通道：登录、房间、聊天、权限和图片等低频业务统一扔进 LogicSystem 队列。
+			// 图片包不能在 Asio 读取线程直接修改 Room，否则会绕过队列顺序并与其他房间操作竞争。
 			else
 			{
 				LogicSystem::getInstance()->PostMsgToQue(

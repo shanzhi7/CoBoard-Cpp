@@ -59,6 +59,8 @@ enum MsgID {
     ID_DRAW_RSP = 1004;       // 广播绘画数据
     ID_CLEAR_REQ = 1005;      // 清屏请求
     ID_CLEAR_RSP = 1006;      // 广播清屏
+    ID_IMAGE_OPERATION_REQ = 1027; // 图片结构化操作请求，不携带图片二进制
+    ID_IMAGE_OPERATION_RSP = 1028; // 图片结构化操作广播，房间历史按此消息类型回放
 }
 
 // 验证码服务 (VarifyServer 实现)
@@ -331,6 +333,48 @@ message DrawReq {
 
     // --- 延迟测量 ---
     uint64 send_timestamp_ms = 13;  // 发送方时间戳（毫秒），用于单向延迟测量
+}
+
+// 图片结构化操作类型。图片内容通过 OSS 传输，本枚举只描述画布状态变化。
+enum ImageOperationType {
+    IMAGE_OPERATION_UNKNOWN = 0; // 未知操作，服务端必须拒绝
+    IMAGE_CREATE = 1;            // 创建图片图元，同时引用已经上传成功的资源
+    IMAGE_UPDATE_TRANSFORM = 2;  // 更新图片图元的位置、尺寸、缩放或旋转
+    IMAGE_DELETE = 3;            // 删除已有图片图元
+}
+
+// 图片图元的几何变换。坐标和尺寸使用画布场景坐标，旋转单位为角度。
+message ImageTransform {
+    float x = 1;         // 图元左上角 X 坐标，不能为 NaN 或无穷大
+    float y = 2;         // 图元左上角 Y 坐标，不能为 NaN 或无穷大
+    float width = 3;     // 图元显示宽度，服务端限制为正数
+    float height = 4;    // 图元显示高度，服务端限制为正数
+    float scale_x = 5;   // X 方向缩放系数，默认值为 1
+    float scale_y = 6;   // Y 方向缩放系数，默认值为 1
+    float rotation = 7;  // 顺时针旋转角度，服务端限制合理范围
+}
+
+// 图片图元及其资源引用。asset_ref 不是本地路径，也不能包含临时签名。
+message ImageItem {
+    string item_id = 1;          // 图元 UUID，在房间内必须唯一
+    string asset_id = 2;         // OSS 资源 ID，由 GateServer 生成
+    string asset_ref = 3;        // 稳定资源引用，接收端通过 GateServer 获取下载签名
+    string asset_sha256 = 4;     // 图片内容 SHA-256 十六进制摘要，用于缓存和完整性校验
+    string mime_type = 5;        // 允许的图片 MIME 类型，例如 image/png
+    uint32 original_width = 6;   // 原始图片宽度，单位为像素
+    uint32 original_height = 7;  // 原始图片高度，单位为像素
+    ImageTransform transform = 8; // 当前图元的场景变换
+}
+
+// 房间内的图片操作。该消息只通过 Canvas TCP 传输元数据，不包含图片二进制、密钥或本地路径。
+message ImageOperation {
+    int32 uid = 1;                         // 发起操作的用户 ID，服务端必须与 Session UID 一致
+    string room_id = 2;                    // 目标房间号，用于防止跨房间提交操作
+    string operation_id = 3;               // 客户端生成的操作 UUID，用于去重和日志关联
+    ImageOperationType operation_type = 4; // 创建、更新变换或删除
+    ImageItem item = 5;                    // 创建和更新时使用的图片图元数据
+    string target_item_id = 6;             // 删除时指定的目标图元 ID，其他操作可为空
+    uint64 server_sequence = 7;            // 服务端规范化后的房间顺序号，客户端提交时必须为 0
 }
 
 //--群聊--

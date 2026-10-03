@@ -1,6 +1,8 @@
 #include "CanvasServer/Room.h"
+#include "CanvasServer/ConfigMgr.h"
 #include "CanvasServer/CSession.h"
 #include "CanvasServer/const.h"
+#include "CanvasServer/RedisMgr.h"
 #include "Logger/Logger.h"
 
 Room::Room(const std::string& room_id)
@@ -16,10 +18,18 @@ Room::~Room()
 }
 
 // 实现：加入历史记录
-void Room::AppendHistory(const std::string& raw_drawreq)
+void Room::AppendHistory(const std::string& raw_body, short msg_id)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    _history.emplace_back(raw_drawreq);
+    // 公共入口只负责加锁；绘画路径和图片路径共用同一裁剪规则，锁内逻辑统一走 AppendHistoryLocked。
+    AppendHistoryLocked(HistoryEntry{ msg_id, raw_body, std::string() });
+}
+
+void Room::AppendHistoryLocked(HistoryEntry entry)
+{
+    // 保存消息 ID 与正文的配对关系；图片和绘画共用历史容器，但回放时不能混用消息类型。
+    // 调用方必须已持有 _mutex：图片操作在 ApplyImageOperation 的锁内直接记录历史，拆出加锁版本会造成死锁。
+    _history.push_back(std::move(entry));
 
     // 简单裁切: 超过上限丢掉最老的部分 (避免vector频繁erase头部)
     if (_history.size() > MAX_HISTORY_OPS)
@@ -29,11 +39,26 @@ void Room::AppendHistory(const std::string& raw_drawreq)
         {
             _history.erase(_history.begin(), _history.begin() + static_cast<long>(kTrim));
         }
+        // 头部删除会让所有保留条目下标前移，图片创建条目索引必须整体重建，否则变换更新会改写到错误条目。
+        RebuildImageHistoryIndexLocked();
+    }
+}
+
+void Room::RebuildImageHistoryIndexLocked()
+{
+    // 只有图片创建条目携带非空 item_id，删除条目和绘画条目为空；扫描重建保证下标与当前 vector 完全一致。
+    _image_create_index.clear();
+    for (std::size_t index = 0; index < _history.size(); ++index)
+    {
+        if (!_history[index]._image_item_id.empty())
+        {
+            _image_create_index[_history[index]._image_item_id] = index;
+        }
     }
 }
 
 // 实现：获取历史记录快照
-std::vector<std::string> Room::GetHistorySnapshot()
+std::vector<Room::HistoryEntry> Room::GetHistorySnapshot()
 {
     std::lock_guard<std::mutex> lock(_mutex);
     return _history;    // 拷贝一份，回放在锁外做
@@ -44,6 +69,166 @@ void Room::ClearHistory()
 {
     std::lock_guard<std::mutex> lock(_mutex);
     _history.clear();
+    // 清屏必须同时清除服务端维护的图片索引，否则后续复用 item_id 会被错误判定为重复图元。
+    _image_items.clear();
+    // 历史已清空，创建条目索引全部失效，必须同步清空避免改写到悬空下标。
+    _image_create_index.clear();
+}
+
+bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* normalized_body)
+{
+    std::lock_guard<std::mutex> lock(_mutex);
+
+    // 序列化失败虽然通常只会在内存分配异常时发生，但仍需保留旧索引和序号，
+    // 确保失败操作不会造成“房间状态已变更但没有广播”的隐性分叉。
+    const auto previous_image_items = _image_items;
+    const std::uint64_t previous_sequence = _image_sequence;
+
+    std::size_t max_image_items = MAX_IMAGE_ITEMS;
+    try
+    {
+        const std::string configured = ConfigMgr::Inst()["ImageOperation"]["MaxImageItemsPerRoom"];
+        if (!configured.empty())
+        {
+            max_image_items = static_cast<std::size_t>(std::stoull(configured));
+        }
+    }
+    catch (const std::exception&)
+    {
+        max_image_items = MAX_IMAGE_ITEMS;
+    }
+    if (max_image_items == 0)
+    {
+        max_image_items = MAX_IMAGE_ITEMS;
+    }
+
+    // 图片操作的状态变更、重复检查和序号分配必须在同一把房间锁内完成，
+    // 这样即使未来增加多个逻辑线程，也不会产生两个相同 item_id 的创建结果。
+    const std::string requested_item_id = operation.item().item_id();
+    std::string target_item_id = operation.target_item_id();
+
+    if (operation.operation_type() == message::IMAGE_CREATE)
+    {
+        if (_image_items.size() >= max_image_items
+            || requested_item_id.empty()
+            || _image_items.find(requested_item_id) != _image_items.end())
+        {
+            return false;
+        }
+
+        _image_items.emplace(requested_item_id, operation.item());
+        target_item_id = requested_item_id;
+    }
+    else if (operation.operation_type() == message::IMAGE_UPDATE_TRANSFORM)
+    {
+        if (target_item_id.empty())
+        {
+            target_item_id = requested_item_id;
+        }
+
+        auto item_it = _image_items.find(target_item_id);
+        if (item_it == _image_items.end() || !operation.item().has_transform())
+        {
+            return false;
+        }
+
+        // 更新只允许改变几何变换，资源元数据继续使用首次创建时经过校验的值。
+        item_it->second.mutable_transform()->CopyFrom(operation.item().transform());
+        operation.mutable_item()->CopyFrom(item_it->second);
+    }
+    else if (operation.operation_type() == message::IMAGE_DELETE)
+    {
+        if (target_item_id.empty())
+        {
+            target_item_id = requested_item_id;
+        }
+
+        auto item_it = _image_items.find(target_item_id);
+        if (item_it == _image_items.end())
+        {
+            return false;
+        }
+
+        // 广播删除操作时保留被删除图元的完整元数据，客户端可以据此安全清理对应资源引用。
+        operation.mutable_item()->CopyFrom(item_it->second);
+        _image_items.erase(item_it);
+    }
+    else
+    {
+        return false;
+    }
+
+    operation.set_target_item_id(target_item_id);
+    operation.set_server_sequence(++_image_sequence);
+
+    if (normalized_body && !operation.SerializeToString(normalized_body))
+    {
+        _image_items = previous_image_items;
+        _image_sequence = previous_sequence;
+        normalized_body->clear();
+        return false;
+    }
+
+    // 图片历史采用快照式记录：变换更新不追加移动条目，而是原位改写创建条目内的变换，
+    // 新成员回放时图片直接出现在最新位置，不会重放整段移动轨迹。
+    // 本函数已持有 _mutex，必须走不加锁的 AppendHistoryLocked，不能调用公共入口 AppendHistory。
+    switch (operation.operation_type())
+    {
+    case message::IMAGE_CREATE:
+        // 记录 item_id 与创建条目下标，后续变换更新据此定位并改写该条目。
+        _image_create_index[target_item_id] = _history.size();
+        AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP,
+                                          normalized_body ? *normalized_body : std::string(),
+                                          target_item_id });
+        break;
+
+    case message::IMAGE_UPDATE_TRANSFORM:
+    {
+        auto index_it = _image_create_index.find(target_item_id);
+        if (index_it != _image_create_index.end())
+        {
+            // 解析旧创建正文，只替换变换字段后重新序列化；元数据与创建者信息保持原样，
+            // 回放侧拿到的仍是合法 CREATE 操作，只是几何状态为最新值。
+            message::ImageOperation stored_operation;
+            if (stored_operation.ParseFromString(_history[index_it->second]._body))
+            {
+                *stored_operation.mutable_item()->mutable_transform() = operation.item().transform();
+                std::string rewritten_body;
+                if (stored_operation.SerializeToString(&rewritten_body))
+                {
+                    _history[index_it->second]._body = std::move(rewritten_body);
+                }
+                // 重新序列化失败时保留旧正文：仅影响回放位置精度，不值得为此回滚已生效的在线广播。
+            }
+        }
+        else
+        {
+            // 创建条目已被历史裁剪淘汰时重新注入一条创建记录，避免图元仍存在但新成员永远收不到它。
+            // operation.item() 在更新分支已复制为完整最新状态，直接改写类型即为合法 CREATE。
+            message::ImageOperation create_operation = operation;
+            create_operation.set_operation_type(message::IMAGE_CREATE);
+            std::string create_body;
+            if (create_operation.SerializeToString(&create_body))
+            {
+                _image_create_index[target_item_id] = _history.size();
+                AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP, create_body, target_item_id });
+            }
+        }
+        break;
+    }
+
+    case message::IMAGE_DELETE:
+        // 删除必须追加进历史：新成员需要知道图元已被移除；同时清除索引防止后续改写悬空条目。
+        _image_create_index.erase(target_item_id);
+        AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP,
+                                          normalized_body ? *normalized_body : std::string(),
+                                          std::string() });
+        break;
+
+    default:
+        break;
+    }
+    return true;
 }
 
 void Room::Join(std::shared_ptr<CSession> session)
@@ -66,7 +251,7 @@ void Room::Join(std::shared_ptr<CSession> session)
         return;
     }
     bool first_join = false;    // 是否是第一次加入
-    std::vector<std::string> history_snapshot;
+    std::vector<HistoryEntry> history_snapshot;
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
@@ -86,8 +271,8 @@ void Room::Join(std::shared_ptr<CSession> session)
         // 接收端会先收到 MOVE/END，再收到 START，表现为加入房间后图形不完整。
         if (first_join)
         {
-            for (const auto& data : history_snapshot)
-                session->Send(data, ID_DRAW_RSP);
+            for (const auto& entry : history_snapshot)
+                session->Send(entry._body, entry._msg_id);
         }
 
         _sessions[uid] = session;
@@ -131,6 +316,8 @@ void Room::Leave(int uid)
 
     if (b_removed)
     {
+        // Redis 成员集合由网关用于签名授权；先移除已断开的 UID，再广播离开事件，避免短时间内继续获得房间资源权限。
+        RedisMgr::getInstance()->RemoveUserFromRoom(_room_id, std::to_string(uid));
         // 【重点】广播通知其他人
         BroadcastUserLeave(uid);
     }

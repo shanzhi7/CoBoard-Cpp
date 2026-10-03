@@ -28,3 +28,8 @@ Host = YOUR_SERVER_IP
 Port = 8092
 Name = CanvasServer1
 RPCPort = 50059
+[ImageOperation]
+MaxPayloadBytes = 65536
+MaxImageItemsPerRoom = 100
+MaxImageDimension = 4096
+ObjectPrefix = canvas-assets

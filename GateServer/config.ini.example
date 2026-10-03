@@ -12,3 +12,15 @@ AccessKeySecret = YOUR_ACCESS_KEY_SECRET
 BucketName = YOUR_BUCKET_NAME
 Endpoint = YOUR_OSS_ENDPOINT
 Host = YOUR_OSS_HOST
+[Redis]
+Host = YOUR_REDIS_HOST
+Port = YOUR_REDIS_PORT
+Passwd = YOUR_REDIS_PASSWORD
+[ImageAsset]
+MaxFileSizeBytes = 10485760
+MaxWidth = 4096
+MaxHeight = 4096
+MaxRoomAssetCount = 100
+UploadExpireSeconds = 600
+DownloadExpireSeconds = 300
+ObjectPrefix = canvas-assets

@@ -399,6 +399,11 @@ void TcpMgr::initHandlers()
         emit sig_draw_broadcast(data);  //发送广播信号
     });
 
+    // 图片操作使用独立消息 ID，不能复用 DrawReq 的解析路径，否则字段含义会被误解释。
+    _handlers.insert(ReqId::ID_IMAGE_OPERATION_RSP,[this](ReqId,int,QByteArray data){
+        emit sig_image_operation_broadcast(data);
+    });
+
     // 注册收到群聊消息
 
 

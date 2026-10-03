@@ -3,8 +3,9 @@
 #include "GateServer/const.h"
 #include "GateServer/VerifyGrpcClient.h"
 #include "GateServer/LogicGrpcClient.h"
-#include "GateServer//message.pb.h"
-#include "GateServer//message.grpc.pb.h"
+#include "GateServer/ImageAssetService.h"
+#include "GateServer/message.pb.h"
+#include "GateServer/message.grpc.pb.h"
 #include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <boost/beast/core/detail/base64.hpp>
@@ -421,6 +422,50 @@ LogicSystem::LogicSystem()	//构造函数
 		std::cout << "[OSS] Generated URL for uid " << uid << std::endl;
 
 		boost::beast::ostream(connection->_response.body()) << root.toStyledString();
+		return true;
+		});
+
+	// 图片上传签名接口：只返回短期 PUT 地址和稳定资源引用，图片二进制由客户端直传 OSS。
+	RegPost("/get_image_upload_token", [](std::shared_ptr<HttpConnection> connection) {
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+		Json::Value response;
+		Json::Value request;
+		Json::Reader reader;
+		const std::string body = boost::beast::buffers_to_string(connection->_request.body().data());
+
+		// 先解析 JSON；解析失败时不进入 Token/Redis 校验，避免对无效请求执行外部调用。
+		if (!reader.parse(body, request))
+		{
+			response["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << response.toStyledString();
+			return true;
+		}
+
+		// ImageAssetService 会验证 Token、房间成员、格式、声明大小和像素限制。
+		ImageAssetService::BuildUploadResponse(request, response);
+		boost::beast::ostream(connection->_response.body()) << response.toStyledString();
+		return true;
+		});
+
+	// 图片下载签名接口：接收端先经过 GateServer 成员校验，再使用短期 GET 地址从 OSS 异步下载。
+	RegPost("/get_image_download_token", [](std::shared_ptr<HttpConnection> connection) {
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+		Json::Value response;
+		Json::Value request;
+		Json::Reader reader;
+		const std::string body = boost::beast::buffers_to_string(connection->_request.body().data());
+
+		// 无法解析的请求不能生成任何资源签名，避免把错误输入当作对象路径处理。
+		if (!reader.parse(body, request))
+		{
+			response["error"] = message::ErrorCodes::Error_Json;
+			boost::beast::ostream(connection->_response.body()) << response.toStyledString();
+			return true;
+		}
+
+		// 服务内部会验证 asset_ref 必须属于 room_id 和 asset_id，拒绝任意 OSS 路径。
+		ImageAssetService::BuildDownloadResponse(request, response);
+		boost::beast::ostream(connection->_response.body()) << response.toStyledString();
 		return true;
 		});
 

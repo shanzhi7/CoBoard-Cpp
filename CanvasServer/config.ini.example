@@ -28,6 +28,11 @@ Host = 127.0.0.1
 Port = 8093
 Name = CanvasServer2
 RPCPort = 50060
+[ImageOperation]
+MaxPayloadBytes = 65536
+MaxImageItemsPerRoom = 100
+MaxImageDimension = 4096
+ObjectPrefix = canvas-assets
 [AliyunOSS]
 AccessKeyId = YOUR_ACCESS_KEY_ID
 AccessKeySecret = YOUR_ACCESS_KEY_SECRET

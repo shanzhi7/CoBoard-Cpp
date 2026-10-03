@@ -28,6 +28,7 @@ public:
 	//HSet操作
 	bool HSet(const std::string& key, const std::string& hkey, const std::string& value);	//设置key对应的hkey对应的value
     bool HGet(const std::string& key, const std::string& hkey, std::string& value);			//获取key对应的hkey对应的value
+	bool SIsMember(const std::string& key, const std::string& value); // 只读判断集合中是否存在指定成员。
 
 	void Close();
 

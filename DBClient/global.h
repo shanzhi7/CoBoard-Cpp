@@ -59,6 +59,10 @@ enum ReqId{
     ID_REVOKE_EDIT_REQ = 1024,    // 取消编辑权限请求
     ID_REVOKE_EDIT_RSP = 1025,    // 取消编辑权限回包
     ID_PERMISSION_CHANGED_BROADCAST = 1026,    // 编辑权限变更广播
+    ID_IMAGE_OPERATION_REQ = 1027,             // 图片图元操作请求，正文为 ImageOperation protobuf
+    ID_IMAGE_OPERATION_RSP = 1028,             // 图片图元操作广播，正文为 ImageOperation protobuf
+    ID_GET_IMAGE_UPLOAD_TOKEN = 1029,          // 请求图片资源上传签名
+    ID_GET_IMAGE_DOWNLOAD_TOKEN = 1030,        // 请求图片资源下载签名
 };
 
 enum ErrorCodes{

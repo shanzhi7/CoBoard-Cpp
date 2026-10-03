@@ -45,6 +45,8 @@ enum MSG_IDS {
     ID_REVOKE_EDIT_REQ = 1024,    //取消编辑权限请求
     ID_REVOKE_EDIT_RSP = 1025,    //取消编辑权限回包
     ID_PERMISSION_CHANGED_BROADCAST = 1026,    //编辑权限变更广播
+    ID_IMAGE_OPERATION_REQ = 1027,              //图片图元操作请求，正文为 ImageOperation
+    ID_IMAGE_OPERATION_RSP = 1028,              //图片图元操作广播，正文为服务端规范化后的 ImageOperation
 };
 #define MAX_LENGTH 1024*64
 

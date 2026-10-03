@@ -51,3 +51,4 @@ private:
 	std::function<void()> _func;	//存储延迟执行的函数
 };
 #define CODEPREFIX "code_"
+#define ROOM_USERS_PREFIX "room_users:"

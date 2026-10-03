@@ -66,6 +66,7 @@ signals:
     void sig_user_left(int uid);                                        //用户离开 (广播)
 
     void sig_draw_broadcast(QByteArray data);                           // 绘画广播 (二进制 DrawReq)
+    void sig_image_operation_broadcast(QByteArray data);                // 图片图元操作广播 (二进制 ImageOperation)
     void sig_permission_changed(int target_uid, bool can_edit);          // 房间编辑权限变更广播
 
     void sig_go_lobby(QString tip);                                     //断线后回到大厅并且提示

@@ -1,6 +1,7 @@
 #pragma once
 #include "Singleton.h"
 #include "CSession.h" // 包含 LogicNode 和 CSession 定义
+#include "ImageOperationHandler.h"
 #include <map>
 #include <thread>
 #include <queue>
@@ -50,9 +51,9 @@ private:
 
 	std::thread _work_thread;							// 工作线程,用于回复客户端
 	std::queue<std::shared_ptr<LogicNode>> _msg_queue;	// 消息队列，存放session与recvNode
-	std::mutex _mutex;
-	std::condition_variable _cond;
-	bool _b_stop;
+	std::mutex _mutex;								// 保护逻辑消息队列，避免网络线程并发入队
+	std::condition_variable _cond;						// 有新消息或停止请求时唤醒工作线程
+	bool _b_stop;									// 工作线程退出标志，析构时设置并等待线程回收
 
 	std::map<short, FunCallBack> _fun_callbacks;		// 回调函数,打包回复数据，调用对应的session的send函数
 };

@@ -1,8 +1,37 @@
 #include "canvasgraphicsview.h"
 #include "ui_canvasgraphicsview.h"
 
+#include <QDragEnterEvent>
+#include <QDragMoveEvent>
+#include <QDropEvent>
+#include <QFileInfo>
+#include <QKeyEvent>
+#include <QKeySequence>
+#include <QMimeData>
+#include <QUrl>
 #include <QWheelEvent>
 #include <QtMath>
+
+namespace
+{
+bool HasLocalFileUrls(const QMimeData* mime_data)
+{
+    if (!mime_data || !mime_data->hasUrls())
+    {
+        return false;
+    }
+
+    for (const QUrl& url : mime_data->urls())
+    {
+        if (url.isLocalFile())
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+}
 
 CanvasGraphicsView::CanvasGraphicsView(QWidget* parent)
     : QGraphicsView(parent)
@@ -10,6 +39,10 @@ CanvasGraphicsView::CanvasGraphicsView(QWidget* parent)
 {
     // 先应用独立 UI 文件中的基础属性，再在代码中设置交互相关的锚点。
     _ui->setupUi(this);
+
+    // QAbstractScrollArea 的拖放事件通常由 viewport 接收，两层都开启才能兼容不同平台的事件分发方式。
+    setAcceptDrops(true);
+    viewport()->setAcceptDrops(true);
 
     // 缩放时以鼠标所在位置作为锚点，避免放大后工作区域跳离鼠标位置。
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
@@ -72,4 +105,87 @@ void CanvasGraphicsView::wheelEvent(QWheelEvent* event)
     scale(target_zoom / current_zoom, target_zoom / current_zoom);
     emit zoomChanged(zoomFactor());
     event->accept();
+}
+
+void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
+{
+    if (event && event->matches(QKeySequence::Paste))
+    {
+        // 只在画布视图拥有焦点时触发，避免抢占聊天输入框等其他控件的粘贴行为。
+        emit sigPasteImageRequested();
+        event->accept();
+        return;
+    }
+
+    // 其他快捷键继续交给 QGraphicsView，由 PaintScene 处理图片变换和绘图快捷键。
+    QGraphicsView::keyPressEvent(event);
+}
+
+void CanvasGraphicsView::dragEnterEvent(QDragEnterEvent* event)
+{
+    if (event && HasLocalFileUrls(event->mimeData()))
+    {
+        // 视图层只判断拖放载荷是否为本地文件，图片格式和大小交给 ImageAssetManager 校验。
+        event->acceptProposedAction();
+        return;
+    }
+
+    if (event)
+    {
+        event->ignore();
+    }
+}
+
+void CanvasGraphicsView::dragMoveEvent(QDragMoveEvent* event)
+{
+    if (event && HasLocalFileUrls(event->mimeData()))
+    {
+        // 持续接受移动事件，保证用户松开鼠标时能够进入 dropEvent。
+        event->acceptProposedAction();
+        return;
+    }
+
+    if (event)
+    {
+        event->ignore();
+    }
+}
+
+void CanvasGraphicsView::dropEvent(QDropEvent* event)
+{
+    if (!event || !HasLocalFileUrls(event->mimeData()))
+    {
+        if (event)
+        {
+            event->ignore();
+        }
+        return;
+    }
+
+    QStringList file_paths;
+    for (const QUrl& url : event->mimeData()->urls())
+    {
+        if (!url.isLocalFile())
+        {
+            continue;
+        }
+
+        const QString file_path = url.toLocalFile();
+        const QFileInfo file_info(file_path);
+        if (!file_path.isEmpty() && file_info.exists() && file_info.isFile())
+        {
+            file_paths.append(file_path);
+        }
+    }
+
+    if (file_paths.isEmpty())
+    {
+        event->ignore();
+        return;
+    }
+
+    // QDropEvent 的位置相对于 viewport，QGraphicsView::mapToScene 正好使用同一坐标系。
+    emit sigImageFilesDropped(file_paths,
+                              mapToScene(event->position().toPoint()));
+    event->acceptProposedAction();
 }

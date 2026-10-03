@@ -287,6 +287,22 @@ bool RedisMgr::AddUserToRoom(const std::string& room_id, const std::string& uid)
     }
 }
 
+bool RedisMgr::RemoveUserFromRoom(const std::string& room_id, const std::string& uid)
+{
+    try
+    {
+        // 成员集合用于 GateServer 的只读授权判断；离开时执行 SREM，避免连接断开后继续持有房间资格。
+        const std::string key = ROOM_USERS_PREFIX + room_id;
+        _redis->srem(key, uid);
+        return true;
+    }
+    catch (const Error& e)
+    {
+        std::cerr << "Redis RemoveUserFromRoom Error: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 void RedisMgr::Close()
 {
 	_redis.reset();

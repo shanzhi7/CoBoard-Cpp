@@ -7,10 +7,26 @@ RedisMgr::RedisMgr()
     // 自动读取配置并连接，防止后续空指针
     auto& cfg = ConfigMgr::Inst();
     std::string host = cfg["Redis"]["Host"];
-    int port = std::stoi(cfg["Redis"]["Port"]);
-    std::string pwd = cfg["Redis"]["Passwd"];
+    const std::string port_text = cfg["Redis"]["Port"];
+    // 历史模板使用 Passwd、现行配置使用 Password；兼容两种键名，避免启用密码后图片成员校验失败。
+    std::string pwd = cfg["Redis"]["Password"];
+    if (pwd.empty())
+    {
+        pwd = cfg["Redis"]["Passwd"];
+    }
 
-    Connect(host, port, pwd);
+    // 网关原有业务不依赖 Redis；缺少配置时保持未连接状态，让资源成员校验安全失败而不是抛异常。
+    if (!host.empty() && !port_text.empty())
+    {
+        try
+        {
+            Connect(host, std::stoi(port_text), pwd);
+        }
+        catch (const std::exception& error)
+        {
+            LOG_ERROR_CTX("RedisMgr::RedisMgr", "Redis 端口配置无效: " << error.what());
+        }
+    }
 }
 RedisMgr::~RedisMgr()
 {
@@ -185,6 +201,20 @@ bool RedisMgr::HGet(const std::string& key, const std::string& hkey, std::string
     catch (const Error& e)
     {
         LOG_ERROR_CTX("RedisMgr::HGet", "Redis HGet 失败: " << e.what());
+        return false;
+    }
+}
+
+bool RedisMgr::SIsMember(const std::string& key, const std::string& value)
+{
+    try
+    {
+        // 图片下载授权只需要读取 room_users 集合；这里不执行任何写入，避免网关改变房间状态。
+        return _redis && _redis->sismember(key, value);
+    }
+    catch (const Error& e)
+    {
+        LOG_ERROR_CTX("RedisMgr::SIsMember", "Redis 集合查询失败: " << e.what());
         return false;
     }
 }
