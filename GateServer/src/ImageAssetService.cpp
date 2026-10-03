@@ -330,7 +330,7 @@ bool ImageAssetService::BuildUploadResponse(const Json::Value& request, Json::Va
     response["asset_ref"] = object_reference;
     response["url"] = upload_url;
     response["mime_type"] = mime_type;
-    response["expires_in"] = upload_expire_seconds;
+    response["expires_in"] = static_cast<Json::Int64>(upload_expire_seconds);
     return true;
 }
 
@@ -372,6 +372,6 @@ bool ImageAssetService::BuildDownloadResponse(const Json::Value& request, Json::
     response["error"] = message::ErrorCodes::SUCCESS;
     response["url"] = download_url;
     response["mime_type"] = mime_type;
-    response["expires_in"] = download_expire_seconds;
+    response["expires_in"] = static_cast<Json::Int64>(download_expire_seconds);
     return true;
 }
