@@ -1,6 +1,10 @@
 #include "mainwindow.h"
 #include "global.h"
 #include "voicemanager.h"
+#include "assetserviceprotocol.h"
+#include "servicecommandclient.h"
+#include "servicecommandserver.h"
+#include <cstring>
 #include <livekit/livekit.h>
 #include <QApplication>
 #include <QFile>
@@ -18,12 +22,40 @@
 
 int main(int argc, char *argv[])
 {
+    // 1. 创建应用对象前区分后台模式，服务不初始化 Widgets 或 LiveKit。
+    bool is_asset_service = false; // 同程序后台代理模式。
+    for (int index = 1; index < argc; ++index)
+    {
+        if (std::strcmp(argv[index], "--asset-service") == 0)
+        {
+            is_asset_service = true;
+        }
+    }
+    if (is_asset_service)
+    {
+        QCoreApplication service_app(argc, argv); // 无 GUI 后台应用。
+        const QStringList arguments = service_app.arguments(); // Windows 由 Qt 读取 Unicode 命令行。
+        const int root_index = arguments.indexOf("--asset-root"); // 缓存目录参数位置。
+        if (root_index >= 0 && root_index + 1 < arguments.size())
+        {
+            service_app.setProperty("assetServiceRoot", arguments[root_index + 1]);
+        }
+        ServiceCommandServer server; // 独占锁覆盖整个事件循环。
+        const ServiceStartResult result = server.Start(); // 启动结果。
+        if (result != ServiceStartResult::Started)
+        {
+            return result == ServiceStartResult::AlreadyRunning ? 0 : 2;
+        }
+        return service_app.exec();
+    }
+    // 2. UI 只启动 IPC 门面，原有账号、画布和语音生命周期保持在 UI。
     QApplication a(argc, argv);
 
     // 测试模式只通过命令行显式开启，避免正常启动时改变登录和画布行为。
     QCommandLineParser parser;
     parser.setApplicationDescription(QStringLiteral("SyncCanvas 客户端"));
     parser.addHelpOption();
+    parser.addOption(QCommandLineOption("asset-root", "图片缓存测试根目录", "path"));
     const QCommandLineOption test_mode_option(
         QStringLiteral("test-mode"),
         QStringLiteral("启用延迟测试模式，角色为 sender 或 receiver"),
@@ -56,6 +88,10 @@ int main(int argc, char *argv[])
     parser.addOption(test_output_option);
     parser.addOption(test_run_id_option);
     parser.process(a);
+    if (parser.isSet("asset-root"))
+    {
+        a.setProperty("assetServiceRoot", parser.value("asset-root"));
+    }
 
     LatencyTestOptions test_options;
     const QString test_role = parser.value(test_mode_option).trimmed().toLower();
@@ -115,6 +151,7 @@ int main(int argc, char *argv[])
     gate_url_prefix = "http://" + gate_host + ":" + gate_port;
 
     int exit_code = 0;
+    ServiceCommandClient::getInstance()->EnsureService();
     {
         MainWindow w(test_options);
         w.show();
@@ -122,6 +159,8 @@ int main(int argc, char *argv[])
     }
 
     VoiceManager::getInstance()->leaveRoom();
+    ServiceCommandClient::getInstance()->Disconnect();
+    ServiceCommandClient::getInstance().reset();
     VoiceManager::getInstance().reset();
     livekit::shutdown();
     return exit_code;

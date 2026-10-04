@@ -1,6 +1,8 @@
 #include "httpmgr.h"
 #include <QFile>
 #include <QFileInfo>
+#include <QUuid>
+#include <QTimer>
 
 
 HttpMgr::HttpMgr()
@@ -93,6 +95,45 @@ void HttpMgr::uploadFile(QUrl url, QString filePath, ReqId reqid, Modules mod)
         emit this->sig_http_finished(reqid, "Upload Success", ErrorCodes::SUCCESS, mod);
         reply->deleteLater();
     });
+}
+
+QString HttpMgr::PostImageSignature(const QUrl& url, const QJsonObject& json, ReqId reqid)
+{
+    // 1. 每个签名请求分配 UUID，响应不能误用于其他房间或图元。
+    const QString request_id = QUuid::createUuid().toString(QUuid::WithoutBraces); // 本地关联，不发送登录日志。
+    QNetworkRequest request(url); // 网关 HTTP 请求。
+    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    request.setTransferTimeout(30000);
+    auto* reply = mananger.post(request, QJsonDocument(json).toJson(QJsonDocument::Compact)); // 仅网关接收登录 Token。
+    _image_signature_replies.insert(request_id, reply);
+    auto* timeout = new QTimer(reply); // 绝对签名期限。
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, reply, &QNetworkReply::abort);
+    timeout->start(30000);
+    connect(reply, &QNetworkReply::finished, this, [this, reply, request_id, reqid] {
+        // 2. 被取消的请求丢弃结果，禁止打印签名响应或完整 URL。
+        if (_image_signature_replies.remove(request_id))
+        {
+            const bool is_success = reply->error() == QNetworkReply::NoError && reply->bytesAvailable() <= 64 * 1024; // 有界控制响应。
+            const QString response = is_success ? QString::fromUtf8(reply->readAll()) : QString(); // 不记录正文。
+            if (!is_success)
+            {
+                qWarning() << "HttpMgr PostImageSignature request=" << request_id << "error=" << reply->error();
+            }
+            emit sigImageSignatureFinished(request_id, reqid, response, is_success ? ErrorCodes::SUCCESS : ErrorCodes::ERR_NETWORK);
+        }
+        reply->deleteLater();
+    });
+    return request_id;
+}
+
+void HttpMgr::CancelImageSignature(const QString& request_id)
+{
+    // 1. 先移除上下文，abort 的同步完成信号不会再交付结果。
+    if (auto* reply = _image_signature_replies.take(request_id))
+    {
+        reply->abort();
+    }
 }
 
 void HttpMgr::slot_http_finished(ReqId reqid, QString res, ErrorCodes err, Modules mod)

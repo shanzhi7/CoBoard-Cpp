@@ -1,736 +1,284 @@
 #include "imageassetmanager.h"
 
-#include <QCryptographicHash>
 #include <QBuffer>
-#include <QDir>
-#include <QFile>
-#include <QFileInfo>
 #include <QFutureWatcher>
-#include <QImage>
-#include <QImageReader>
-#include <QMimeDatabase>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
-#include <QPixmap>
-#include <QSaveFile>
-#include <QStandardPaths>
-#include <QRegularExpression>
-#include <QtConcurrent/QtConcurrentRun>
+#include <QtConcurrent>
 
-namespace
+#include "assetserviceprotocol.h"
+#include "servicecommandclient.h"
+
+ImageAssetManager::ImageAssetManager(QObject* parent) : QObject(parent)
 {
-struct LocalAssetResult
-{
-    bool success = false; // 后台阶段是否完成全部读取、校验和缓存写入。
-    ImageAssetInfo asset_info; // 已由图片内容计算出的资源元数据。
-    QImage image; // 在线程池中解码的像素，回到 UI 线程后才转换为 QPixmap。
-    QString error_message; // 失败原因，不包含本地路径以外的敏感内容。
-};
-
-QString LocalCacheDirectory()
-{
-    // 工作线程不能依赖 ImageAssetManager 实例，直接复用同一 Qt 应用数据目录规则。
-    const QString base_path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return QDir::cleanPath(base_path + QDir::separator() + QStringLiteral("canvas-assets"));
-}
-
-bool WriteLocalCacheFile(const QString& asset_id,
-                         const QByteArray& data,
-                         QString* cache_path)
-{
-    // 内容摘要由 SHA-256 生成，只会得到单级安全文件名；原子提交避免异常退出暴露半文件。
-    const QString directory = LocalCacheDirectory();
-    if (!QDir().mkpath(directory))
-    {
-        return false;
-    }
-    const QString target_path = QDir::cleanPath(directory + QDir::separator() + asset_id);
-    QSaveFile cache_file(target_path);
-    if (!cache_file.open(QIODevice::WriteOnly) || cache_file.write(data) != data.size())
-    {
-        return false;
-    }
-    if (!cache_file.commit())
-    {
-        return false;
-    }
-    if (cache_path)
-    {
-        *cache_path = target_path;
-    }
-    return true;
-}
-
-LocalAssetResult PrepareImageDataInWorker(const QByteArray& data)
-{
-    LocalAssetResult result;
-
-    // 文件和剪贴板数据共用这一段校验，保证两种入口的格式、尺寸和缓存规则完全一致。
-    if (data.isEmpty() || data.size() > ImageAssetManager::MAX_FILE_SIZE)
-    {
-        result.error_message = QStringLiteral("图片大小超过 10 MB 限制");
-        return result;
-    }
-
-    // QImageReader 在工作线程内按内容识别格式并完成解码，不接触 UI 专用的 QPixmap。
-    QBuffer buffer;
-    buffer.setData(data);
-    if (!buffer.open(QIODevice::ReadOnly))
-    {
-        result.error_message = QStringLiteral("无法读取图片数据");
-        return result;
-    }
-    QImageReader reader(&buffer);
-    reader.setDecideFormatFromContent(true);
-    const QByteArray format = reader.format().toLower();
-    if (format != QByteArrayLiteral("png") &&
-        format != QByteArrayLiteral("jpg") &&
-        format != QByteArrayLiteral("jpeg") &&
-        format != QByteArrayLiteral("webp"))
-    {
-        result.error_message = QStringLiteral("只支持 PNG、JPG、JPEG 和 WEBP 图片");
-        return result;
-    }
-    const QString mime_type = QMimeDatabase().mimeTypeForData(data).name().toLower();
-    if (mime_type != QStringLiteral("image/png") &&
-        mime_type != QStringLiteral("image/jpeg") &&
-        mime_type != QStringLiteral("image/webp"))
-    {
-        result.error_message = QStringLiteral("图片 MIME 类型不在允许范围内");
-        return result;
-    }
-    const QImage image = reader.read();
-    if (image.isNull())
-    {
-        result.error_message = QStringLiteral("图片解码失败");
-        return result;
-    }
-    if (image.width() <= 0 || image.height() <= 0 ||
-        image.width() > ImageAssetManager::MAX_IMAGE_WIDTH ||
-        image.height() > ImageAssetManager::MAX_IMAGE_HEIGHT)
-    {
-        result.error_message = QStringLiteral("图片像素尺寸超过 4096 限制");
-        return result;
-    }
-
-    const QString asset_sha256 = QString::fromLatin1(
-        QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex());
-    QString cache_path;
-    if (!WriteLocalCacheFile(asset_sha256, data, &cache_path))
-    {
-        result.error_message = QStringLiteral("无法写入图片缓存");
-        return result;
-    }
-
-    result.asset_info.asset_id = asset_sha256;
-    result.asset_info.asset_ref = asset_sha256;
-    result.asset_info.asset_sha256 = asset_sha256;
-    result.asset_info.mime_type = mime_type;
-    result.asset_info.original_size = image.size();
-    result.asset_info.byte_size = data.size();
-    result.asset_info.local_file_path = cache_path;
-    result.image = image;
-    result.success = true;
-    return result;
-}
-
-LocalAssetResult PrepareLocalAssetInWorker(const QString& file_path)
-{
-    LocalAssetResult result;
-
-    // 先读取文件元数据，超限文件不进入内存，避免用户选择异常大文件拖垮线程池。
-    QFileInfo file_info(file_path);
-    if (!file_info.exists() || !file_info.isFile())
-    {
-        result.error_message = QStringLiteral("图片文件不存在");
-        return result;
-    }
-    if (file_info.size() <= 0 || file_info.size() > ImageAssetManager::MAX_FILE_SIZE)
-    {
-        result.error_message = QStringLiteral("图片大小超过 10 MB 限制");
-        return result;
-    }
-
-    QFile file(file_path);
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        result.error_message = QStringLiteral("无法读取图片文件");
-        return result;
-    }
-    const QByteArray data = file.readAll();
-    file.close();
-    if (data.isEmpty() || data.size() != file_info.size())
-    {
-        result.error_message = QStringLiteral("图片读取结果不完整");
-        return result;
-    }
-
-    return PrepareImageDataInWorker(data);
-}
-
-LocalAssetResult PrepareClipboardImageInWorker(const QImage& image)
-{
-    // 剪贴板图片先统一编码为 PNG，再复用文件入口的内容校验和内容寻址缓存。
-    if (image.isNull())
-    {
-        LocalAssetResult result;
-        result.error_message = QStringLiteral("剪贴板图片为空");
-        return result;
-    }
-
-    QByteArray data;
-    QBuffer buffer(&data);
-    if (!buffer.open(QIODevice::WriteOnly) || !image.save(&buffer, "PNG"))
-    {
-        LocalAssetResult result;
-        result.error_message = QStringLiteral("无法编码剪贴板图片");
-        return result;
-    }
-    return PrepareImageDataInWorker(data);
-}
-}
-
-ImageAssetManager::ImageAssetManager(QObject* parent)
-    : QObject(parent)
-    , _network_manager(new QNetworkAccessManager(this))
-{
-    // 网络请求统一归属当前 Qt 线程，所有完成信号都会回到 UI 事件循环，不在回调里触碰场景绘制对象。
+    // 1. UI 不打开缓存文件、不创建数据库或 OSS 网络对象。
+    _prepare_thread_pool.setMaxThreadCount(2);
+    connect(ServiceCommandClient::getInstance().get(), &ServiceCommandClient::sigResponseReady, this, &ImageAssetManager::ReceiveResponse);
+    connect(ServiceCommandClient::getInstance().get(), &ServiceCommandClient::sigServiceDisconnected, this, [this] {
+        ++_service_generation;
+        _asset_handles.clear();
+        emit sigServiceLost();
+    });
 }
 
 ImageAssetManager::~ImageAssetManager()
 {
-    // QNetworkAccessManager 作为子对象会先取消并释放回复；清空映射避免析构阶段再访问悬空指针。
-    _download_contexts.clear();
-    _upload_contexts.clear();
-    _pending_downloads.clear();
+    // 1. 销毁前保证工作线程不再引用本类。
+    CancelAll();
+    _prepare_thread_pool.waitForDone();
 }
 
-QString ImageAssetManager::cacheDirectory() const
+void ImageAssetManager::Submit(const RequestContext& context, const QJsonObject& payload, const QByteArray& binary)
 {
-    // AppDataLocation 随平台选择用户可写目录，避免把缓存写入程序安装目录或项目目录。
-    const QString base_path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    return QDir::cleanPath(base_path + QDir::separator() + QStringLiteral("canvas-assets"));
+    // 1. 客户端保证响应异步到达，先登记请求上下文。
+    const QString request_id = ServiceCommandClient::getInstance()->SendCommand(context._command, payload, binary); // IPC UUID。
+    _requests.insert(request_id, context);
 }
 
-QString ImageAssetManager::buildCachePath(const QString& asset_id) const
+void ImageAssetManager::prepareLocalAssetAsync(const QString& file_path, const QString& request_id)
 {
-    // 只使用净化后的单级文件名，防止服务端返回的资源 ID 通过 ../ 越出缓存目录。
-    return QDir::cleanPath(cacheDirectory() + QDir::separator() + sanitizeAssetId(asset_id));
+    // 1. 原始文件仅由代理读取。
+    RequestContext context; // 导入关联。
+    context._command = "ImportFile";
+    context._request_id = request_id;
+    context._source_path = file_path;
+    Submit(context, {{"filePath", file_path}});
 }
 
-QString ImageAssetManager::calculateSha256(const QByteArray& data) const
+void ImageAssetManager::PrepareImageDataAsync(const QImage& image, const QString& request_id)
 {
-    // 统一使用小写十六进制，协议和缓存比较时不再因大小写产生两份资源。
-    return QString::fromLatin1(QCryptographicHash::hash(data, QCryptographicHash::Sha256).toHex());
-}
-
-bool ImageAssetManager::isSupportedMimeType(const QString& mime_type) const
-{
-    // 白名单与上传端、CanvasServer 的限制保持一致，避免客户端缓存任意非图片内容。
-    const QString normalized_type = mime_type.trimmed().toLower();
-    return normalized_type == QStringLiteral("image/png") ||
-           normalized_type == QStringLiteral("image/jpeg") ||
-           normalized_type == QStringLiteral("image/webp");
-}
-
-bool ImageAssetManager::prepareLocalAsset(const QString& file_path,
-                                          ImageAssetInfo* asset_info,
-                                          QPixmap* pixmap,
-                                          QString* error_message)
-{
-    if (!asset_info || !pixmap)
-    {
-        if (error_message)
+    // 1. PNG 压缩放到工作线程，完成后提交代理。
+    const quint64 generation = _generation; // 迟到结果校验。
+    auto* watcher = new QFutureWatcher<QByteArray>(this); // UI 回调。
+    connect(watcher, &QFutureWatcher<QByteArray>::finished, this, [this, watcher, request_id, generation] {
+        const QByteArray data = watcher->result(); // 已编码数据。
+        watcher->deleteLater();
+        if (generation != _generation)
         {
-            *error_message = QStringLiteral("图片输出参数无效");
+            return;
         }
-        return false;
-    }
-
-    // 本地文件先检查大小，再读取内容，避免超大文件一次性进入内存造成 UI 进程压力。
-    QFileInfo file_info(file_path);
-    if (!file_info.exists() || !file_info.isFile())
-    {
-        if (error_message)
+        if (data.isEmpty() || data.size() > MAX_FILE_SIZE)
         {
-            *error_message = QStringLiteral("图片文件不存在");
+            emit sigLocalAssetFailed(request_id, {}, "剪贴板图片无效或超过 10 MiB");
+            return;
         }
-        return false;
-    }
-    if (file_info.size() <= 0 || file_info.size() > MAX_FILE_SIZE)
-    {
-        if (error_message)
+        RequestContext context; // 剪贴板导入关联。
+        context._command = "ImportImageData";
+        context._request_id = request_id;
+        Submit(context, {}, data);
+    });
+    watcher->setFuture(QtConcurrent::run(&_prepare_thread_pool, [image] {
+        QByteArray data; // 内存 PNG 编码。
+        if (image.isNull() || image.width() > MAX_IMAGE_WIDTH || image.height() > MAX_IMAGE_HEIGHT)
         {
-            *error_message = QStringLiteral("图片大小超过 10 MB 限制");
+            return data;
         }
-        return false;
-    }
-
-    QFile file(file_path);
-    if (!file.open(QIODevice::ReadOnly))
-    {
-        if (error_message)
+        QBuffer buffer(&data); // 不创建临时文件。
+        buffer.open(QIODevice::WriteOnly);
+        if (!image.save(&buffer, "PNG"))
         {
-            *error_message = QStringLiteral("无法读取图片文件");
+            data.clear();
         }
-        return false;
-    }
-    const QByteArray data = file.readAll();
-    file.close();
-
-    ImageAssetInfo parsed_info;
-    QPixmap parsed_pixmap;
-    if (!readAndValidateImage(data, &parsed_info, &parsed_pixmap, error_message))
-    {
-        return false;
-    }
-
-    // 内容摘要既能作为离线资源 ID，也能复用缓存，避免用户多次导入同一文件产生重复副本。
-    parsed_info.asset_sha256 = calculateSha256(data);
-    parsed_info.asset_id = parsed_info.asset_sha256;
-    parsed_info.asset_ref = parsed_info.asset_id;
-    if (!writeCacheFile(parsed_info.asset_id, data, &parsed_info.local_file_path))
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("无法写入图片缓存");
-        }
-        return false;
-    }
-
-    *asset_info = parsed_info;
-    *pixmap = parsed_pixmap;
-    return true;
+        return data;
+    }));
 }
 
-void ImageAssetManager::prepareLocalAssetAsync(const QString& file_path,
-                                               const QString& request_id)
+void ImageAssetManager::LoadAssetAsync(const QString& asset_id, const QString& sha256, const QString& mime_type)
 {
-    if (file_path.isEmpty() || request_id.isEmpty())
-    {
-        emit sigLocalAssetFailed(request_id,
-                                 file_path,
-                                 QStringLiteral("图片读取参数无效"));
-        return;
-    }
-
-    // QFutureWatcher 归属于 ImageAssetManager；销毁管理器会断开回调，工作线程只持有值类型参数。
-    auto* watcher = new QFutureWatcher<LocalAssetResult>(this);
-    connect(watcher,
-            &QFutureWatcher<LocalAssetResult>::finished,
-            this,
-            [this, watcher, request_id, file_path]() {
-                // finished 已回到管理器所属线程，QPixmap 只能在此处从工作线程的 QImage 创建。
-                const LocalAssetResult result = watcher->result();
-                watcher->deleteLater();
-                if (!result.success)
-                {
-                    emit sigLocalAssetFailed(request_id,
-                                             file_path,
-                                             result.error_message.isEmpty()
-                                                 ? QStringLiteral("图片读取失败")
-                                                 : result.error_message);
-                    return;
-                }
-
-                emit sigLocalAssetReady(request_id,
-                                        file_path,
-                                        result.asset_info.asset_id,
-                                        result.asset_info.asset_ref,
-                                        result.asset_info.asset_sha256,
-                                        result.asset_info.mime_type,
-                                        result.asset_info.original_size,
-                                        result.asset_info.byte_size,
-                                        QPixmap::fromImage(result.image),
-                                        result.asset_info.local_file_path);
-            });
-
-    // 读取、摘要、格式校验、解码和缓存写入全部在线程池中完成，UI 线程只处理完成信号。
-    watcher->setFuture(QtConcurrent::run(PrepareLocalAssetInWorker, file_path));
-}
-
-void ImageAssetManager::PrepareImageDataAsync(const QImage& image,
-                                              const QString& request_id)
-{
-    if (image.isNull() || request_id.isEmpty())
-    {
-        emit sigLocalAssetFailed(request_id,
-                                 QString(),
-                                 QStringLiteral("剪贴板图片参数无效"));
-        return;
-    }
-
-    // QImage 是隐式共享值类型，可以安全交给线程池；编码完成后再回 UI 线程创建 QPixmap。
-    auto* watcher = new QFutureWatcher<LocalAssetResult>(this);
-    connect(watcher,
-            &QFutureWatcher<LocalAssetResult>::finished,
-            this,
-            [this, watcher, request_id]() {
-                const LocalAssetResult result = watcher->result();
-                watcher->deleteLater();
-                if (!result.success)
-                {
-                    emit sigLocalAssetFailed(request_id,
-                                             QString(),
-                                             result.error_message.isEmpty()
-                                                 ? QStringLiteral("剪贴板图片读取失败")
-                                                 : result.error_message);
-                    return;
-                }
-
-                emit sigLocalAssetReady(request_id,
-                                        QString(),
-                                        result.asset_info.asset_id,
-                                        result.asset_info.asset_ref,
-                                        result.asset_info.asset_sha256,
-                                        result.asset_info.mime_type,
-                                        result.asset_info.original_size,
-                                        result.asset_info.byte_size,
-                                        QPixmap::fromImage(result.image),
-                                        result.asset_info.local_file_path);
-            });
-
-    watcher->setFuture(QtConcurrent::run(PrepareClipboardImageInWorker, image));
-}
-
-void ImageAssetManager::downloadAsset(const QString& asset_id,
-                                      const QUrl& download_url,
-                                      const QString& expected_sha256,
-                                      const QString& mime_type)
-{
-    if (asset_id.isEmpty() || !download_url.isValid())
-    {
-        emit sigAssetFailed(asset_id, QStringLiteral("图片下载参数无效"));
-        return;
-    }
-
-    // 同一个资源可能同时被历史回放中的多个图元引用，只保留一个网络请求并让后续调用复用缓存。
+    // 1. 缓存命中不请求网关签名。
     if (_pending_downloads.contains(asset_id))
     {
         return;
     }
-
-    ImageAssetInfo cached_info;
-    QPixmap cached_pixmap;
-    QString cache_error;
-    if (readCachedAsset(asset_id, expected_sha256, mime_type,
-                        &cached_info, &cached_pixmap, &cache_error))
-    {
-        emit sigAssetReady(asset_id,
-                           cached_pixmap,
-                           cached_info.asset_sha256,
-                           cached_info.original_size,
-                           cached_info.mime_type,
-                           cached_info.local_file_path);
-        return;
-    }
-
-    // URL 只被交给 Qt 网络层使用，不写入日志，避免短期签名泄露到调试输出。
-    QNetworkRequest request(download_url);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute,
-                         QNetworkRequest::NoLessSafeRedirectPolicy);
-    QNetworkReply* reply = _network_manager->get(request);
-    _download_contexts.insert(reply, DownloadContext{asset_id,
-                                                      expected_sha256.toLower(),
-                                                      mime_type.toLower()});
     _pending_downloads.insert(asset_id);
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        handleDownloadFinished(reply);
+    RequestContext context; // 缓存读取关联。
+    context._command = "LoadAsset";
+    context._asset_id = asset_id;
+    context._sha256 = sha256;
+    context._mime_type = mime_type;
+    Submit(context, {{"sha256", sha256}});
+}
+
+void ImageAssetManager::downloadAsset(const QString& asset_id, const QUrl& url, const QString& sha256, const QString& mime_type)
+{
+    // 1. 代理再次查缓存并合并跨窗口下载。
+    if (_pending_downloads.contains(asset_id))
+    {
+        return;
+    }
+    _pending_downloads.insert(asset_id);
+    RequestContext context; // 下载关联。
+    context._command = "DownloadAsset";
+    context._asset_id = asset_id;
+    context._sha256 = sha256;
+    context._mime_type = mime_type;
+    Submit(context, {{"sha256", sha256}, {"url", url.toString(QUrl::FullyEncoded)}});
+}
+
+void ImageAssetManager::uploadAsset(const QString& asset_id, const QString& asset_handle, const QUrl& url, const QString& mime_type, const QString& sha256, qint64 byte_size)
+{
+    // 1. 仅发送 PUT 签名及句柄，不传登录 Token。
+    RequestContext context; // 上传关联。
+    context._command = "UploadAsset";
+    context._asset_id = asset_id;
+    context._asset_handle = asset_handle;
+    context._sha256 = sha256;
+    context._mime_type = mime_type;
+    Submit(context, {{"assetHandle", asset_handle}, {"url", url.toString(QUrl::FullyEncoded)}, {"sha256", sha256}, {"mimeType", mime_type}, {"byteSize", byte_size}});
+}
+
+void ImageAssetManager::Fail(const RequestContext& context, const QString& message)
+{
+    // 1. 按业务类型返回终态失败。
+    if (context._command.startsWith("Import"))
+    {
+        emit sigLocalAssetFailed(context._request_id, context._source_path, message);
+    } else if (context._command == "UploadAsset")
+    {
+        ReleaseAsset(context._asset_handle);
+        emit sigAssetUploadFailed(context._asset_id, message);
+    } else
+    {
+        _pending_downloads.remove(context._asset_id);
+        emit sigAssetFailed(context._asset_id, message);
+    }
+}
+
+void ImageAssetManager::ReceiveResponse(const QString& request_id, const QJsonObject& response, const QByteArray& binary)
+{
+    // 1. 共享客户端中的其他门面请求不属于本对象。
+    if (!_requests.contains(request_id))
+    {
+        return;
+    }
+    const RequestContext context = _requests.take(request_id); // 终态关联。
+    const QString status = response.value("status").toString(); // 响应状态。
+    if (status == "miss" && context._command == "LoadAsset")
+    {
+        _pending_downloads.remove(context._asset_id);
+        emit sigAssetCacheMiss(context._asset_id);
+        return;
+    }
+    if (status != "ok")
+    {
+        Fail(context, response.value("message").toString("图片代理请求失败"));
+        return;
+    }
+    const QJsonObject payload = response.value("payload").toObject(); // 元数据。
+    const AssetCacheRecord record = AssetCacheRecord::FromJson(payload); // 图片属性。
+    if (context._command == "UploadAsset")
+    {
+        ReleaseAsset(context._asset_handle);
+        if (record._asset_sha256 != context._sha256 || record._mime_type != context._mime_type)
+        {
+            Fail(context, "上传资源元数据不匹配");
+            return;
+        }
+        emit sigAssetUploaded(context._asset_id, record._asset_sha256, record._mime_type);
+        return;
+    }
+    const QString handle = payload.value("assetHandle").toString(); // 解码期间也必须能取消保护。
+    if (!handle.isEmpty())
+    {
+        _asset_handles.insert(handle);
+    }
+    const quint64 generation = _generation; // 房间切换校验。
+    const quint64 service_generation = _service_generation; // 断线后旧结果不可继续交付。
+    auto* watcher = new QFutureWatcher<QImage>(this); // QPixmap 只在 UI 线程创建。
+    connect(watcher, &QFutureWatcher<QImage>::finished, this, [this, watcher, context, record, handle, generation, service_generation] {
+        const QImage image = watcher->result(); // 校验后的像素。
+        watcher->deleteLater();
+        if (generation != _generation)
+        {
+            ReleaseAsset(handle);
+            return;
+        }
+        if (service_generation != _service_generation)
+        {
+            Fail(context, "图片后台服务已重启，请重新加载");
+            return;
+        }
+        if (image.isNull())
+        {
+            ReleaseAsset(handle);
+            Fail(context, "图片解码或完整性校验失败");
+            return;
+        }
+        // 2. 在主线程创建 QPixmap，交付业务结果。
+        const QPixmap pixmap = QPixmap::fromImage(image); // GUI 像素。
+        if (context._command.startsWith("Import"))
+        {
+            ImageAssetInfo info; // 房间图片类型。
+            info.asset_id = record._asset_sha256;
+            info.asset_sha256 = record._asset_sha256;
+            info.mime_type = record._mime_type;
+            info.original_size = record._original_size;
+            info.byte_size = record._byte_size;
+            info._asset_handle = handle;
+            emit sigLocalAssetReady(context._request_id, context._source_path, info, pixmap);
+        } else
+        {
+            _pending_downloads.remove(context._asset_id);
+            emit sigAssetReady(context._asset_id, pixmap, record._asset_sha256, record._original_size, record._mime_type);
+        }
     });
+    watcher->setFuture(QtConcurrent::run(&_prepare_thread_pool, [binary, record, context] {
+        const AssetCacheResult result = AssetServiceProtocol::ValidateImage(binary); // 协议数据也需要验证。
+        if (result._status != "ok" || result._record._asset_sha256 != record._asset_sha256 || result._record._original_size != record._original_size
+            || result._record._mime_type != record._mime_type || result._record._byte_size != record._byte_size
+            || (!context._sha256.isEmpty() && result._record._asset_sha256 != context._sha256)
+            || (!context._mime_type.isEmpty() && result._record._mime_type != context._mime_type))
+        {
+            return QImage();
+        }
+        return QImage::fromData(binary);
+    }));
 }
 
-void ImageAssetManager::uploadAsset(const QString& asset_id,
-                                    const QString& file_path,
-                                    const QUrl& upload_url,
-                                    const QString& mime_type,
-                                    const QString& expected_sha256,
-                                    qint64 expected_byte_size)
+void ImageAssetManager::ReleaseAsset(const QString& asset_handle)
 {
-    const QString normalized_sha256 = expected_sha256.trimmed().toLower();
-    if (asset_id.isEmpty() || !upload_url.isValid() || !isSupportedMimeType(mime_type) ||
-        normalized_sha256.size() != 64 ||
-        normalized_sha256.contains(QRegularExpression(QStringLiteral("[^0-9a-f]"))) ||
-        expected_byte_size <= 0)
+    // 1. 幂等释放，由代理解除文件保护。
+    if (!asset_handle.isEmpty() && _asset_handles.remove(asset_handle))
     {
-        emit sigAssetUploadFailed(asset_id, QStringLiteral("图片上传参数无效"));
-        return;
+        ServiceCommandClient::getInstance()->SendCommand("ReleaseAsset", {{"assetHandle", asset_handle}});
     }
-
-    QFileInfo file_info(file_path);
-    if (!file_info.exists() || !file_info.isFile() ||
-        file_info.size() <= 0 || file_info.size() > MAX_FILE_SIZE ||
-        file_info.size() != expected_byte_size)
-    {
-        emit sigAssetUploadFailed(asset_id, QStringLiteral("图片文件不存在、大小超限或内容已变化"));
-        return;
-    }
-
-    QFile* file = new QFile(file_path);
-    if (!file->open(QIODevice::ReadOnly))
-    {
-        delete file;
-        emit sigAssetUploadFailed(asset_id, QStringLiteral("无法打开待上传图片"));
-        return;
-    }
-
-    QNetworkRequest request(upload_url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, mime_type);
-    request.setHeader(QNetworkRequest::ContentLengthHeader, file_info.size());
-    QNetworkReply* reply = _network_manager->put(request, file);
-    file->setParent(reply);
-    _upload_contexts.insert(reply, UploadContext{asset_id, normalized_sha256, mime_type.toLower()});
-    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
-        handleUploadFinished(reply);
-    });
 }
 
-bool ImageAssetManager::readAndValidateImage(const QByteArray& data,
-                                             ImageAssetInfo* asset_info,
-                                             QPixmap* pixmap,
-                                             QString* error_message) const
+void ImageAssetManager::CancelAssetUpload(const QString& asset_handle)
 {
-    if (!asset_info || !pixmap)
+    // 1. 先移除门面上下文，取消响应不能误推进 Canvas 的新上传。
+    const auto request_ids = _requests.keys(); // 稳定请求快照。
+    for (const QString& request_id : request_ids)
     {
-        return false;
-    }
-    if (data.isEmpty() || data.size() > MAX_FILE_SIZE)
-    {
-        if (error_message)
+        if (_requests.value(request_id)._command == "UploadAsset" && _requests.value(request_id)._asset_handle == asset_handle)
         {
-            *error_message = QStringLiteral("图片数据为空或大小超限");
+            _requests.remove(request_id);
+            ServiceCommandClient::getInstance()->CancelRequest(request_id);
         }
-        return false;
     }
-
-    // QImageReader 同时完成格式识别和尺寸读取，不能只根据文件扩展名相信输入内容。
-    QBuffer buffer;
-    buffer.setData(data);
-    if (!buffer.open(QIODevice::ReadOnly))
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("无法读取图片数据");
-        }
-        return false;
-    }
-    QImageReader reader(&buffer);
-    reader.setDecideFormatFromContent(true);
-    const QByteArray format = reader.format().toLower();
-    const QString mime_type = QMimeDatabase().mimeTypeForData(data).name().toLower();
-    if (format != QByteArrayLiteral("png") &&
-        format != QByteArrayLiteral("jpg") &&
-        format != QByteArrayLiteral("jpeg") &&
-        format != QByteArrayLiteral("webp"))
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("只支持 PNG、JPG、JPEG 和 WEBP 图片");
-        }
-        return false;
-    }
-    if (!isSupportedMimeType(mime_type))
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("图片 MIME 类型不在允许范围内");
-        }
-        return false;
-    }
-
-    QPixmap decoded_pixmap;
-    if (!decoded_pixmap.loadFromData(data))
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("图片解码失败");
-        }
-        return false;
-    }
-    const QSize image_size = decoded_pixmap.size();
-    if (!image_size.isValid() || image_size.width() <= 0 || image_size.height() <= 0 ||
-        image_size.width() > MAX_IMAGE_WIDTH || image_size.height() > MAX_IMAGE_HEIGHT)
-    {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("图片像素尺寸超过 4096 限制");
-        }
-        return false;
-    }
-
-    asset_info->mime_type = mime_type;
-    asset_info->original_size = image_size;
-    asset_info->byte_size = data.size();
-    *pixmap = decoded_pixmap;
-    return true;
+    // 2. 代理收到取消后关闭上传文件，再解除最后一个保护持有者。
+    ReleaseAsset(asset_handle);
 }
 
-bool ImageAssetManager::writeCacheFile(const QString& asset_id,
-                                       const QByteArray& data,
-                                       QString* cache_path) const
+void ImageAssetManager::TouchAssetAsync(const QString& sha256)
 {
-    const QString directory = cacheDirectory();
-    if (!QDir().mkpath(directory))
-    {
-        return false;
-    }
-
-    const QString target_path = buildCachePath(asset_id);
-    QSaveFile cache_file(target_path);
-    if (!cache_file.open(QIODevice::WriteOnly) || cache_file.write(data) != data.size())
-    {
-        return false;
-    }
-    if (!cache_file.commit())
-    {
-        return false;
-    }
-    if (cache_path)
-    {
-        *cache_path = target_path;
-    }
-    return true;
+    // 1. 预览只更新 LRU，不访问文件。
+    ServiceCommandClient::getInstance()->SendCommand("TouchAsset", {{"sha256", sha256}});
 }
 
-bool ImageAssetManager::readCachedAsset(const QString& asset_id,
-                                         const QString& expected_sha256,
-                                         const QString& mime_type,
-                                         ImageAssetInfo* asset_info,
-                                         QPixmap* pixmap,
-                                         QString* error_message) const
+void ImageAssetManager::CancelAll()
 {
-    const QString path = buildCachePath(asset_id);
-    QFile file(path);
-    if (!file.exists() || !file.open(QIODevice::ReadOnly))
+    // 1. 先废弃回调，再取消本门面的 IPC 请求。
+    ++_generation;
+    const auto request_ids = _requests.keys(); // 不取消其他门面的任务。
+    _requests.clear();
+    for (const QString& request_id : request_ids)
     {
-        if (error_message)
-        {
-            *error_message = QStringLiteral("图片缓存未命中");
-        }
-        return false;
+        ServiceCommandClient::getInstance()->CancelRequest(request_id);
     }
-    const QByteArray data = file.readAll();
-    file.close();
-
-    const QString actual_sha256 = calculateSha256(data);
-    if (!expected_sha256.isEmpty() && actual_sha256 != expected_sha256.toLower())
+    // 2. 实际上传另持保护，不会因句柄释放提前删除文件。
+    const auto handles = _asset_handles; // 避免边遍历边移除。
+    for (const QString& handle : handles)
     {
-        // 缓存损坏或资源被替换时删除当前缓存，下次请求会重新下载而不是反复使用坏数据。
-        QFile::remove(path);
-        if (error_message)
-        {
-            *error_message = QStringLiteral("图片缓存校验失败");
-        }
-        return false;
+        ReleaseAsset(handle);
     }
-
-    ImageAssetInfo parsed_info;
-    QPixmap parsed_pixmap;
-    if (!readAndValidateImage(data, &parsed_info, &parsed_pixmap, error_message))
-    {
-        QFile::remove(path);
-        return false;
-    }
-    parsed_info.asset_id = asset_id;
-    parsed_info.asset_ref = asset_id;
-    parsed_info.asset_sha256 = actual_sha256;
-    parsed_info.local_file_path = path;
-    if (!mime_type.isEmpty() && isSupportedMimeType(mime_type))
-    {
-        parsed_info.mime_type = mime_type;
-    }
-    *asset_info = parsed_info;
-    *pixmap = parsed_pixmap;
-    return true;
-}
-
-QString ImageAssetManager::sanitizeAssetId(const QString& asset_id) const
-{
-    QString safe_id;
-    safe_id.reserve(asset_id.size());
-    for (const QChar character : asset_id)
-    {
-        if (character.isLetterOrNumber() || character == QLatin1Char('-') || character == QLatin1Char('_'))
-        {
-            safe_id.append(character);
-        }
-    }
-    if (safe_id.isEmpty())
-    {
-        safe_id = QStringLiteral("invalid-asset");
-    }
-    return safe_id;
-}
-
-void ImageAssetManager::handleDownloadFinished(QNetworkReply* reply)
-{
-    const DownloadContext context = _download_contexts.take(reply);
-    _pending_downloads.remove(context.asset_id);
-
-    if (!reply || reply->error() != QNetworkReply::NoError)
-    {
-        emit sigAssetFailed(context.asset_id, QStringLiteral("图片下载失败"));
-        if (reply)
-        {
-            reply->deleteLater();
-        }
-        return;
-    }
-
-    const QByteArray data = reply->readAll();
-    reply->deleteLater();
-
-    const QString actual_sha256 = calculateSha256(data);
-    if (!context.expected_sha256.isEmpty() && actual_sha256 != context.expected_sha256)
-    {
-        emit sigAssetFailed(context.asset_id, QStringLiteral("图片下载校验失败"));
-        return;
-    }
-
-    ImageAssetInfo asset_info;
-    QPixmap pixmap;
-    QString error_message;
-    if (!readAndValidateImage(data, &asset_info, &pixmap, &error_message))
-    {
-        emit sigAssetFailed(context.asset_id, error_message);
-        return;
-    }
-
-    asset_info.asset_id = context.asset_id;
-    asset_info.asset_ref = context.asset_id;
-    asset_info.asset_sha256 = actual_sha256;
-    if (!context.mime_type.isEmpty() && isSupportedMimeType(context.mime_type))
-    {
-        asset_info.mime_type = context.mime_type;
-    }
-    if (!writeCacheFile(context.asset_id, data, &asset_info.local_file_path))
-    {
-        emit sigAssetFailed(context.asset_id, QStringLiteral("图片缓存写入失败"));
-        return;
-    }
-
-    emit sigAssetReady(context.asset_id,
-                       pixmap,
-                       asset_info.asset_sha256,
-                       asset_info.original_size,
-                       asset_info.mime_type,
-                       asset_info.local_file_path);
-}
-
-void ImageAssetManager::handleUploadFinished(QNetworkReply* reply)
-{
-    const UploadContext context = _upload_contexts.take(reply);
-    if (!reply || reply->error() != QNetworkReply::NoError)
-    {
-        emit sigAssetUploadFailed(context.asset_id, QStringLiteral("图片上传失败"));
-        if (reply)
-        {
-            reply->deleteLater();
-        }
-        return;
-    }
-
-    // PUT 回复正文可能包含服务商 XML，客户端只根据 HTTP 成功状态继续，绝不把正文写入日志或协议。
-    reply->deleteLater();
-    emit sigAssetUploaded(context.asset_id, context.expected_sha256, context.mime_type);
+    _pending_downloads.clear();
 }

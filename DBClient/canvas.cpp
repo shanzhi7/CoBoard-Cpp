@@ -134,8 +134,8 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
             this, &Canvas::slot_onImageOperationBroadcast);
 
     // 图片签名接口复用 HttpMgr 的大厅模块回调；请求严格串行，回包才能对应到当前资源上下文。
-    connect(HttpMgr::getInstance().get(), &HttpMgr::sig_lobby_mod_finish,
-            this, &Canvas::slot_onImageAssetHttpFinished);
+    connect(HttpMgr::getInstance().get(), &HttpMgr::sigImageSignatureFinished,
+            this, &Canvas::HandleImageSignatureFinished);
     connect(_imageAssetManager, &ImageAssetManager::sigAssetReady,
             this, &Canvas::slot_onImageAssetReady);
     connect(_imageAssetManager, &ImageAssetManager::sigAssetFailed,
@@ -148,6 +148,10 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
             this, &Canvas::slot_onImageAssetUploaded);
     connect(_imageAssetManager, &ImageAssetManager::sigAssetUploadFailed,
             this, &Canvas::slot_onImageAssetUploadFailed);
+    connect(_imageAssetManager, &ImageAssetManager::sigAssetCacheMiss,
+            this, &Canvas::RequestImageDownloadToken);
+    connect(_imageAssetManager, &ImageAssetManager::sigServiceLost,
+            this, &Canvas::HandleAssetServiceLost);
 
     if (test_options.enabled)
         _latencyTestController = new LatencyTestController(test_options, this);
@@ -160,6 +164,7 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
 
 Canvas::~Canvas()
 {
+    CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
     VoiceManager::getInstance()->leaveRoom();
@@ -174,6 +179,13 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
     // 从已有房间切换到另一个房间时仍需清理旧队列，避免旧房间图元串到新房间。
     if (_room_info)
     {
+        CancelImageRequests();
+        _pendingImageUploads.clear();
+        _imageUploadQueue.clear();
+        _activeImageUploadId.clear();
+        _imageDownloadQueue.clear();
+        _imageDownloadRequestActive = false;
+        _activeImageDownload = PendingImageDownload();
         _remoteDrawQueue.clear();
         _remoteImageOperationQueue.clear();
         _pending_image_imports.clear();
@@ -194,6 +206,7 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 
 void Canvas::enterOfflineMode()
 {
+    CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
     VoiceManager::getInstance()->leaveRoom();
@@ -257,6 +270,7 @@ void Canvas::resumeVoice()
 
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
+    CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
 
@@ -1124,37 +1138,24 @@ QPointF Canvas::CanvasCenterScenePos() const
 
 void Canvas::slot_onLocalAssetReady(QString request_id,
                                     QString file_path,
-                                    QString asset_id,
-                                    QString asset_ref,
-                                    QString sha256,
-                                    QString mime_type,
-                                    QSize original_size,
-                                    qint64 byte_size,
-                                    QPixmap pixmap,
-                                    QString local_file_path)
+                                    ImageAssetInfo asset_info,
+                                    QPixmap pixmap)
 {
-    // 房间切换或返回大厅会清空请求表；过期后台结果不能把图片插入新房间。
+    // 1. 过期结果解除代理保护，不插入其他房间。
     if (!_pending_image_imports.contains(request_id) || !_room_info || !_paintScene)
     {
+        _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
         return;
     }
     const PendingImageImport pending_import = _pending_image_imports.take(request_id);
     if (!pending_import._source_file_path.isEmpty() &&
         pending_import._source_file_path != file_path)
     {
+        _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
         return;
     }
 
-    ImageAssetInfo asset_info;
-    asset_info.asset_id = asset_id;
-    asset_info.asset_ref = asset_ref;
-    asset_info.asset_sha256 = sha256;
-    asset_info.mime_type = mime_type;
-    asset_info.original_size = original_size;
-    asset_info.byte_size = byte_size;
-    asset_info.local_file_path = local_file_path;
-
-    // 用 UUID 区分同一资源的多次放置；资源本身仍通过 SHA-256 复用缓存。
+    // 2. 用 UUID 区分同一资源的多次放置。
     const QString item_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QSizeF max_display_size(800.0, 600.0);
     const QSizeF display_size = QSizeF(asset_info.original_size)
@@ -1178,21 +1179,22 @@ void Canvas::slot_onLocalAssetReady(QString request_id,
                                    display_size,
                                    _room_info->offline))
     {
+        _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
         TipWidget::showTip(ui->graphicsView, QStringLiteral("图片图元创建失败"));
         return;
     }
 
     if (_room_info->offline)
     {
-        // 离线模式的内容已经写入本地内容寻址缓存，不产生任何 HTTP、TCP 或 OSS 请求。
+        // 3. 离线图片像素已驻留 UI，立即解除文件保护。
+        _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
         TipWidget::showTip(ui->graphicsView, QStringLiteral("图片已插入离线画布"));
         return;
     }
 
-    // 在线模式先展示本地预览，但只有 OSS 上传成功后才发送 ImageOperation，避免房间收到无效资源引用。
+    // 4. 在线上传从签名等待到 PUT 完成持续持有句柄。
     PendingImageUpload pending_upload;
     pending_upload.item_id = item_id;
-    pending_upload.file_path = local_file_path;
     pending_upload.suffix = ImageSuffixForMimeType(asset_info.mime_type);
     pending_upload.asset_info = asset_info;
 
@@ -1227,6 +1229,11 @@ void Canvas::slot_onLocalAssetFailed(QString request_id,
 
 void Canvas::requestNextImageUploadToken()
 {
+    // 1. 已在等待签名或 PUT 的资源不能被新导入重复发起签名。
+    if (!_activeImageUploadId.isEmpty())
+    {
+        return;
+    }
     if (_activeImageUploadId.isEmpty())
     {
         while (!_imageUploadQueue.isEmpty())
@@ -1252,7 +1259,7 @@ void Canvas::requestNextImageUploadToken()
         return;
     }
 
-    // 上传签名请求只携带资源描述和登录凭证，不携带图片二进制；二进制随后由 ImageAssetManager 直传 OSS。
+    // 2. 登录凭证仅用于网关签名，随后由后台代理上传图片。
     QJsonObject request;
     request[QStringLiteral("uid")] = user_info->_id;
     request[QStringLiteral("token")] = UserMgr::getInstance()->getToken();
@@ -1262,11 +1269,10 @@ void Canvas::requestNextImageUploadToken()
     request[QStringLiteral("file_size")] = static_cast<qint64>(pending_upload.asset_info.byte_size);
     request[QStringLiteral("width")] = pending_upload.asset_info.original_size.width();
     request[QStringLiteral("height")] = pending_upload.asset_info.original_size.height();
-    HttpMgr::getInstance()->postHttpRequest(
+    _upload_signature_request_id = HttpMgr::getInstance()->PostImageSignature(
         QUrl(gate_url_prefix + QStringLiteral("/get_image_upload_token")),
         request,
-        ReqId::ID_GET_IMAGE_UPLOAD_TOKEN,
-        Modules::MOD_LOBBY);
+        ReqId::ID_GET_IMAGE_UPLOAD_TOKEN);
 }
 
 void Canvas::requestNextImageDownloadToken()
@@ -1279,6 +1285,18 @@ void Canvas::requestNextImageDownloadToken()
 
     _activeImageDownload = _imageDownloadQueue.dequeue();
     _imageDownloadRequestActive = true;
+    // 1. 先异步查缓存，命中不访问网关或 OSS。
+    _imageAssetManager->LoadAssetAsync(_activeImageDownload.asset_id,
+        _activeImageDownload.asset_sha256, _activeImageDownload.mime_type);
+}
+
+void Canvas::RequestImageDownloadToken(QString asset_id)
+{
+    // 1. 只为仍然活动的缓存未命中资源申请签名。
+    if (!_imageDownloadRequestActive || _activeImageDownload.asset_id != asset_id || !_room_info || _room_info->offline)
+    {
+        return;
+    }
     const auto user_info = UserMgr::getInstance()->getMyInfo();
     if (!user_info)
     {
@@ -1286,18 +1304,17 @@ void Canvas::requestNextImageDownloadToken()
         return;
     }
 
-    // 下载签名同样必须绑定 room_id、asset_id 和稳定 asset_ref，GateServer 会拒绝跨房间或任意路径引用。
+    // 2. 签名绑定房间与对象引用，登录 Token 只交给网关。
     QJsonObject request;
     request[QStringLiteral("uid")] = user_info->_id;
     request[QStringLiteral("token")] = UserMgr::getInstance()->getToken();
     request[QStringLiteral("room_id")] = _room_info->id;
     request[QStringLiteral("asset_id")] = _activeImageDownload.asset_id;
     request[QStringLiteral("asset_ref")] = _activeImageDownload.asset_ref;
-    HttpMgr::getInstance()->postHttpRequest(
+    _download_signature_request_id = HttpMgr::getInstance()->PostImageSignature(
         QUrl(gate_url_prefix + QStringLiteral("/get_image_download_token")),
         request,
-        ReqId::ID_GET_IMAGE_DOWNLOAD_TOKEN,
-        Modules::MOD_LOBBY);
+        ReqId::ID_GET_IMAGE_DOWNLOAD_TOKEN);
 }
 
 void Canvas::sendImageCreateOperation(const QString& item_id)
@@ -1597,6 +1614,7 @@ void Canvas::slot_onImageAssetHttpFinished(ReqId reqid,
             !response_object.contains(QStringLiteral("asset_id")) ||
             !response_object.contains(QStringLiteral("asset_ref")))
         {
+            _imageAssetManager->ReleaseAsset(pending_upload.asset_info._asset_handle);
             _paintScene->removeImageItem(item_id);
             _pendingImageUploads.remove(item_id);
             _activeImageUploadId.clear();
@@ -1616,7 +1634,7 @@ void Canvas::slot_onImageAssetHttpFinished(ReqId reqid,
                                          pending_upload.asset_info.mime_type);
         }
         _imageAssetManager->uploadAsset(asset_id,
-                                        pending_upload.file_path,
+                                        pending_upload.asset_info._asset_handle,
                                         QUrl(response_object.value(QStringLiteral("url")).toString()),
                                         pending_upload.asset_info.mime_type,
                                         pending_upload.asset_info.asset_sha256,
@@ -1640,7 +1658,7 @@ void Canvas::slot_onImageAssetHttpFinished(ReqId reqid,
         return;
     }
 
-    // ImageAssetManager 会优先读取 SHA-256 缓存，命中时 sigAssetReady 可能在本调用栈中直接触发。
+    // 代理下载前复查缓存，合并跨窗口下载。
     _imageAssetManager->downloadAsset(
         _activeImageDownload.asset_id,
         QUrl(response_object.value(QStringLiteral("url")).toString()),
@@ -1652,10 +1670,9 @@ void Canvas::slot_onImageAssetReady(QString asset_id,
                                     QPixmap pixmap,
                                     QString sha256,
                                     QSize original_size,
-                                    QString mime_type,
-                                    QString local_file_path)
+                                    QString mime_type)
 {
-    Q_UNUSED(local_file_path);
+    // 1. UI 只持有像素和元数据，不保存缓存路径。
     if (!_paintScene)
     {
         return;
@@ -1754,6 +1771,7 @@ void Canvas::slot_onImagePreviewRequested(QString item_id)
     }
 
     // 预览窗口只持有 QPixmap 副本，关闭对话框后不会改变画布图元和资源缓存的生命周期。
+    _imageAssetManager->TouchAssetAsync(image_item->assetSha256());
     ImagePreviewDialog preview_dialog(pixmap, this);
     preview_dialog.exec();
 }
@@ -1775,6 +1793,7 @@ void Canvas::slot_onImageAssetUploaded(QString asset_id, QString sha256, QString
                                          mime_type);
         }
         sendImageCreateOperation(item_id);
+        _imageAssetManager->ReleaseAsset(iterator.value().asset_info._asset_handle);
         _pendingImageUploads.erase(iterator);
         _activeImageUploadId.clear();
         requestNextImageUploadToken();
@@ -1792,6 +1811,7 @@ void Canvas::slot_onImageAssetUploadFailed(QString asset_id, QString error_messa
             continue;
         }
         const QString item_id = iterator.key();
+        _imageAssetManager->ReleaseAsset(iterator.value().asset_info._asset_handle);
         _paintScene->removeImageItem(item_id);
         _pendingImageUploads.erase(iterator);
         _activeImageUploadId.clear();
@@ -1810,9 +1830,12 @@ void Canvas::slot_onImageDeleteRequested(QString item_id)
     // 上传尚未完成的本地预览没有进入房间历史，只清理队列和图元，不发送无效删除包。
     if (_pendingImageUploads.contains(item_id))
     {
+        _imageAssetManager->CancelAssetUpload(_pendingImageUploads.value(item_id).asset_info._asset_handle);
         _pendingImageUploads.remove(item_id);
         if (_activeImageUploadId == item_id)
         {
+            HttpMgr::getInstance()->CancelImageSignature(_upload_signature_request_id);
+            _upload_signature_request_id.clear();
             _activeImageUploadId.clear();
             requestNextImageUploadToken();
         }
@@ -1842,6 +1865,49 @@ void Canvas::slot_onImageGeometryChanged(QString item_id,
         return;
     }
     sendImageTransformOperation(item_id, scene_rect, rotation, scale);
+}
+
+void Canvas::HandleAssetServiceLost()
+{
+    // 1. 已显示图元保留 QPixmap，未完成上传不重放失效句柄。
+    HttpMgr::getInstance()->CancelImageSignature(_upload_signature_request_id);
+    _upload_signature_request_id.clear();
+    for (const auto& pending : std::as_const(_pendingImageUploads))
+    {
+        _paintScene->removeImageItem(pending.item_id);
+    }
+    _pendingImageUploads.clear();
+    _imageUploadQueue.clear();
+    _activeImageUploadId.clear();
+    qWarning() << "Canvas HandleAssetServiceLost: pending uploads canceled";
+}
+
+void Canvas::CancelImageRequests()
+{
+    // 1. 撤销签名，旧房间 HTTP 回包不会匹配新房间请求。
+    HttpMgr::getInstance()->CancelImageSignature(_upload_signature_request_id);
+    HttpMgr::getInstance()->CancelImageSignature(_download_signature_request_id);
+    _upload_signature_request_id.clear();
+    _download_signature_request_id.clear();
+    // 2. 取消本画板的代理任务和句柄。
+    _imageAssetManager->CancelAll();
+}
+
+void Canvas::HandleImageSignatureFinished(QString request_id, ReqId reqid, QString response, ErrorCodes error)
+{
+    // 1. UUID 匹配后才允许签名更新当前图片资源。
+    if (reqid == ReqId::ID_GET_IMAGE_UPLOAD_TOKEN && request_id == _upload_signature_request_id)
+    {
+        _upload_signature_request_id.clear();
+    } else if (reqid == ReqId::ID_GET_IMAGE_DOWNLOAD_TOKEN && request_id == _download_signature_request_id)
+    {
+        _download_signature_request_id.clear();
+    } else
+    {
+        return;
+    }
+    // 2. 复用既有网关响应校验，不更改远端业务协议。
+    slot_onImageAssetHttpFinished(reqid, response, error);
 }
 
 void Canvas::updateImageItemsForAsset(const QString& asset_id,

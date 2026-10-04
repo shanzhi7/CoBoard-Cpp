@@ -68,9 +68,9 @@ private slots:
     void slot_onDrawBroadcast(QByteArray data);   // 收到服务器广播
     void slot_onImageOperationBroadcast(QByteArray data); // 收到图片图元操作广播并开始资源加载
     void slot_onImageAssetHttpFinished(ReqId reqid, QString response, ErrorCodes error); // 处理图片签名接口回包
-    void slot_onLocalAssetReady(QString request_id, QString file_path, QString asset_id, QString asset_ref, QString sha256, QString mime_type, QSize original_size, qint64 byte_size, QPixmap pixmap, QString local_file_path); // 处理后台本地图片校验成功并创建预览图元。
+    void slot_onLocalAssetReady(QString request_id, QString file_path, ImageAssetInfo asset_info, QPixmap pixmap); // 接收代理导入结果和保护句柄。
     void slot_onLocalAssetFailed(QString request_id, QString file_path, QString error_message); // 处理后台本地图片读取失败且不创建图元。
-    void slot_onImageAssetReady(QString asset_id, QPixmap pixmap, QString sha256, QSize original_size, QString mime_type, QString local_file_path); // 更新图片图元的可显示像素
+    void slot_onImageAssetReady(QString asset_id, QPixmap pixmap, QString sha256, QSize original_size, QString mime_type); // 更新图片图元的可显示像素。
     void slot_onImageAssetFailed(QString asset_id, QString error_message); // 将资源加载失败转换为图元错误状态
     void slot_onImageAssetUploaded(QString asset_id, QString sha256, QString mime_type); // 上传完成后发送图片元数据操作
     void slot_onImageAssetUploadFailed(QString asset_id, QString error_message); // 上传失败时删除尚未广播的本地图元
@@ -130,7 +130,6 @@ private:
     struct PendingImageUpload
     {
         QString item_id; // 本地预览图元的稳定 ID。
-        QString file_path; // 待上传的本地图片路径，仅在上传阶段使用。
         QString suffix; // 网关签名需要的扩展名。
         ImageAssetInfo asset_info; // 本地校验后的资源元数据和摘要。
     };
@@ -176,6 +175,10 @@ private:
     void startLatencyTestIfReady(); // 房间就绪后启动延迟测试
     void requestNextImageUploadToken(); // 为队列头图片请求 GateServer PUT 签名
     void requestNextImageDownloadToken(); // 为队列头图片请求 GateServer GET 签名
+    void RequestImageDownloadToken(QString asset_id); // 缓存未命中后请求签名。
+    void HandleAssetServiceLost(); // 清理失效上传句柄，保留已有图片像素。
+    void CancelImageRequests(); // 切换房间前取消代理及签名请求。
+    void HandleImageSignatureFinished(QString request_id, ReqId reqid, QString response, ErrorCodes error); // 校验签名 UUID 后交付已有处理函数。
     void sendImageCreateOperation(const QString& item_id); // 序列化已上传图片的创建操作并发送到 CanvasServer
     void sendImageTransformOperation(const QString& item_id, const QRectF& scene_rect, qreal rotation, qreal scale); // 序列化本地变换并发送到 CanvasServer
     void sendImageDeleteOperation(const QString& item_id); // 序列化图片删除操作并发送到 CanvasServer
@@ -186,6 +189,8 @@ private:
     QPointF CanvasCenterScenePos() const; // 返回当前可视画布中心对应的场景坐标。
 
     LatencyTestController* _latencyTestController = nullptr; // 延迟测试控制器
+    QString _upload_signature_request_id; // 当前 PUT 签名关联。
+    QString _download_signature_request_id; // 当前 GET 签名关联。
 };
 
 #endif // CANVAS_H
