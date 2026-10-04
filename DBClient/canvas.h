@@ -77,6 +77,7 @@ private slots:
     void slot_onImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 本地移动图片后发送变换操作
     void slot_onImageDeleteRequested(QString item_id); // 处理本地删除键并发送图片删除操作
     void slot_onImageRetryRequested(QString item_id); // 双击失败占位图后重新排队下载签名请求
+    void slot_onImagePreviewRequested(QString item_id); // 双击已加载图片后打开原图预览窗口
 
     //接收消息处理函数
     void slot_onChatReceived(int uid, const QString& name,

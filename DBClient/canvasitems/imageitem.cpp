@@ -264,21 +264,30 @@ void ImageItem::updateDefaultDisplayRect()
 
 void ImageItem::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-    // 只有 Failed 状态的占位图提供双击重试入口；Loading 和 Ready 状态下双击没有业务含义，
-    // 交回 QGraphicsObject 默认处理，避免干扰选中、移动等标准图元交互。
-    if (_load_state != ImageLoadState::Failed)
+    if (_load_state == ImageLoadState::Ready && !_pixmap.isNull())
     {
-        QGraphicsObject::mouseDoubleClickEvent(event);
+        // 预览直接复用图元已经完成校验的像素，不重新请求 OSS，避免双击造成额外网络流量。
+        if (event)
+        {
+            event->accept();
+        }
+        emit sigPreviewRequested(itemId());
         return;
     }
 
-    // 事件在信号发出前确认接收，防止场景再把双击转发给父图元或视图默认处理器造成重复响应。
-    if (event)
+    if (_load_state == ImageLoadState::Failed)
     {
-        event->accept();
+        // 失败占位图继续保留原有的双击重试行为，预览功能不能覆盖资源恢复入口。
+        if (event)
+        {
+            event->accept();
+        }
+
+        // 重试只传递图元稳定 ID；资源元数据仍保存在图元内，由 Canvas 统一排队下载。
+        emit sigRetryRequested(itemId());
+        return;
     }
 
-    // 重试只传递图元稳定 ID；资源元数据仍保存在图元内，由 Canvas 在重新申请签名时统一读取，
-    // 这样重试会走与首次下载完全相同的串行签名队列，不会绕过任何权限或校验逻辑。
-    emit sigRetryRequested(itemId());
+    // Loading 状态下没有完整像素，交回 Qt 默认处理，避免打开空白预览窗口。
+    QGraphicsObject::mouseDoubleClickEvent(event);
 }

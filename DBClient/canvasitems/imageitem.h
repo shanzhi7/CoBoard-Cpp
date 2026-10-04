@@ -50,11 +50,12 @@ public:
     QString errorMessage() const; // 返回最近一次加载失败原因。
 
 protected:
-    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override; // 失败占位图被双击时请求重新下载，其他状态交回图元默认交互。
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override; // 成功图片双击预览，失败占位图双击重试，其他状态交回默认交互。
 
 signals:
     void sigLoadStateChanged(QString item_id, ImageItem::ImageLoadState load_state); // 图片加载状态变化时通知资源管理或界面层。
     void sigRetryRequested(QString item_id); // 用户双击失败占位图时通知上层重新获取签名并下载。
+    void sigPreviewRequested(QString item_id); // 用户双击成功图片时通知上层打开原图预览。
 
 private:
     void updateDefaultDisplayRect(); // 在没有自定义显示尺寸时根据源图片尺寸计算合理的占位尺寸。

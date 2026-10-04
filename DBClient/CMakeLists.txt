@@ -65,6 +65,7 @@ qt_add_executable(DBClient
     paintscene.h paintscene.cpp
     canvasitems/canvasitem.h canvasitems/canvasitem.cpp
     canvasitems/imageitem.h canvasitems/imageitem.cpp
+    imagepreviewdialog.h imagepreviewdialog.cpp
     imageassetmanager.h imageassetmanager.cpp
     drawtool.h drawtool.cpp
     message.grpc.pb.cc message.grpc.pb.h message.pb.cc message.pb.h

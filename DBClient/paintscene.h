@@ -183,6 +183,9 @@ signals:
     // 本地删除键请求移除图片，Canvas 负责序列化在线删除或直接执行离线删除。
     void sigImageDeleteRequested(QString item_id);
 
-    // 用户双击失败占位图时转发重试请求；场景只传稳定 ID，重新申请签名和下载仍由 Canvas 串行排队处理。
+    // 用户双击失败占位图时转发重试请求；重新申请签名和下载仍由 Canvas 串行排队处理。
     void sigImageRetryRequested(QString item_id);
+
+    // 用户双击成功图片时转发预览请求；具体窗口由 Canvas 创建，场景不依赖 UI 对话框。
+    void sigImagePreviewRequested(QString item_id);
 };

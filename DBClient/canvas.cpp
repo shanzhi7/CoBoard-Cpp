@@ -8,6 +8,7 @@
 #include "imageassetmanager.h"
 #include "httpmgr.h"
 #include "canvasitems/imageitem.h"
+#include "imagepreviewdialog.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QClipboard>
@@ -118,6 +119,8 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
             this, &Canvas::slot_onImageDeleteRequested);
     connect(_paintScene, &PaintScene::sigImageRetryRequested,
             this, &Canvas::slot_onImageRetryRequested);
+    connect(_paintScene, &PaintScene::sigImagePreviewRequested,
+            this, &Canvas::slot_onImagePreviewRequested);
 
     //连接接收群聊消息
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_chat_received,this,&Canvas::slot_onChatReceived);
@@ -1728,6 +1731,31 @@ void Canvas::slot_onImageRetryRequested(QString item_id)
         image_item->assetSha256(),
         image_item->mimeType()});
     requestNextImageDownloadToken();
+}
+
+void Canvas::slot_onImagePreviewRequested(QString item_id)
+{
+    if (!_paintScene)
+    {
+        return;
+    }
+
+    ImageItem* image_item = _paintScene->findImageItem(item_id);
+    if (!image_item || image_item->loadState() != ImageItem::ImageLoadState::Ready)
+    {
+        // 只有完整加载并校验通过的图元才允许预览，避免对 Loading/Failed 状态创建空窗口。
+        return;
+    }
+
+    const QPixmap pixmap = image_item->pixmap();
+    if (pixmap.isNull())
+    {
+        return;
+    }
+
+    // 预览窗口只持有 QPixmap 副本，关闭对话框后不会改变画布图元和资源缓存的生命周期。
+    ImagePreviewDialog preview_dialog(pixmap, this);
+    preview_dialog.exec();
 }
 
 void Canvas::slot_onImageAssetUploaded(QString asset_id, QString sha256, QString mime_type)

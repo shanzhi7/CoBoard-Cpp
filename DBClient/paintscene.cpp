@@ -432,6 +432,9 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
     // 失败占位图支持双击重试；信号对信号转发，PaintScene 不接触网络层，重试仍由 Canvas 统一排队。
     connect(image_item, &ImageItem::sigRetryRequested,
             this, &PaintScene::sigImageRetryRequested);
+    // 图片图元只报告预览意图，预览窗口由 Canvas 管理，避免场景层承担窗口生命周期。
+    connect(image_item, &ImageItem::sigPreviewRequested,
+            this, &PaintScene::sigImagePreviewRequested);
 
     if (record_undo)
     {
