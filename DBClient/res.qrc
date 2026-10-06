@@ -18,5 +18,9 @@
         <file>res/Speakerclose.png</file>
         <file>res/Speakeropen.png</file>
         <file>res/voice_arrow_down.svg</file>
+        <file>res/select_cursor.svg</file>
+        <file>res/hand_pan.svg</file>
+        <file>res/shape_arrow.svg</file>
+        <file>res/shape_diamond.svg</file>
     </qresource>
 </RCC>

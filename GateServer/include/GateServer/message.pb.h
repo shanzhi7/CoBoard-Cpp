@@ -288,6 +288,8 @@ enum ShapeType : int {
   SHAPE_OVAL = 3,
   SHAPE_LINE = 4,
   SHAPE_ERASER = 5,
+  SHAPE_ARROW = 6,
+  SHAPE_DIAMOND = 7,
   ShapeType_INT_MIN_SENTINEL_DO_NOT_USE_ =
       std::numeric_limits<::int32_t>::min(),
   ShapeType_INT_MAX_SENTINEL_DO_NOT_USE_ =
@@ -297,8 +299,8 @@ enum ShapeType : int {
 bool ShapeType_IsValid(int value);
 extern const uint32_t ShapeType_internal_data_[];
 constexpr ShapeType ShapeType_MIN = static_cast<ShapeType>(0);
-constexpr ShapeType ShapeType_MAX = static_cast<ShapeType>(5);
-constexpr int ShapeType_ARRAYSIZE = 5 + 1;
+constexpr ShapeType ShapeType_MAX = static_cast<ShapeType>(7);
+constexpr int ShapeType_ARRAYSIZE = 7 + 1;
 const ::google::protobuf::EnumDescriptor*
 ShapeType_descriptor();
 template <typename T>
@@ -311,7 +313,7 @@ const std::string& ShapeType_Name(T value) {
 template <>
 inline const std::string& ShapeType_Name(ShapeType value) {
   return ::google::protobuf::internal::NameOfDenseEnum<ShapeType_descriptor,
-                                                 0, 5>(
+                                                 0, 7>(
       static_cast<int>(value));
 }
 inline bool ShapeType_Parse(absl::string_view name, ShapeType* value) {

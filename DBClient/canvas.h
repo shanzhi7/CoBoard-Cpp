@@ -1,5 +1,11 @@
-#ifndef CANVAS_H
-#define CANVAS_H
+/***********************************************************************************
+* @file         canvas.h
+* @brief        画布窗口、工具切换和房间协作及图片同步入口
+* @author       shanzhi
+* @date         2026/10/07
+* @history
+***********************************************************************************/
+#pragma once
 
 #include "paintscene.h"
 #include "drawtool.h"
@@ -50,6 +56,7 @@ public slots:
     void slot_creat_room_finish(std::shared_ptr<RoomInfo>); // 创建房间完成槽函数
     void slot_join_room_finish(std::shared_ptr<RoomInfo>); // 加入房间完成槽函数
 private slots:
+    void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
     void slot_user_leaved(int uid);                                             //用户离开槽函数    (广播)
     void slot_permission_changed(int target_uid, bool can_edit);                //房间编辑权限变更
@@ -61,9 +68,9 @@ private slots:
     void OnPasteImageRequested(); // 处理画布获得焦点后的 Ctrl+V 图片粘贴请求。
 
     // --收到paintSence发送的绘画信号对应的槽函数--
-    void slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width);
-    void slot_onStrokeMove(QString uuid, int type, QPointF currentPos);
-    void slot_onStrokeEnd(QString uuid, int type, QPointF endPos);
+    void slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width); // 发送本地笔画 START。
+    void slot_onStrokeMove(QString uuid, int type, QPointF currentPos); // 缓存路径点或发送几何 MOVE。
+    void slot_onStrokeEnd(QString uuid, int type, QPointF endPos); // 刷新路径缓存并发送 END。
 
     void slot_onDrawBroadcast(QByteArray data);   // 收到服务器广播
     void slot_onImageOperationBroadcast(QByteArray data); // 收到图片图元操作广播并开始资源加载
@@ -84,7 +91,7 @@ private slots:
                             const QString& avatarUrl,
                             const QString& roomId,
                             const QString& content,
-                             qulonglong ts);
+                             qulonglong ts); // 将房间聊天广播显示到聊天区域。
     void slot_onSendChatClicked();               //发送消息按钮槽函数
 
     void on_return_btn_clicked();                //返回大厅槽函数
@@ -108,7 +115,7 @@ private:
     struct PendingStrokePoints {
         int type = 0;                  // ShapeType
         QVector<QPointF> points;       // 待发送的增量点
-        bool active = false;
+        bool active = false;           // 当前笔画是否仍在绘制。
     };
 
     QTimer* _strokeFlushTimer = nullptr; // 路径点刷新定时器
@@ -192,5 +199,3 @@ private:
     QString _upload_signature_request_id; // 当前 PUT 签名关联。
     QString _download_signature_request_id; // 当前 GET 签名关联。
 };
-
-#endif // CANVAS_H

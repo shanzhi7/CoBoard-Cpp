@@ -8,6 +8,7 @@
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMimeData>
+#include <QMouseEvent>
 #include <QUrl>
 #include <QWheelEvent>
 #include <QtMath>
@@ -37,16 +38,17 @@ CanvasGraphicsView::CanvasGraphicsView(QWidget* parent)
     : QGraphicsView(parent)
     , _ui(new Ui::CanvasGraphicsView)
 {
-    // 先应用独立 UI 文件中的基础属性，再在代码中设置交互相关的锚点。
+    // 1. 先应用独立 UI 文件中的基础属性，再设置缩放锚点和默认绘图模式。
     _ui->setupUi(this);
 
-    // QAbstractScrollArea 的拖放事件通常由 viewport 接收，两层都开启才能兼容不同平台的事件分发方式。
+    // 2. 两层都开启拖放，确保手形关闭场景交互后仍可通过 viewport 导入图片。
     setAcceptDrops(true);
     viewport()->setAcceptDrops(true);
 
-    // 缩放时以鼠标所在位置作为锚点，避免放大后工作区域跳离鼠标位置。
+    // 3. 缩放以鼠标位置作为锚点；工具切换只改变事件模式，不重置这些锚点。
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setResizeAnchor(QGraphicsView::AnchorViewCenter);
+    SetInteractionMode(CanvasInteractionMode::Draw);
 }
 
 CanvasGraphicsView::~CanvasGraphicsView()
@@ -65,6 +67,40 @@ void CanvasGraphicsView::resetZoom()
     // 视图目前只使用缩放变换，重置整个矩阵可以避免残留其他变换状态。
     resetTransform();
     emit zoomChanged(zoomFactor());
+}
+
+void CanvasGraphicsView::SetInteractionMode(CanvasInteractionMode mode)
+{
+    // 1. ScrollHandDrag 在非交互视图中仍可滚动；关闭场景分发可以彻底隔离图片和绘图事件。
+    _interaction_mode = mode;
+    const bool is_pan = mode == CanvasInteractionMode::Pan;
+    setInteractive(!is_pan);
+    setDragMode(is_pan ? QGraphicsView::ScrollHandDrag : QGraphicsView::NoDrag);
+
+    // 2. 不重置变换或滚动条；手形按下和释放时的开合光标继续由 Qt 管理。
+    const Qt::CursorShape cursor = is_pan ? Qt::OpenHandCursor
+                                         : (mode == CanvasInteractionMode::Select
+                                                ? Qt::ArrowCursor
+                                                : Qt::CrossCursor);
+    setCursor(cursor);
+    viewport()->setCursor(cursor);
+}
+
+CanvasInteractionMode CanvasGraphicsView::InteractionMode() const
+{
+    // 1. 返回本地模式，调用方不需要读取 Qt 内部拖动状态。
+    return _interaction_mode;
+}
+
+void CanvasGraphicsView::mouseMoveEvent(QMouseEvent* event)
+{
+    // 1. Qt 先完成两条滚动条的更新，保证状态栏使用平移后的坐标映射。
+    QGraphicsView::mouseMoveEvent(event);
+    if (_interaction_mode == CanvasInteractionMode::Pan)
+    {
+        // 2. 手形模式不向场景分发鼠标事件，因此单独转发坐标而不创建绘画消息。
+        emit SigCursorScenePositionChanged(mapToScene(event->position().toPoint()));
+    }
 }
 
 void CanvasGraphicsView::wheelEvent(QWheelEvent* event)

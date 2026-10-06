@@ -28,48 +28,29 @@ PaintScene::PaintScene(QObject* parent)
 
 void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (event->button() != Qt::LeftButton)
+    // 1. 手形的鼠标序列由视图消费；场景也拒绝旁路事件，避免图元误移动。
+    if (_interaction_mode == CanvasInteractionMode::Pan)
+    {
+        event->accept();
+        return;
+    }
+
+    // 2. 选择和 Ctrl 多选交给 Qt；不可移动的只读图片仍能正常选择。
+    if (_interaction_mode == CanvasInteractionMode::Select)
     {
         QGraphicsScene::mousePressEvent(event);
-        return;
-    }
-
-    // 当前笔画尚未结束时不切换到图片拖动，避免同一鼠标序列同时持有两种交互状态。
-    if (_currentOperation && _currentOperation->isStarted())
-    {
-        return;
-    }
-
-    // 图片图元需要保留 QGraphicsScene 的选择和拖动机制；不能把点击图片误当作新画笔的起点。
-    QGraphicsItem* hit_item = itemAt(event->scenePos(), QTransform());
-    auto* image_item = dynamic_cast<ImageItem*>(hit_item);
-    if (image_item)
-    {
-        if (!_editable)
+        if (event->button() == Qt::LeftButton)
         {
-            // 只读场景不交给 QGraphicsScene 处理拖动，但仍保持与可编辑场景一致的单选/Ctrl 多选语义。
-            const bool append_selection = event->modifiers() & Qt::ControlModifier;
-            if (!append_selection)
-            {
-                clearSelection();
-            }
-            image_item->setSelected(append_selection
-                                        ? !image_item->isSelected()
-                                        : true);
-            event->accept();
-            return;
+            PrepareImageDrag();
         }
-
-        // 可编辑场景交给 QGraphicsScene 处理标准选择规则：普通点击单选，Ctrl 点击追加或取消选择。
-        _activeImageItem = image_item;
-        setFocus(Qt::MouseFocusReason);
-        QGraphicsScene::mousePressEvent(event);
         return;
     }
 
-    // 只允许拥有编辑权限的左键事件创建本地操作。
-    if (!_editable)
+    // 3. 绘图模式不调用图片默认事件；在图片上按下也只创建当前绘图操作。
+    if (event->button() != Qt::LeftButton || !_editable ||
+        (_currentOperation && _currentOperation->isStarted()))
     {
+        event->accept();
         return;
     }
 
@@ -88,7 +69,7 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
         return;
     }
 
-    // 操作对象负责具体 QGraphicsItem 的创建和初始样式设置。
+    // 4. 沿用图元 ID、样式和 START 信号，不把交互模式写入绘画协议。
     const DrawStyle style{_penColor, _penWidth, static_cast<int>(Qt::SolidLine)};
     _currentOperation->beginLocal(this, _currUuid, start_pos, style);
 
@@ -98,21 +79,22 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
                         start_pos,
                         _penColor,
                         _penWidth);
+    event->accept();
 }
 
 void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 {
-    // 坐标信号与编辑权限无关，离线和只读画布都需要更新状态栏。
+    // 1. 坐标显示与编辑权限无关；手形模式由视图另行转发坐标。
     emit sigCursorPosChanged(event->scenePos());
 
-    // 拖动图片时由 Qt 负责更新位置，CanvasItem 的几何信号会把最终状态交给同步层。
-    if (_activeImageItem)
+    // 2. 图片移动完全沿用 Qt 默认多选拖动，实时几何信号继续进入同步层。
+    if (_interaction_mode == CanvasInteractionMode::Select)
     {
         QGraphicsScene::mouseMoveEvent(event);
         return;
     }
 
-    if (!_editable)
+    if (_interaction_mode != CanvasInteractionMode::Draw || !_editable)
     {
         return;
     }
@@ -142,14 +124,23 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-    if (_activeImageItem)
+    // 1. Qt 先结束图片鼠标抓取，再为实际移动的图片补发最终状态。
+    if (_interaction_mode == CanvasInteractionMode::Select)
     {
         QGraphicsScene::mouseReleaseEvent(event);
-        _activeImageItem = nullptr;
+        if (event->button() == Qt::LeftButton)
+        {
+            FinishImageDrag(_editable);
+        }
+        return;
+    }
+    if (_interaction_mode == CanvasInteractionMode::Pan)
+    {
+        event->accept();
         return;
     }
 
-    // 非左键释放和只读场景都不应结束本地绘制。
+    // 2. 绘图模式只结束具有编辑权限的左键笔画。
     if (event->button() != Qt::LeftButton || !_editable)
     {
         return;
@@ -163,6 +154,20 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
     finishCurrentOperation(event->scenePos());
 }
 
+void PaintScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
+{
+    // 1. 成功图片的预览和失败图片的重试仅在鼠标模式向图元分发。
+    if (_interaction_mode == CanvasInteractionMode::Select)
+    {
+        QGraphicsScene::mouseDoubleClickEvent(event);
+        PrepareImageDrag();
+        return;
+    }
+
+    // 2. 绘图双击沿用按下逻辑，手形事件仍由视图消费。
+    mousePressEvent(event);
+}
+
 void PaintScene::keyPressEvent(QKeyEvent* event)
 {
     if (!event)
@@ -170,6 +175,14 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         return;
     }
 
+    // 1. 禁止旧焦点图元在绘图、手形或只读状态下通过默认按键处理修改图片。
+    if (_interaction_mode != CanvasInteractionMode::Select || !_editable)
+    {
+        event->accept();
+        return;
+    }
+
+    // 2. 保留已有图片快捷键；图片批量缩放和旋转不属于本轮范围。
     ImageItem* selected_image = nullptr;
     for (QGraphicsItem* graphics_item : selectedItems())
     {
@@ -179,7 +192,7 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
             break;
         }
     }
-    if (!selected_image || !_editable)
+    if (!selected_image)
     {
         QGraphicsScene::keyPressEvent(event);
         return;
@@ -254,7 +267,7 @@ void PaintScene::setPenWidth(int width)
 
 void PaintScene::setShapeType(ShapeType type)
 {
-    // 切换工具前结束当前操作，保证已发送 START 的笔画最终收到 END。
+    // 1. 切换绘图策略前结束当前操作，保证已发送 START 的笔画最终收到 END。
     if (_currentOperation && _currentOperation->isStarted())
     {
         finishCurrentOperation(_currentOperation->currentPosition());
@@ -263,8 +276,9 @@ void PaintScene::setShapeType(ShapeType type)
     _currShapeType = type;
     _currentTool = DrawToolFactory::create(type);
 
-    // 橡皮擦光标的显示完全由工厂属性控制。
-    if (DrawToolFactory::usesCursorOverlay(type) && _editable)
+    // 2. 光标还需满足绘图模式和权限条件，不能在鼠标或手形模式泄漏范围提示。
+    if (_interaction_mode == CanvasInteractionMode::Draw &&
+        DrawToolFactory::usesCursorOverlay(type) && _editable)
     {
         _eraserCursorItem->show();
     }
@@ -274,13 +288,117 @@ void PaintScene::setShapeType(ShapeType type)
     }
 }
 
+void PaintScene::SetInteractionMode(CanvasInteractionMode mode)
+{
+    // 1. 切换模式前结束当前笔画和图片拖动，不能遗留跨工具的鼠标抓取。
+    if (_interaction_mode != mode)
+    {
+        if (_currentOperation && _currentOperation->isStarted())
+        {
+            finishCurrentOperation(_currentOperation->currentPosition());
+        }
+        FinishImageDrag(_editable);
+        if (QGraphicsItem* grabber = mouseGrabberItem())
+        {
+            grabber->ungrabMouse();
+        }
+    }
+
+    // 2. 只改变移动和焦点能力，不能用关闭选择标记的接口清掉现有选择。
+    _interaction_mode = mode;
+    hideEraserCursor();
+    for (ImageItem* image_item : _imageItems)
+    {
+        UpdateImageInteraction(image_item);
+    }
+}
+
+CanvasInteractionMode PaintScene::InteractionMode() const
+{
+    // 1. 场景模式独立于绘图类型，鼠标和手形不创建绘图 Tool。
+    return _interaction_mode;
+}
+
+void PaintScene::PrepareImageDrag()
+{
+    // 1. 只记录 Qt 实际抓取的可编辑图片，点击空白或只读选择不产生变换提交。
+    _image_drag_start_positions.clear();
+    auto* grabbed_image = dynamic_cast<ImageItem*>(mouseGrabberItem());
+    if (!_editable || !grabbed_image)
+    {
+        return;
+    }
+
+    // 2. Qt 会同时移动已选图元；用 ID 保存起点可安全应对远端删除。
+    for (QGraphicsItem* item : selectedItems())
+    {
+        if (auto* image_item = dynamic_cast<ImageItem*>(item))
+        {
+            _image_drag_start_positions.insert(image_item->itemId(), image_item->pos());
+        }
+    }
+}
+
+void PaintScene::FinishImageDrag(bool send_final)
+{
+    // 1. 先移出当前记录，信号回调删除图片或切换模式时不会重复提交。
+    const auto start_positions = _image_drag_start_positions;
+    _image_drag_start_positions.clear();
+    if (!send_final)
+    {
+        return;
+    }
+
+    // 2. 仅补发仍存在且实际移动的图片，未移动的点击不产生网络消息。
+    for (auto iterator = start_positions.cbegin(); iterator != start_positions.cend(); ++iterator)
+    {
+        ImageItem* image_item = findImageItem(iterator.key());
+        if (image_item && image_item->pos() != iterator.value())
+        {
+            emit sigImageGeometryChanged(image_item->itemId(),
+                                         image_item->sceneBoundingRect(),
+                                         image_item->rotation(),
+                                         image_item->scale());
+        }
+    }
+}
+
+void PaintScene::UpdateImageInteraction(ImageItem* image_item)
+{
+    // 1. 选择标记始终保留，模式通过场景和视图的事件分发控制实际选择操作。
+    const bool can_move = _interaction_mode == CanvasInteractionMode::Select && _editable;
+    image_item->setFlag(QGraphicsItem::ItemIsMovable, can_move);
+    image_item->setFlag(QGraphicsItem::ItemIsFocusable, can_move);
+    if (!can_move)
+    {
+        // 2. 清除旧键盘焦点，保持图片选中状态供切回鼠标工具后继续操作。
+        image_item->clearFocus();
+    }
+}
+
 void PaintScene::setEditable(bool editable)
 {
-    // 只读时隐藏交互光标，避免用户误以为仍可绘制。
+    // 1. 权限撤销先关闭后续提交，再解除 Qt 抓取；不能发出未授权的最终变换。
     _editable = editable;
     if (!_editable)
     {
+        FinishImageDrag(false);
+        if (QGraphicsItem* grabber = mouseGrabberItem())
+        {
+            grabber->ungrabMouse();
+        }
+        if (_currentOperation && _currentOperation->isStarted())
+        {
+            recordFinishedLocalItem(_currUuid, _currentOperation);
+            clearCurrentOperation();
+        }
         hideEraserCursor();
+    }
+
+    // 2. 新权限同步到所有已有图片，只读成员仍可选择和预览。
+    for (ImageItem* image_item : _imageItems)
+    {
+        UpdateImageInteraction(image_item);
     }
 }
 
@@ -401,6 +519,7 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
                                     const QSizeF& display_size,
                                     bool record_undo)
 {
+    // 1. 创建入口供本地导入和远端回放复用，稳定 ID 是索引及撤销记录的前提。
     if (item_id.isEmpty())
     {
         // 没有稳定 ID 或有效像素的图片无法参与本地撤销和远程历史，直接拒绝创建。
@@ -427,6 +546,8 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
     image_item->setPos(scene_pos);
     addItem(image_item);
     _imageItems.insert(item_id, image_item);
+    // 2. 新图片按当前模式配置交互，不改变工具或已有选择。
+    UpdateImageInteraction(image_item);
     connect(image_item, &CanvasItem::sigGeometryChanged,
             this, &PaintScene::sigImageGeometryChanged);
     // 失败占位图支持双击重试；信号对信号转发，PaintScene 不接触网络层，重试仍由 Canvas 统一排队。
@@ -436,6 +557,7 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
     connect(image_item, &ImageItem::sigPreviewRequested,
             this, &PaintScene::sigImagePreviewRequested);
 
+    // 3. 保留资源、预览和离线撤销链路，选择模式不改变图元创建协议。
     if (record_undo)
     {
         // 离线导入加入与传统图元相同的撤销栈；远程历史通过 false 避免污染本地操作记录。
@@ -496,6 +618,7 @@ bool PaintScene::updateImageTransform(const QString& item_id,
 
 bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_undo_record)
 {
+    // 1. 按 ID 删除拖动记录，远端删除和本地删除都不会遗留活动图片指针。
     auto iterator = _imageItems.find(item_id);
     if (iterator == _imageItems.end() || !iterator.value())
     {
@@ -504,10 +627,8 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
 
     ImageItem* image_item = iterator.value();
     _imageItems.erase(iterator);
-    if (_activeImageItem == image_item)
-    {
-        _activeImageItem = nullptr;
-    }
+    _image_drag_start_positions.remove(item_id);
+    // 2. 仅清理对应撤销条目，保留其他图元的创建顺序。
     if (remove_undo_record)
     {
         // 只删除对应记录，保留其他图片和传统图元的撤销顺序。
@@ -522,6 +643,7 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
         }
     }
 
+    // 3. 场景不再拥有图片时由本入口显式销毁，Qt 自动解除该图元的鼠标抓取。
     if (image_item->scene() == this)
     {
         removeItem(image_item);
@@ -583,16 +705,16 @@ void PaintScene::applyRemoteDraw(const message::DrawReq& request)
 
 void PaintScene::resetScene()
 {
-    // 先释放所有保存图元裸指针的操作对象，再让 QGraphicsScene 删除图元。
+    // 1. 先释放操作和拖动记录，再让 QGraphicsScene 删除图元。
     _currentOperation.reset();
     _remoteItems.clear();
     _localUndoStack.clear();
     _localItems.clear();
     _imageItems.clear();
     _currUuid.clear();
-    _activeImageItem = nullptr;
+    _image_drag_start_positions.clear();
 
-    // 橡皮擦光标属于场景，clear() 会一起删除，因此先摘出并在末尾恢复。
+    // 2. 橡皮擦光标属于场景，clear() 会一起删除，因此先摘出并在末尾恢复。
     QGraphicsEllipseItem* cursor = _eraserCursorItem;
     if (cursor)
     {
@@ -602,7 +724,7 @@ void PaintScene::resetScene()
     clear();
     _eraserCursorItem = nullptr;
 
-    // 恢复交互光标的固定属性，保证下一次进入房间或离线画板仍可使用。
+    // 3. 恢复辅助光标固定属性，保留当前工具供下次进入画布继续使用。
     if (cursor)
     {
         _eraserCursorItem = cursor;

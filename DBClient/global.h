@@ -7,8 +7,7 @@
 * @date         2026/01/18
 * @history
 ***********************************************************************************/
-#ifndef GLOBAL_H
-#define GLOBAL_H
+#pragma once
 
 #include <QColor>
 #include <QPixmap>
@@ -37,8 +36,8 @@ enum ReqId{
     ID_REGISTER = 1002,                         //注册账号
     ID_RESET_PWD = 1003,                        //重置密码
     ID_LOGIN = 1004,                            //登录请求
-    ID_JOIN_ROOM_REQ_DEL = 1005,
-    ID_DRAW_REQ_DEL = 1006,
+    ID_JOIN_ROOM_REQ_DEL = 1005,                 // 已废弃的加入房间请求编号，保留兼容。
+    ID_DRAW_REQ_DEL = 1006,                      // 已废弃的绘画请求编号，保留兼容。
     ID_CANVAS_LOGIN_REQ = 1007,                 //登录到CanvasServer
     ID_CANVAS_LOGIN_RSP = 1008,                 //登录CanvasServer回包
     ID_CREAT_ROOM_REQ = 1009,                   //创建房间请求
@@ -79,40 +78,40 @@ enum Modules{
 };
 
 struct ServerInfo{
-    QString Host;
-    QString Port;
-    QString Token;
-    int Uid;
+    QString Host; // 登录返回的画板服务地址。
+    QString Port; // 登录返回的画板服务端口。
+    QString Token; // Canvas 登录使用的认证凭据。
+    int Uid; // 当前用户的服务端标识。
 };
 
 // 定义房间信息结构体
 struct RoomInfo {
-    QString id;
-    QString name;
-    int owner_uid = 0;
+    QString id; // 房间编号。
+    QString name; // 房间名称。
+    int owner_uid = 0; // 房主 UID。
     QString host; // CanvasServer IP
     int port = 0;         // CanvasServer Port
-    int width = 1920;
-    int height = 1080;
+    int width = 1920; // 画布宽度，单位为场景像素。
+    int height = 1080; // 画布高度，单位为场景像素。
     bool connected = false;      // 当前客户端是否已连接到该房间
     bool is_owner = false;       // 当前客户端是否为房主
     bool can_edit = false;       // 预留给只读模式与房主授权编辑
     bool offline = false;        // 离线画板模式：只允许本地绘制，不走网络同步链路
 
-    QList<UserInfo> members;
+    QList<UserInfo> members; // 当前房间成员快照。
 };
 
 // 定义本地图元类型, 跟 Proto 里的顺序保持一致
-enum ShapeType {
+enum ShapeType
+{
     Shape_Unknown = 0,  // 未知
     Shape_Pen = 1,      // 钢笔
     Shape_Rect = 2,     // 矩形
     Shape_Oval = 3,     // 椭圆
     Shape_Line = 4,     // 直线 (可选)
-    Shape_Eraser = 5    // 橡皮擦
+    Shape_Eraser = 5,   // 橡皮擦
+    Shape_Arrow = 6,    // 单向箭头，协议编号只追加。
+    Shape_Diamond = 7   // 菱形，协议编号只追加。
 };
 
-extern QString gate_url_prefix;
-
-
-#endif // GLOBAL_H
+extern QString gate_url_prefix; // HTTP 网关请求地址前缀。

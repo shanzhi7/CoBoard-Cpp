@@ -1,12 +1,14 @@
 #include "drawtool.h"
 
+#include <QtGlobal>
+
+#include "drawtools/arrowtool.h"
+#include "drawtools/diamondtool.h"
 #include "drawtools/erasertool.h"
 #include "drawtools/linetool.h"
 #include "drawtools/ovaltool.h"
 #include "drawtools/pentool.h"
 #include "drawtools/recttool.h"
-
-#include <QtGlobal>
 
 namespace
 {
@@ -65,6 +67,10 @@ std::shared_ptr<IDrawTool> DrawToolFactory::create(ShapeType type)
         return std::make_shared<OvalTool>();
     case Shape_Line:
         return std::make_shared<LineTool>();
+    case Shape_Arrow:
+        return std::make_shared<ArrowTool>();
+    case Shape_Diamond:
+        return std::make_shared<DiamondTool>();
     default:
         return nullptr;
     }

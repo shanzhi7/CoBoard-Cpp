@@ -1,16 +1,23 @@
+/***********************************************************************************
+* @file         paintscene.h
+* @brief        画布绘图、图片选择及本地和远端图元生命周期管理
+* @author       shanzhi
+* @date         2026/10/07
+* @history
+***********************************************************************************/
 #pragma once
 
-#include "drawtool.h"
+#include <memory>
 
 #include <QGraphicsScene>
-#include <QGraphicsItem>
 #include <QHash>
 #include <QPixmap>
-#include <QStack>
 #include <QSize>
 #include <QSizeF>
+#include <QStack>
 
-#include <memory>
+#include "canvasinteractionmode.h"
+#include "drawtool.h"
 
 class QGraphicsEllipseItem;
 class QGraphicsSceneMouseEvent;
@@ -22,152 +29,47 @@ class PaintScene : public QGraphicsScene
     Q_OBJECT
 
 public:
-    explicit PaintScene(QObject* parent = nullptr);
+    explicit PaintScene(QObject* parent = nullptr); // 初始化绘图工厂和橡皮擦辅助光标。
 
-    // 设置本地绘制样式，新的笔画从下一次鼠标按下开始使用该样式。
-    void setPenColor(const QColor& color);
-    void setPenWidth(int width);
+    void setPenColor(const QColor& color); // 设置之后创建的笔画颜色。
+    void setPenWidth(int width); // 设置之后创建的笔画宽度。
+    void setShapeType(ShapeType type); // 结束未完成笔画后切换绘图策略。
+    void SetInteractionMode(CanvasInteractionMode mode); // 切换事件模式并保留当前图元选择。
+    CanvasInteractionMode InteractionMode() const; // 返回当前场景事件模式。
+    void setEditable(bool editable); // 更新权限并立即停止未授权的本地交互。
+    bool isEditable() const; // 返回本地编辑权限。
+    QColor getPenColor(); // 返回当前画笔颜色。
+    int getPenWidth(); // 返回当前画笔宽度。
+    void hideEraserCursor(); // 鼠标离开画布或模式变化时隐藏辅助光标。
+    void applyRemoteDraw(const message::DrawReq& req); // 将远端绘画请求应用到对应图元。
+    void resetScene(); // 清空图元、交互状态及本地和远端记录。
+    bool canUndoLocal() const; // 判断是否存在可撤销的本地图元。
+    void undoLastLocalItem(); // 删除最后一个本地图元，不影响远端图元。
 
-    // 切换当前绘图策略；切换时会先结束未完成的本地笔画。
-    void setShapeType(ShapeType type);
-
-    // 更新当前场景的本地编辑权限。
-    void setEditable(bool editable);
-
-    // 返回当前场景是否允许本地鼠标绘制。
-    bool isEditable() const;
-
-    // 读取工具栏显示所需的当前画笔颜色和宽度。
-    QColor getPenColor();
-    int getPenWidth();
-
-    // 鼠标离开画布或权限变化时隐藏橡皮擦范围光标。
-    void hideEraserCursor();
-
-    // 将远端 DrawReq 应用到当前场景中的对应操作。
-    void applyRemoteDraw(const message::DrawReq& req);
-
-    // 清空图元、远端操作、本地撤销记录和当前未完成操作。
-    void resetScene();
-
-    // 返回是否存在可撤销的本地图元。
-    bool canUndoLocal() const;
-
-    // 删除最后一个本地图元；远端图元不会进入该撤销栈。
-    void undoLastLocalItem();
-
-    // 创建图片图元并写入场景索引，record_undo 为 true 时离线导入可使用撤销。
     ImageItem* addImageItem(const QString& item_id,
-                            const QString& asset_id,
-                            const QString& asset_ref,
-                            const QString& asset_sha256,
-                            const QString& mime_type,
-                            const QSize& original_size,
-                            const QPixmap& pixmap,
-                            const QPointF& scene_pos,
-                            const QSizeF& display_size = QSizeF(),
-                            bool record_undo = true);
-
-    // 根据 item_id 删除图片图元，远程删除和本地清理共用同一套生命周期处理。
-    bool removeImageItem(const QString& item_id);
-
-    // 按 item_id 查找图片图元，找不到时返回 nullptr。
-    ImageItem* findImageItem(const QString& item_id) const;
-
-    // 应用远端图片变换，调用方负责在协议层完成权限和字段范围校验。
+                           const QString& asset_id,
+                           const QString& asset_ref,
+                           const QString& asset_sha256,
+                           const QString& mime_type,
+                           const QSize& original_size,
+                           const QPixmap& pixmap,
+                           const QPointF& scene_pos,
+                           const QSizeF& display_size = QSizeF(),
+                           bool record_undo = true); // 创建图片并按当前模式配置交互。
+    bool removeImageItem(const QString& item_id); // 按稳定 ID 删除图片并清理撤销记录。
+    ImageItem* findImageItem(const QString& item_id) const; // 按 ID 查找图片，缺失时返回 nullptr。
     bool updateImageTransform(const QString& item_id,
                               const QPointF& scene_pos,
                               const QSizeF& display_size,
                               qreal scale_x,
                               qreal scale_y,
-                              qreal rotation);
-
-protected:
-    // 将鼠标按下事件转换为当前策略的一次本地操作。
-    void mousePressEvent(QGraphicsSceneMouseEvent* event) override;
-
-    // 将鼠标移动事件交给当前操作，并发送增量同步信号。
-    void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override;
-
-    // 结束当前操作、记录撤销信息并发送结束同步信号。
-    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override;
-
-    // 将选中图片的删除、缩放和旋转快捷键转换为统一图元操作。
-    void keyPressEvent(QKeyEvent* event) override;
-
-private:
-    // 结束当前本地操作并发送一条完整的结束事件。
-    void finishCurrentOperation(const QPointF& end_pos);
-
-    // 清除当前操作引用，不删除场景中的图元。
-    void clearCurrentOperation();
-
-    // 将已完成操作加入本地撤销栈和 item_id 索引。
-    void recordFinishedLocalItem(const QString& item_id,
-                                 const std::shared_ptr<IDrawTool>& operation);
-
-    // 根据当前鼠标位置更新橡皮擦范围光标。
-    void updateEraserCursor(const QPointF& pos);
-
-    // 当前选择的形状类型和具体工具对象。
-    ShapeType _currShapeType = Shape_Pen;
-    std::shared_ptr<IDrawTool> _currentTool;
-
-    // 当前正在进行的本地操作及其协议 ID。
-    QString _currUuid;
-    std::shared_ptr<IDrawTool> _currentOperation;
-
-    // 当前画笔配置和本地编辑权限。
-    QColor _penColor = Qt::black;
-    int _penWidth = 3;
-    bool _editable = true;
-
-    // 只用于显示橡皮擦操作范围，不参与绘画和网络同步。
-    QGraphicsEllipseItem* _eraserCursorItem = nullptr;
-
-    // 远端每个 item_id 对应一个独立操作，允许多个笔画交错到达。
-    struct RemoteItem
-    {
-        ShapeType shape = Shape_Unknown;
-        std::shared_ptr<IDrawTool> operation;
-    };
-    QHash<QString, RemoteItem> _remoteItems;
-
-    // 本地撤销记录保存操作句柄，避免把具体图元类型暴露给撤销管理逻辑。
-    struct DrawItemRecord
-    {
-        QString item_id; // 本地操作关联的稳定图元标识。
-        ShapeType shape = Shape_Unknown; // 传统绘画工具的类型，图片记录使用 Shape_Unknown。
-        std::shared_ptr<IDrawTool> operation; // 传统绘画操作句柄，图片记录为空。
-        ImageItem* image_item = nullptr; // 图片撤销记录对应的图元指针，由 PaintScene 负责生命周期。
-        bool is_image = false; // 标识当前记录是图片图元还是传统绘画图元。
-    };
-    QStack<DrawItemRecord> _localUndoStack;
-
-    // 保留 item_id 到图元的索引，便于兼容现有撤销和后续联机撤销扩展。
-    QHash<QString, QGraphicsItem*> _localItems;
-
-    // 图片图元单独维护索引，资源元数据和 QGraphicsItem 生命周期都由 PaintScene 统一管理。
-    QHash<QString, ImageItem*> _imageItems;
-    ImageItem* _activeImageItem = nullptr; // 当前由 QGraphicsScene 处理鼠标拖动的图片图元。
-
-    // 删除图片时可选地同步移除撤销记录，避免远程删除影响离线撤销历史。
-    bool removeImageItemInternal(const QString& item_id, bool remove_undo_record);
+                              qreal rotation); // 应用调用方已经校验过的远端图片变换。
 
 signals:
-    // 本地笔画开始时发送 UUID、类型、起点、颜色和宽度。
-    void sigStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width);
-
-    // 本地笔画移动时发送新增点或当前几何终点。
-    void sigStrokeMove(QString uuid, int type, QPointF currentPos);
-
-    // 本地笔画结束时发送 UUID、类型和最终位置。
-    void sigStrokeEnd(QString uuid, int type, QPointF endPos);
-
-    // 鼠标坐标变化，用于状态栏显示当前位置。
-    void sigCursorPosChanged(QPointF pos);
-
-    // 本地图片创建完成后通知 Canvas，在线模式可据此请求签名并发送 ImageOperation。
+    void sigStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width); // 转发本地 START 的 ID、样式和起点。
+    void sigStrokeMove(QString uuid, int type, QPointF currentPos); // 转发本地路径点或几何终点。
+    void sigStrokeEnd(QString uuid, int type, QPointF endPos); // 转发本地 END 和最终位置。
+    void sigCursorPosChanged(QPointF pos); // 向状态栏转发非手形模式的场景坐标。
     void sigImageInserted(QString item_id,
                           QString asset_id,
                           QString asset_ref,
@@ -175,17 +77,57 @@ signals:
                           QString mime_type,
                           QSize original_size,
                           QPointF scene_pos,
-                          QSizeF display_size);
+                          QSizeF display_size); // 通知 Canvas 图片已创建，资源同步由 Canvas 负责。
+    void sigImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 转发实时变换和拖动结束的最终状态。
+    void sigImageDeleteRequested(QString item_id); // 通知 Canvas 执行图片删除。
+    void sigImageRetryRequested(QString item_id); // 转发鼠标模式下的图片重试意图。
+    void sigImagePreviewRequested(QString item_id); // 转发鼠标模式下的图片预览意图。
 
-    // 图片图元被本地拖动或变换后通知 Canvas 发送更新操作。
-    void sigImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale);
+protected:
+    void mousePressEvent(QGraphicsSceneMouseEvent* event) override; // 按模式分发图片选择或绘图 START。
+    void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override; // 更新图片拖动或绘图 MOVE。
+    void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override; // 提交图片最终状态或绘图 END。
+    void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override; // 仅鼠标模式向图片分发双击事件。
+    void keyPressEvent(QKeyEvent* event) override; // 按模式和权限处理图片编辑快捷键。
 
-    // 本地删除键请求移除图片，Canvas 负责序列化在线删除或直接执行离线删除。
-    void sigImageDeleteRequested(QString item_id);
+private:
+    void finishCurrentOperation(const QPointF& end_pos); // 补齐笔画并记录撤销和 END。
+    void clearCurrentOperation(); // 释放当前操作引用，不删除图元。
+    void recordFinishedLocalItem(const QString& item_id,
+                                 const std::shared_ptr<IDrawTool>& operation); // 登记完成图元和撤销句柄。
+    void updateEraserCursor(const QPointF& pos); // 更新与擦除宽度一致的光标。
+    void PrepareImageDrag(); // 记录 Qt 鼠标抓取对应的多选图片起始位置。
+    void FinishImageDrag(bool send_final); // 清理拖动记录，并按需补发最终状态。
+    void UpdateImageInteraction(ImageItem* image_item); // 更新移动和焦点权限，保留选择状态。
+    bool removeImageItemInternal(const QString& item_id, bool remove_undo_record); // 删除图片并可选清理撤销记录。
 
-    // 用户双击失败占位图时转发重试请求；重新申请签名和下载仍由 Canvas 串行排队处理。
-    void sigImageRetryRequested(QString item_id);
+    struct RemoteItem
+    {
+        ShapeType shape = Shape_Unknown; // 远端协议图元类型。
+        std::shared_ptr<IDrawTool> operation; // 同一 ID 的独立远端操作。
+    };
 
-    // 用户双击成功图片时转发预览请求；具体窗口由 Canvas 创建，场景不依赖 UI 对话框。
-    void sigImagePreviewRequested(QString item_id);
+    struct DrawItemRecord
+    {
+        QString item_id; // 本地操作关联的稳定标识。
+        ShapeType shape = Shape_Unknown; // 绘画类型，图片使用 Shape_Unknown。
+        std::shared_ptr<IDrawTool> operation; // 绘画句柄，图片记录为空。
+        ImageItem* image_item = nullptr; // 场景拥有的图片指针。
+        bool is_image = false; // 当前记录是否为图片。
+    };
+
+    ShapeType _currShapeType = Shape_Pen; // 当前绘图类型，不包含交互模式。
+    std::shared_ptr<IDrawTool> _currentTool; // 当前绘图策略。
+    QString _currUuid; // 当前本地笔画 ID。
+    std::shared_ptr<IDrawTool> _currentOperation; // 未完成的本地绘图操作。
+    QColor _penColor = Qt::black; // 新图元使用的画笔颜色。
+    int _penWidth = 3; // 新图元使用的画笔宽度。
+    bool _editable = true; // 本地编辑权限。
+    CanvasInteractionMode _interaction_mode = CanvasInteractionMode::Draw; // 场景事件分发模式。
+    QGraphicsEllipseItem* _eraserCursorItem = nullptr; // 不参与绘画和同步的辅助光标。
+    QHash<QString, RemoteItem> _remoteItems; // 远端图元 ID 对应的操作。
+    QStack<DrawItemRecord> _localUndoStack; // 保持本地创建顺序的撤销栈。
+    QHash<QString, QGraphicsItem*> _localItems; // 本地绘画图元 ID 索引。
+    QHash<QString, ImageItem*> _imageItems; // 本地和远端图片统一索引。
+    QHash<QString, QPointF> _image_drag_start_positions; // 拖动起始位置，避免持有图片裸指针。
 };

@@ -434,6 +434,46 @@ QToolButton:hover {
       <number>0</number>
      </property>
      <item>
+      <widget class="QToolButton" name="select_tool">
+       <property name="toolTip">
+        <string>鼠标工具：选择和移动图片（Ctrl 多选）</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/res/select_cursor.svg</normaloff>:/res/select_cursor.svg</iconset>
+       </property>
+       <property name="iconSize">
+        <size><width>20</width><height>20</height></size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="hand_tool">
+       <property name="toolTip">
+        <string>手形工具：拖动画布视口</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/res/hand_pan.svg</normaloff>:/res/hand_pan.svg</iconset>
+       </property>
+       <property name="iconSize">
+        <size><width>20</width><height>20</height></size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="pen_tool">
        <property name="maximumSize">
         <size>
@@ -488,6 +528,26 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
+      <widget class="QToolButton" name="arrow_tool">
+       <property name="toolTip">
+        <string>箭头工具：从按下点指向释放点</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/res/shape_arrow.svg</normaloff>:/res/shape_arrow.svg</iconset>
+       </property>
+       <property name="iconSize">
+        <size><width>20</width><height>20</height></size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="rect_tool">
        <property name="styleSheet">
         <string notr="true">border-image: url(:/res/shape_rect.png);</string>
@@ -516,6 +576,26 @@ QToolButton:hover {
        </property>
        <property name="autoExclusive">
         <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="diamond_tool">
+       <property name="toolTip">
+        <string>菱形工具：拖拽确定菱形范围</string>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset resource="res.qrc">
+         <normaloff>:/res/shape_diamond.svg</normaloff>:/res/shape_diamond.svg</iconset>
+       </property>
+       <property name="iconSize">
+        <size><width>20</width><height>20</height></size>
+       </property>
+       <property name="checkable">
+        <bool>true</bool>
        </property>
       </widget>
      </item>

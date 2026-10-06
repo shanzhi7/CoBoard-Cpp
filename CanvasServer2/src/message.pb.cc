@@ -1470,29 +1470,30 @@ const char descriptor_table_protodef_CanvasServer2_2fmessage_2eproto[] ABSL_ATTR
     "ON_REQ\020\203\010\022\033\n\026ID_IMAGE_OPERATION_RSP\020\204\010*a"
     "\n\007DrawCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START\020"
     "\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO"
-    "\020\004\022\r\n\tCMD_CLEAR\020\005*o\n\tShapeType\022\021\n\rSHAPE_"
-    "UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002"
-    "\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAP"
-    "E_ERASER\020\005*q\n\022ImageOperationType\022\033\n\027IMAG"
-    "E_OPERATION_UNKNOWN\020\000\022\020\n\014IMAGE_CREATE\020\001\022"
-    "\032\n\026IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014IMAGE_DEL"
-    "ETE\020\0032P\n\rVarifyService\022\?\n\rGetVarifyCode\022"
-    "\025.message.GetVarifyReq\032\025.message.GetVari"
-    "fyRsp\"\0002\313\002\n\014LogicService\022<\n\014RegisterUser"
-    "\022\024.message.RegisterReq\032\024.message.Registe"
-    "rRsp\"\000\022G\n\rResetPassword\022\031.message.ResetP"
-    "asswordReq\032\031.message.ResetPasswordRsp\"\000\022"
-    "-\n\005Login\022\021.message.LoginReq\032\021.message.Lo"
-    "ginRsp\022A\n\013VerifyToken\022\027.message.VerifyTo"
-    "kenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014Upd"
-    "ateAvatar\022\030.message.UpdateAvatarReq\032\030.me"
-    "ssage.UpdateAvatarRspb\006proto3"
+    "\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n\tShapeType\022\021\n\rSHAPE"
+    "_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020"
+    "\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHA"
+    "PE_ERASER\020\005\022\017\n\013SHAPE_ARROW\020\006\022\021\n\rSHAPE_DI"
+    "AMOND\020\007*q\n\022ImageOperationType\022\033\n\027IMAGE_O"
+    "PERATION_UNKNOWN\020\000\022\020\n\014IMAGE_CREATE\020\001\022\032\n\026"
+    "IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014IMAGE_DELETE"
+    "\020\0032P\n\rVarifyService\022\?\n\rGetVarifyCode\022\025.m"
+    "essage.GetVarifyReq\032\025.message.GetVarifyR"
+    "sp\"\0002\313\002\n\014LogicService\022<\n\014RegisterUser\022\024."
+    "message.RegisterReq\032\024.message.RegisterRs"
+    "p\"\000\022G\n\rResetPassword\022\031.message.ResetPass"
+    "wordReq\032\031.message.ResetPasswordRsp\"\000\022-\n\005"
+    "Login\022\021.message.LoginReq\032\021.message.Login"
+    "Rsp\022A\n\013VerifyToken\022\027.message.VerifyToken"
+    "Req\032\027.message.VerifyTokenRsp\"\000\022B\n\014Update"
+    "Avatar\022\030.message.UpdateAvatarReq\032\030.messa"
+    "ge.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_CanvasServer2_2fmessage_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_CanvasServer2_2fmessage_2eproto = {
     false,
     false,
-    4309,
+    4346,
     descriptor_table_protodef_CanvasServer2_2fmessage_2eproto,
     "CanvasServer2/message.proto",
     &descriptor_table_CanvasServer2_2fmessage_2eproto_once,
@@ -1538,9 +1539,9 @@ const ::google::protobuf::EnumDescriptor* ShapeType_descriptor() {
   return file_level_enum_descriptors_CanvasServer2_2fmessage_2eproto[3];
 }
 PROTOBUF_CONSTINIT const uint32_t ShapeType_internal_data_[] = {
-    393216u, 0u, };
+    524288u, 0u, };
 bool ShapeType_IsValid(int value) {
-  return 0 <= value && value <= 5;
+  return 0 <= value && value <= 7;
 }
 const ::google::protobuf::EnumDescriptor* ImageOperationType_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_CanvasServer2_2fmessage_2eproto);

@@ -58,6 +58,7 @@ qt_add_executable(DBClient
     usermgr.h usermgr.cpp
     resetwidget.h resetwidget.cpp resetwidget.ui
     canvas.h canvas.cpp canvas.ui
+    canvasinteractionmode.h
     canvasgraphicsview.h canvasgraphicsview.cpp canvasgraphicsview.ui
     testmode.h testmode.cpp
     tcpmgr.h tcpmgr.cpp
@@ -71,6 +72,8 @@ qt_add_executable(DBClient
     canvasitems/rectitem.h canvasitems/rectitem.cpp
     canvasitems/ovalitem.h canvasitems/ovalitem.cpp
     canvasitems/lineitem.h canvasitems/lineitem.cpp
+    canvasitems/arrowitem.h canvasitems/arrowitem.cpp
+    canvasitems/diamonditem.h canvasitems/diamonditem.cpp
     imagepreviewdialog.h imagepreviewdialog.cpp
     imageassetmanager.h imageassetmanager.cpp
     drawtool.h drawtool.cpp
@@ -80,6 +83,8 @@ qt_add_executable(DBClient
     drawtools/recttool.h drawtools/recttool.cpp
     drawtools/ovaltool.h drawtools/ovaltool.cpp
     drawtools/linetool.h drawtools/linetool.cpp
+    drawtools/arrowtool.h drawtools/arrowtool.cpp
+    drawtools/diamondtool.h drawtools/diamondtool.cpp
     message.grpc.pb.cc message.grpc.pb.h message.pb.cc message.pb.h
     message.proto
     lobbywidget.h lobbywidget.cpp lobbywidget.ui
@@ -172,46 +177,16 @@ add_custom_command(TARGET DBClient POST_BUILD
         "$<TARGET_FILE_DIR:DBClient>/livekit_ffi.dll"
 )
 
-option(BUILD_ASSET_SERVICE_TESTS "Build asset service integration tests" OFF)
-if(BUILD_ASSET_SERVICE_TESTS)
-    find_package(Qt6 6.5 REQUIRED COMPONENTS Test)
-    enable_testing()
-    qt_add_executable(AssetServiceTests
-        tests/assetservicetests.cpp
-        assetserviceprotocol.h assetserviceprotocol.cpp
-        assetservicelogger.h assetservicelogger.cpp
-        assetdatabasemanager.h assetdatabasemanager.cpp
-        assettransfermanager.h assettransfermanager.cpp
-        servicecommandserver.h servicecommandserver.cpp
-        servicecommandclient.h servicecommandclient.cpp
-        imageassetmanager.h imageassetmanager.cpp
-    )
-    target_include_directories(AssetServiceTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_compile_features(AssetServiceTests PRIVATE cxx_std_17)
-    target_link_libraries(AssetServiceTests PRIVATE Qt6::Test Qt6::Widgets Qt6::Network Qt6::Concurrent Qt6::Sql protobuf::libprotobuf)
-    if(MSVC)
-        target_compile_options(AssetServiceTests PRIVATE /utf-8)
-    endif()
-    add_test(NAME AssetServiceTests COMMAND AssetServiceTests -o "${CMAKE_CURRENT_BINARY_DIR}/asset-service-tests.txt,txt")
-    set_tests_properties(AssetServiceTests PROPERTIES TIMEOUT 240)
-endif()
-
 # 后台代理也从构建目录启动，运行库和动态插件必须随可执行文件一起部署。
 if(WIN32)
-    set(QtDeployTargets DBClient)
-    if(BUILD_ASSET_SERVICE_TESTS)
-        list(APPEND QtDeployTargets AssetServiceTests)
-    endif()
-    foreach(QtDeployTarget IN LISTS QtDeployTargets)
-        add_custom_command(TARGET ${QtDeployTarget} POST_BUILD
-            COMMAND $<TARGET_FILE:Qt6::windeployqt>
-                --qtpaths "$<TARGET_FILE:Qt6::qtpaths>"
-                "$<IF:$<CONFIG:Debug>,--debug,--release>"
-                --no-translations
-                --dir "$<TARGET_FILE_DIR:${QtDeployTarget}>"
-                "$<TARGET_FILE:${QtDeployTarget}>"
-            COMMENT "Deploying Qt runtime and plugins for ${QtDeployTarget}"
-            VERBATIM
-        )
-    endforeach()
+    add_custom_command(TARGET DBClient POST_BUILD
+        COMMAND $<TARGET_FILE:Qt6::windeployqt>
+            --qtpaths "$<TARGET_FILE:Qt6::qtpaths>"
+            "$<IF:$<CONFIG:Debug>,--debug,--release>"
+            --no-translations
+            --dir "$<TARGET_FILE_DIR:DBClient>"
+            "$<TARGET_FILE:DBClient>"
+        COMMENT "Deploying Qt runtime and plugins for DBClient"
+        VERBATIM
+    )
 endif()

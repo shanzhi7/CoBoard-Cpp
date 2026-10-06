@@ -33,6 +33,9 @@
 
 namespace
 {
+constexpr int SELECT_TOOL_ID = 100; // 本地鼠标模式按钮 ID，与协议 ShapeType 分离。
+constexpr int HAND_TOOL_ID = 101; // 本地视口平移按钮 ID，不能用于绘图工厂。
+
 QString ImageSuffixForMimeType(const QString& mime_type)
 {
     // 上传签名只需要稳定的扩展名，统一从已经校验过的 MIME 类型推导，避免依赖原始文件名。
@@ -409,6 +412,9 @@ void Canvas::initCanvasUi()
             this, &Canvas::OnImageFilesDropped);
     connect(ui->graphicsView, &CanvasGraphicsView::sigPasteImageRequested,
             this, &Canvas::OnPasteImageRequested);
+    // 1. 手形关闭场景事件交互，单独转发平移后的坐标以保留状态栏显示。
+    connect(ui->graphicsView, &CanvasGraphicsView::SigCursorScenePositionChanged,
+            _paintScene, &PaintScene::sigCursorPosChanged);
     //初始化 paintScene(end)
 
     //初始化 _widthPopup(begin)
@@ -495,8 +501,35 @@ void Canvas::initCanvasUi()
     bar->addPermanentWidget(statusDot);
 }
 
+void Canvas::SetCanvasTool(int tool_id)
+{
+    // 1. 只接受已注册按钮，按钮 ID 不直接作为绘图协议类型使用。
+    QAbstractButton* tool_button = _toolGroup ? _toolGroup->button(tool_id) : nullptr;
+    if (!tool_button || !_paintScene || !ui->graphicsView)
+    {
+        return;
+    }
+
+    // 2. 场景先完成旧操作；视图随后切换交互能力，全程保留缩放和滚动位置。
+    const CanvasInteractionMode mode = tool_id == SELECT_TOOL_ID
+                                           ? CanvasInteractionMode::Select
+                                           : (tool_id == HAND_TOOL_ID
+                                                  ? CanvasInteractionMode::Pan
+                                                  : CanvasInteractionMode::Draw);
+    _paintScene->SetInteractionMode(mode);
+    if (mode == CanvasInteractionMode::Draw)
+    {
+        _paintScene->setShapeType(static_cast<ShapeType>(tool_id));
+    }
+    ui->graphicsView->SetInteractionMode(mode);
+
+    // 3. 初始化与用户点击走同一入口，保证按钮高亮和实际模式始终一致。
+    tool_button->setChecked(true);
+}
+
 void Canvas::initToolBtn()
 {
+    // 1. 本地交互工具与绘图工具加入同一互斥组，颜色和线宽按钮保持独立。
     _toolGroup = new QButtonGroup(this);
 
     //开启所有工具按钮的 Checkable 属性
@@ -505,6 +538,10 @@ void Canvas::initToolBtn()
     ui->line_tool->setCheckable(true);
     ui->rect_tool->setCheckable(true);
     ui->oval_tool->setCheckable(true);
+    ui->arrow_tool->setCheckable(true);
+    ui->diamond_tool->setCheckable(true);
+    ui->select_tool->setCheckable(true);
+    ui->hand_tool->setCheckable(true);
 
     //设置互斥
     _toolGroup->setExclusive(true);
@@ -515,17 +552,25 @@ void Canvas::initToolBtn()
     _toolGroup->addButton(ui->line_tool,Shape_Line);
     _toolGroup->addButton(ui->rect_tool,Shape_Rect);
     _toolGroup->addButton(ui->oval_tool,Shape_Oval);
+    _toolGroup->addButton(ui->arrow_tool, Shape_Arrow);
+    _toolGroup->addButton(ui->diamond_tool, Shape_Diamond);
+    _toolGroup->addButton(ui->select_tool, SELECT_TOOL_ID);
+    _toolGroup->addButton(ui->hand_tool, HAND_TOOL_ID);
 
-    //连接信号，拿到ID，直接设置Shape类型
-    connect(_toolGroup,&QButtonGroup::idClicked,this,[=](int id){
-        _paintScene->setShapeType((ShapeType)id);
-    });
-    ui->pen_tool->setChecked(true);
+    // 2. 显式连接统一切换槽，避免将鼠标和手形 ID 强制转换为 ShapeType。
+    connect(_toolGroup, &QButtonGroup::idClicked, this, &Canvas::SetCanvasTool);
+    SetCanvasTool(Shape_Pen);
+
+    // 3. 新工具图标与 UI 资源路径一致，沿用工具栏现有的 checked 高亮样式。
+    ui->select_tool->setIcon(QIcon(QStringLiteral(":/res/select_cursor.svg")));
+    ui->hand_tool->setIcon(QIcon(QStringLiteral(":/res/hand_pan.svg")));
+    ui->arrow_tool->setIcon(QIcon(QStringLiteral(":/res/shape_arrow.svg")));
+    ui->diamond_tool->setIcon(QIcon(QStringLiteral(":/res/shape_diamond.svg")));
 
     QPixmap originMap(":/res/pen.png");
     ui->pen_tool->setIcon(QIcon(originMap));
 
-    // 语音按钮图标统一使用白色，避免资源原色与工具栏背景产生对比不一致。
+    // 4. 语音初始化继续保持原有流程，工具切换槽不触碰语音或房间状态。
     const QPixmap microphone_icon = applyColor(
         QPixmap(":/res/microphoneopen.png"), Qt::white);
     const QPixmap speaker_icon = applyColor(
@@ -1319,7 +1364,9 @@ void Canvas::RequestImageDownloadToken(QString asset_id)
 
 void Canvas::sendImageCreateOperation(const QString& item_id)
 {
-    if (!_room_info || _room_info->offline || !_paintScene)
+    // 1. 上传完成也可能晚于权限撤销或断线，发送前再次检查当前房间状态。
+    if (!_room_info || _room_info->offline || !_room_info->connected ||
+        !_room_info->can_edit || !_paintScene || !_paintScene->isEditable())
     {
         return;
     }
@@ -1336,6 +1383,7 @@ void Canvas::sendImageCreateOperation(const QString& item_id)
         return;
     }
 
+    // 2. 创建包使用图元当前变换，预览期间的移动无需提前发送更新包。
     message::ImageOperation operation;
     operation.set_uid(user_info->_id);
     operation.set_room_id(_room_info->id.toStdString());
@@ -1360,6 +1408,7 @@ void Canvas::sendImageCreateOperation(const QString& item_id)
     transform->set_scale_y(static_cast<float>(image_item->transform().m22()));
     transform->set_rotation(static_cast<float>(image_item->rotation()));
 
+    // 3. 沿用创建协议发送初始状态，服务端仍执行会话及房间权限校验。
     std::string serialized_operation;
     if (!operation.SerializeToString(&serialized_operation))
     {
@@ -1377,7 +1426,10 @@ void Canvas::sendImageTransformOperation(const QString& item_id,
                                          qreal scale)
 {
     Q_UNUSED(scene_rect);
-    if (!_room_info || _room_info->offline || !_paintScene)
+    // 1. 仅允许仍连接且拥有编辑权限的在线成员提交变换。
+    if (!_room_info || _room_info->offline || !_room_info->connected ||
+        !_room_info->can_edit || !_paintScene || !_paintScene->isEditable() ||
+        _pendingImageUploads.contains(item_id))
     {
         return;
     }
@@ -1388,7 +1440,7 @@ void Canvas::sendImageTransformOperation(const QString& item_id,
         return;
     }
 
-    // 变换广播只携带元数据，使用图元当前局部尺寸和位置重建可重复的场景状态。
+    // 2. 变换广播只携带元数据，使用当前局部尺寸和位置重建可重复的场景状态。
     message::ImageOperation operation;
     operation.set_uid(user_info->_id);
     operation.set_room_id(_room_info->id.toStdString());
@@ -1420,6 +1472,7 @@ void Canvas::sendImageTransformOperation(const QString& item_id,
         transform->set_scale_y(static_cast<float>(scale > 0.0 ? scale : 1.0));
     }
 
+    // 3. 沿用图片协议和服务端权限校验，不将视口滚动或交互模式写入消息。
     std::string serialized_operation;
     if (!operation.SerializeToString(&serialized_operation))
     {
@@ -1859,7 +1912,7 @@ void Canvas::slot_onImageGeometryChanged(QString item_id,
                                          qreal rotation,
                                          qreal scale)
 {
-    // 远端回放会改变 QGraphicsItem 几何状态，但不能再次作为本地编辑广播出去。
+    // 1. 远端回放不能再次作为本地编辑广播；权限和上传状态由发送入口二次检查。
     if (_applyingRemoteImageOperation || !_room_info || _room_info->offline)
     {
         return;

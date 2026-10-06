@@ -1568,31 +1568,32 @@ const char descriptor_table_protodef_GateServer_2fmessage_2eproto[] ABSL_ATTRIBU
     "_OPERATION_REQ\020\203\010\022\033\n\026ID_IMAGE_OPERATION_"
     "RSP\020\204\010*a\n\007DrawCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCM"
     "D_START\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010"
-    "CMD_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005*o\n\tShapeType\022\021"
-    "\n\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAP"
-    "E_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004"
-    "\022\020\n\014SHAPE_ERASER\020\005*q\n\022ImageOperationType"
-    "\022\033\n\027IMAGE_OPERATION_UNKNOWN\020\000\022\020\n\014IMAGE_C"
-    "REATE\020\001\022\032\n\026IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014I"
-    "MAGE_DELETE\020\0032\242\001\n\rVarifyService\022\?\n\rGetVa"
-    "rifyCode\022\025.message.GetVarifyReq\032\025.messag"
-    "e.GetVarifyRsp\"\000\022P\n\020CreateVoiceToken\022\034.m"
-    "essage.CreateVoiceTokenReq\032\034.message.Cre"
-    "ateVoiceTokenRsp\"\0002\313\002\n\014LogicService\022<\n\014R"
-    "egisterUser\022\024.message.RegisterReq\032\024.mess"
-    "age.RegisterRsp\"\000\022G\n\rResetPassword\022\031.mes"
-    "sage.ResetPasswordReq\032\031.message.ResetPas"
-    "swordRsp\"\000\022-\n\005Login\022\021.message.LoginReq\032\021"
-    ".message.LoginRsp\022A\n\013VerifyToken\022\027.messa"
-    "ge.VerifyTokenReq\032\027.message.VerifyTokenR"
-    "sp\"\000\022B\n\014UpdateAvatar\022\030.message.UpdateAva"
-    "tarReq\032\030.message.UpdateAvatarRspb\006proto3"
+    "CMD_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n\tShapeType\022"
+    "\021\n\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHA"
+    "PE_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020"
+    "\004\022\020\n\014SHAPE_ERASER\020\005\022\017\n\013SHAPE_ARROW\020\006\022\021\n\r"
+    "SHAPE_DIAMOND\020\007*q\n\022ImageOperationType\022\033\n"
+    "\027IMAGE_OPERATION_UNKNOWN\020\000\022\020\n\014IMAGE_CREA"
+    "TE\020\001\022\032\n\026IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014IMAG"
+    "E_DELETE\020\0032\242\001\n\rVarifyService\022\?\n\rGetVarif"
+    "yCode\022\025.message.GetVarifyReq\032\025.message.G"
+    "etVarifyRsp\"\000\022P\n\020CreateVoiceToken\022\034.mess"
+    "age.CreateVoiceTokenReq\032\034.message.Create"
+    "VoiceTokenRsp\"\0002\313\002\n\014LogicService\022<\n\014Regi"
+    "sterUser\022\024.message.RegisterReq\032\024.message"
+    ".RegisterRsp\"\000\022G\n\rResetPassword\022\031.messag"
+    "e.ResetPasswordReq\032\031.message.ResetPasswo"
+    "rdRsp\"\000\022-\n\005Login\022\021.message.LoginReq\032\021.me"
+    "ssage.LoginRsp\022A\n\013VerifyToken\022\027.message."
+    "VerifyTokenReq\032\027.message.VerifyTokenRsp\""
+    "\000\022B\n\014UpdateAvatar\022\030.message.UpdateAvatar"
+    "Req\032\030.message.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_GateServer_2fmessage_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_GateServer_2fmessage_2eproto = {
     false,
     false,
-    4560,
+    4597,
     descriptor_table_protodef_GateServer_2fmessage_2eproto,
     "GateServer/message.proto",
     &descriptor_table_GateServer_2fmessage_2eproto_once,
@@ -1638,9 +1639,9 @@ const ::google::protobuf::EnumDescriptor* ShapeType_descriptor() {
   return file_level_enum_descriptors_GateServer_2fmessage_2eproto[3];
 }
 PROTOBUF_CONSTINIT const uint32_t ShapeType_internal_data_[] = {
-    393216u, 0u, };
+    524288u, 0u, };
 bool ShapeType_IsValid(int value) {
-  return 0 <= value && value <= 5;
+  return 0 <= value && value <= 7;
 }
 const ::google::protobuf::EnumDescriptor* ImageOperationType_descriptor() {
   ::google::protobuf::internal::AssignDescriptors(&descriptor_table_GateServer_2fmessage_2eproto);

@@ -292,6 +292,8 @@ enum ShapeType {
     SHAPE_OVAL = 3;     // 椭圆
     SHAPE_LINE = 4;     // 直线
     SHAPE_ERASER = 5;   // 橡皮擦
+    SHAPE_ARROW = 6;    // 单向箭头
+    SHAPE_DIAMOND = 7;  // 菱形
 }
 
 // ============================================================
@@ -314,7 +316,7 @@ message DrawReq {
 
     // --- 坐标数据 ---
     
-    // 【方案 A：几何图形专用 (Rect/Oval/Line)】
+    // 【方案 A：几何图形专用 (Rect/Oval/Line/Arrow/Diamond)】
     // 只需要两个点：[起点] 和 [当前鼠标位置]
     // 接收端逻辑：QRectF(QPointF(start_x, start_y), QPointF(current_x, current_y))
     float start_x = 8;
