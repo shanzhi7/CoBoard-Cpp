@@ -65,9 +65,21 @@ qt_add_executable(DBClient
     paintscene.h paintscene.cpp
     canvasitems/canvasitem.h canvasitems/canvasitem.cpp
     canvasitems/imageitem.h canvasitems/imageitem.cpp
+    canvasitems/pathitem.h canvasitems/pathitem.cpp
+    canvasitems/penitem.h canvasitems/penitem.cpp
+    canvasitems/eraseritem.h canvasitems/eraseritem.cpp
+    canvasitems/rectitem.h canvasitems/rectitem.cpp
+    canvasitems/ovalitem.h canvasitems/ovalitem.cpp
+    canvasitems/lineitem.h canvasitems/lineitem.cpp
     imagepreviewdialog.h imagepreviewdialog.cpp
     imageassetmanager.h imageassetmanager.cpp
     drawtool.h drawtool.cpp
+    drawtools/pathtool.h drawtools/pathtool.cpp
+    drawtools/pentool.h drawtools/pentool.cpp
+    drawtools/erasertool.h drawtools/erasertool.cpp
+    drawtools/recttool.h drawtools/recttool.cpp
+    drawtools/ovaltool.h drawtools/ovaltool.cpp
+    drawtools/linetool.h drawtools/linetool.cpp
     message.grpc.pb.cc message.grpc.pb.h message.pb.cc message.pb.h
     message.proto
     lobbywidget.h lobbywidget.cpp lobbywidget.ui

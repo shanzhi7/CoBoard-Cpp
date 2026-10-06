@@ -90,7 +90,7 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
     // 操作对象负责具体 QGraphicsItem 的创建和初始样式设置。
     const DrawStyle style{_penColor, _penWidth, static_cast<int>(Qt::SolidLine)};
-    _currentOperation->beginLocal(this, start_pos, style);
+    _currentOperation->beginLocal(this, _currUuid, start_pos, style);
 
     // 网络层继续使用原有信号，PaintScene 不直接依赖 TCP 发送逻辑。
     emit sigStrokeStart(_currUuid,

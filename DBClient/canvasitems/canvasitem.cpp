@@ -39,11 +39,14 @@ void CanvasItem::setItemId(const QString& item_id)
 
 void CanvasItem::setInteractionEnabled(bool enabled)
 {
-    // 权限切换必须同时关闭鼠标拖动和键盘焦点，否则只读成员仍可改变本地图元状态。
+    // 1. 权限切换必须同时关闭选择、鼠标拖动和键盘焦点，避免只读成员改变本地图元状态。
     _interaction_enabled = enabled;
     setFlag(QGraphicsItem::ItemIsMovable, enabled);
+    setFlag(QGraphicsItem::ItemIsSelectable, enabled);
+    setFlag(QGraphicsItem::ItemIsFocusable, enabled);
     if (!enabled)
     {
+        setSelected(false);
         clearFocus();
     }
 }

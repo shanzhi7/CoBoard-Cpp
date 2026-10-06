@@ -1,3 +1,10 @@
+/***********************************************************************************
+* @file         canvasitem.h
+* @brief        画布自定义图元的公共基类和交互状态接口
+* @author       shanzhi
+* @date         2026/10/06
+* @history
+***********************************************************************************/
 #pragma once
 
 #include <QGraphicsObject>
@@ -17,7 +24,7 @@ public:
 
     QString itemId() const; // 返回用于房间同步和本地索引的图元标识。
     void setItemId(const QString& item_id); // 更新图元标识，调用方必须保证新标识在场景内唯一。
-    void setInteractionEnabled(bool enabled); // 按当前房间编辑权限启用或禁用移动、键盘变换和删除。
+    void setInteractionEnabled(bool enabled); // 按当前房间编辑权限启用或禁用选择、移动、键盘变换和删除。
     bool isInteractionEnabled() const; // 返回图元是否允许当前用户修改。
 
 signals:
