@@ -18,7 +18,9 @@ LobbyWidget::LobbyWidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::LobbyWidget)
 {
+    // 1. 初始化界面，绑定房间入口、账号退出和网络通知。
     ui->setupUi(this);
+    connect(ui->return_btn, &QPushButton::clicked, this, &LobbyWidget::OnLogoutTriggered);
     //连接点击，弹出创建房间对话框
     connect(ui->create_widget,&HoverWidget::clicked,this,&LobbyWidget::slot_create_clicked);
 
@@ -40,6 +42,7 @@ LobbyWidget::LobbyWidget(QWidget *parent)
     //连接掉线，显示掉线提示
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_go_lobby,this,&LobbyWidget::slot_go_lobby);
 
+    // 2. 初始化头像、入口图标和 HTTP 回包处理表。
     initIcons();            //初始化图标
     initHandles_map();      //初始化回包处理函数
 
@@ -338,5 +341,21 @@ void LobbyWidget::on_retRoom_btn_clicked()
         return;
     }
     emit sig_returnRoom();
+}
+
+void LobbyWidget::ClearSession()
+{
+    // 1. 丢弃旧账号的头像上传上下文，下一次登录重新加载用户资料。
+    _uploadingPath.clear();
+    _pendingPublicUrl.clear();
+    _pendingOssKey.clear();
+    ui->name_lbl->clear();
+    initIcons();
+}
+
+void LobbyWidget::OnLogoutTriggered()
+{
+    // 1. 退出按钮只负责通知主窗口，由主窗口统一清理房间、网络和账号状态。
+    emit SigLogoutRequested();
 }
 

@@ -8,8 +8,9 @@
 
 TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_reconnect_timer(new QTimer(this)),_reconnect_cnt(0)
 {
-    //连接成功
+    // 1. 绑定连接和收包通知，主动退出后不再交付旧连接事件。
     QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
+        if (_is_logged_out) return;
         _socket.setSocketOption(QAbstractSocket::LowDelayOption, 1);
         qDebug()<<"连接到 Server！";
 
@@ -44,6 +45,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
 
     //准备读取数据
     QObject::connect(&_socket,&QTcpSocket::readyRead,this,[this](){
+        if (_is_logged_out) return;
         //当有数据可读时，读取所有数据
         //读取数据追加到缓冲区buffer
         _buffer.append(_socket.readAll());
@@ -90,10 +92,11 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
         }
     });
 
-    //错误处理
+    // 2. 绑定错误、断开和重连定时器，主动退出不能恢复旧会话。
     QObject::connect(&_socket,QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
                      [&](QAbstractSocket::SocketError socketError){
                          Q_UNUSED(socketError);
+                         if (_is_logged_out) return;
 
                          qDebug() << "Error:" << _socket.errorString() ;
                          switch (socketError)
@@ -134,6 +137,10 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
     QObject::connect(&_socket,&QTcpSocket::disconnected,this,[this](){
         qDebug() << "[TcpMgr] disconnected";
 
+        // 主动退出账号时只清理本地连接，不应再次进入断线重连流程。
+        if (_is_logged_out)
+            return;
+
         // 如果是重定向切服造成的断开 (slot_switch_server 里 abort)，不要走掉线重连
         if(!_pending_room_id.isEmpty())
         {
@@ -157,6 +164,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
         slot_start_reconnect();
     });
 
+    // 3. 初始化消息处理表和发送入口。
     initHandlers();
 
     //连接tcp发送信号与槽函数
@@ -481,14 +489,15 @@ void TcpMgr::handleMsg(ReqId id, int len, QByteArray data)
 
 void TcpMgr::slot_tcp_connect(ServerInfo si)
 {
+    // 1. 新一轮主动登录解除退出状态，不继承上次重连的退避次数。
     qDebug()<<"接收到 tcp connect singal";
 
-    // 新一轮主动登录不应继承上一次掉线重连的退避次数。
+    _is_logged_out = false;
     _reconnect_timer->stop();
     _reconnect_cnt = 0;
     _is_offline_reconnect = false;
 
-    //尝试连接服务器
+    // 2. 使用本次登录返回的地址建立连接。
     qDebug()<<"Connnecting to Server......";
     _host = si.Host;
     _port = static_cast<uint16_t>(si.Port.toUInt());
@@ -497,12 +506,40 @@ void TcpMgr::slot_tcp_connect(ServerInfo si)
     _socket.connectToHost(_host,_port);                 //连接服务器
 }
 
+void TcpMgr::Logout()
+{
+    // 1. 标记主动退出并停止重连定时器，避免断开旧连接后再次连接服务器。
+    _is_logged_out = true;
+    _reconnect_timer->stop();
+    _reconnect_cnt = 0;
+    _is_offline_reconnect = false;
+
+    // 2. 清除重定向、房间恢复和接收缓存，下一次登录从全新连接开始。
+    _pending_room_id.clear();
+    _pending_uid = 0;
+    _resume_room_id.clear();
+    _room_host.clear();
+    _room_port = 0;
+    _host.clear();
+    _port = 0;
+    _buffer.clear();
+    _b_recv_pending = false;
+    _message_id = 0;
+    _message_len = 0;
+
+    // 3. 主动中止 TCP 连接，服务端会按连接关闭流程移除房间成员。
+    if (_socket.state() != QAbstractSocket::UnconnectedState)
+        _socket.abort();
+}
+
 void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
 {
+    // 1. 退出账号后忽略旧界面的发送请求。
+    if (_is_logged_out) return;
     quint16 id = reqid;
     quint16 len = static_cast<quint16>(data.size());
 
-    //创建一个QByteArray用于存储准备发送的数据
+    // 2. 使用现有协议封装消息头和消息体。
     QByteArray block;
     QDataStream out(&block,QIODevice::WriteOnly);
     out.setByteOrder(QDataStream::BigEndian);       //设置网络字节序(大端字节序)
@@ -512,6 +549,7 @@ void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
 
     //写入body
     block.append(data);
+    // 3. 交由套接字异步发送数据。
     _socket.write(block);                           //发送数据
 }
 
@@ -568,7 +606,7 @@ int TcpMgr::calc_backoff_ms()   //计算指数退避ms，也就是下次发送�
 
 void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
 {
-    // QTimer 只能在所属线程的事件循环中启动。网络错误信号通常来自
+    // 1. QTimer 只能在所属线程的事件循环中启动。网络错误信号通常来自
     // QTcpSocket 线程，但保留线程保护可以避免未来跨线程调用时触发 Qt 警告。
     if (QThread::currentThread() != thread())
     {
@@ -576,8 +614,8 @@ void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
         return;
     }
 
-    // 如果已经在等 timer，就别重复启动
-    if (_reconnect_timer->isActive())
+    // 2. 主动退出后丢弃旧重连任务，等待新一次登录重新启用连接。
+    if (_is_logged_out || _reconnect_timer->isActive())
         return;
     int backoff = calc_backoff_ms();
     qDebug() << "[TcpMgr] will reconnect in" << backoff << "ms, cnt=" << _reconnect_cnt;
@@ -586,14 +624,15 @@ void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
 
 void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
 {
-    // 定时器回调原则上已经在对象线程执行，保留保护以防止外部直接调用槽函数。
+    // 1. 定时器回调必须在对象线程执行。
     if (QThread::currentThread() != thread())
     {
         QMetaObject::invokeMethod(this, &TcpMgr::slot_do_reconnect, Qt::QueuedConnection);
         return;
     }
 
-    //优先连接 "房间所属服务器", 没有就连接当前 _host/_post
+    // 2. 主动退出后不能重新连接；其他情况优先使用房间服务器地址。
+    if (_is_logged_out) return;
     QString host = !_room_host.isEmpty() ? _room_host : _host;
     uint16_t port = (_room_port != 0) ? _room_port : _port;
 
@@ -605,7 +644,7 @@ void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
         return;
     }
 
-    // 次数+1，用于下次退避更久
+    // 3. 更新重连次数并使用新连接恢复会话。
     _reconnect_cnt++;
     // 确保 socket 干净
     if (_socket.state() != QAbstractSocket::UnconnectedState)

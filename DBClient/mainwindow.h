@@ -7,8 +7,7 @@
 * @date         2026/01/20
 * @history
 ***********************************************************************************/
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <QMainWindow>
 #include <QObject>
@@ -35,13 +34,13 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(const LatencyTestOptions& test_options = LatencyTestOptions(),
                         QWidget *parent = nullptr); // 创建主窗口和测试配置
-    ~MainWindow();
+    ~MainWindow(); // 释放主窗口界面。
 
 protected:
     void paintEvent(QPaintEvent* event) override;   //重绘事件，绘制背景
 
 private:
-    Ui::MainWindow *ui;
+    Ui::MainWindow *ui; // 主窗口界面对象。
     WelcomeWidget* welcome_widget;                  //欢迎窗口
     LoginWidget* login_widget;                      //登录窗口
     RegisterWidget* register_widget;                //注册窗口
@@ -71,5 +70,5 @@ private slots:
     void slotSwitchCanvasJoin(std::shared_ptr<RoomInfo> room_info); //切换canvas页面 join
     void slotSwitchLobbyFromCanvas();               //返回大厅页面
     void slotLobbyReturnRoom();                     //大厅返回房间槽函数
+    void OnLogoutRequested(); // 退出账号并返回登录页面。
 };
-#endif // MAINWINDOW_H

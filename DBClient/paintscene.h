@@ -17,6 +17,7 @@
 #include <QStack>
 
 #include "canvasinteractionmode.h"
+#include "canvasdocument.h"
 #include "drawtool.h"
 
 class QGraphicsEllipseItem;
@@ -45,6 +46,9 @@ public:
     void resetScene(); // 清空图元、交互状态及本地和远端记录。
     bool canUndoLocal() const; // 判断是否存在可撤销的本地图元。
     void undoLastLocalItem(); // 删除最后一个本地图元，不影响远端图元。
+    bool BuildCanvasDocument(CanvasDocument* document, QString* error_message) const; // 按场景绘制顺序构建独立快照。
+    bool LoadCanvasDocument(const CanvasDocument& document, QString* error_message); // 仅向尚未接入视图的新场景恢复图元。
+    QImage RenderCanvasImage(QString* error_message); // 按画布原尺寸渲染并恢复交互反馈。
 
     ImageItem* addImageItem(const QString& item_id,
                            const QString& asset_id,

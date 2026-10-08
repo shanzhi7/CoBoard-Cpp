@@ -400,8 +400,11 @@ QToolButton:hover {
     <property name="title">
      <string>文件&amp;F</string>
     </property>
+    <addaction name="import_canvas_action"/>
+    <addaction name="export_canvas_action"/>
+    <addaction name="export_image_action"/>
+    <addaction name="separator"/>
     <addaction name="input_img"/>
-    <addaction name="creatRoom_action"/>
    </widget>
    <addaction name="menu_F"/>
   </widget>
@@ -851,17 +854,33 @@ QToolButton:hover {
     </layout>
    </widget>
   </widget>
-  <action name="input_img">
+  <action name="import_canvas_action">
    <property name="text">
-    <string>导入图片</string>
+    <string>导入画布</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
    </property>
   </action>
-  <action name="creatRoom_action">
+  <action name="export_canvas_action">
    <property name="text">
-    <string>新建房间</string>
+    <string>导出画布</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="export_image_action">
+   <property name="text">
+    <string>导出图片</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="input_img">
+   <property name="text">
+    <string>插入图片</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>

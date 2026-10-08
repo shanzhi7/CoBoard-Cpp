@@ -1,13 +1,141 @@
 #include "paintscene.h"
-#include "canvasitems/imageitem.h"
 
 #include <QGraphicsEllipseItem>
 #include <QGraphicsSceneMouseEvent>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QPainter>
+#include <QSet>
+#include <QSignalBlocker>
 #include <QDebug>
 #include <QUuid>
 #include <QTransform>
+
+#include "canvasitemserializer.h"
+#include "canvasitems/imageitem.h"
+
+bool PaintScene::BuildCanvasDocument(CanvasDocument* document, QString* error_message) const
+{
+    // 1. 文档只记录画布范围和纯色背景，不读取视图状态或选中状态。
+    CanvasDocument snapshot;
+    snapshot._canvas_size = QSize(qRound(sceneRect().width()), qRound(sceneRect().height()));
+    snapshot._background = backgroundBrush().color();
+    if (snapshot._canvas_size.isEmpty() || backgroundBrush().style() != Qt::SolidPattern)
+    {
+        *error_message = QStringLiteral("画布尺寸或背景不支持保存");
+        return false;
+    }
+
+    // 2. Qt 返回真实堆叠顺序，辅助光标不是 CanvasItem，自然排除。
+    for (QGraphicsItem* graphics_item : items(Qt::AscendingOrder))
+    {
+        auto* item = dynamic_cast<CanvasItem*>(graphics_item);
+        if (!item) continue;
+        CanvasItemData item_data;
+        if (!CanvasItemSerializer::SerializeItem(item, &item_data, &snapshot, error_message)) return false;
+        snapshot._items.append(item_data);
+        snapshot._item_order.append(item->itemId());
+        if (snapshot._items.size() > CanvasDocumentLimits::MAX_ITEMS)
+        {
+            *error_message = QStringLiteral("画布图元超过 10000 个");
+            return false;
+        }
+    }
+    *document = snapshot;
+    return true;
+}
+
+bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* error_message)
+{
+    // 1. 此入口只构建临时场景，失败后由调用者整体销毁，不清空当前画布。
+    if (!views().isEmpty() || items().size() != 1 || document._items.size() != document._item_order.size())
+    {
+        *error_message = QStringLiteral("请在新的临时场景恢复画布");
+        return false;
+    }
+    QMap<QString, CanvasItemData> item_dataMap;
+    for (const CanvasItemData& item_data : document._items)
+    {
+        const QString item_id = item_data.value("item_id").toString();
+        if (item_id.isEmpty() || item_dataMap.contains(item_id))
+        {
+            *error_message = QStringLiteral("画布图元 ID 重复或为空");
+            return false;
+        }
+        item_dataMap.insert(item_id, item_data);
+    }
+
+    // 2. 依次加入图元，保留原始层级和同层插入顺序，并重建图片索引。
+    QSet<QString> loaded_ids;
+    for (const QString& item_id : document._item_order)
+    {
+        if (!item_dataMap.contains(item_id) || loaded_ids.contains(item_id))
+        {
+            *error_message = QStringLiteral("画布图元顺序无效");
+            return false;
+        }
+        CanvasItem* item = CanvasItemSerializer::DeserializeItem(item_dataMap.value(item_id), document._asset_dataMap, error_message);
+        if (!item) return false;
+        addItem(item);
+        loaded_ids.insert(item_id);
+        if (auto* image_item = dynamic_cast<ImageItem*>(item))
+        {
+            _imageItems.insert(item_id, image_item);
+            UpdateImageInteraction(image_item);
+            connect(image_item, &CanvasItem::sigGeometryChanged, this, &PaintScene::sigImageGeometryChanged);
+            connect(image_item, &ImageItem::sigRetryRequested, this, &PaintScene::sigImageRetryRequested);
+            connect(image_item, &ImageItem::sigPreviewRequested, this, &PaintScene::sigImagePreviewRequested);
+        }
+    }
+
+    // 3. 导入图元是初始内容，不加入撤销栈；后续本地操作继续沿用原有记录。
+    setSceneRect(QRectF(QPointF(), document._canvas_size));
+    setBackgroundBrush(document._background);
+    clearSelection();
+    _localUndoStack.clear();
+    return true;
+}
+
+QImage PaintScene::RenderCanvasImage(QString* error_message)
+{
+    // 1. 导出整个场景范围，像素尺寸不依赖视口和缩放，并拒绝图片占位状态。
+    const QSize size(qRound(sceneRect().width()), qRound(sceneRect().height()));
+    if (size.isEmpty() || static_cast<qint64>(size.width()) * size.height() > CanvasDocumentLimits::MAX_IMAGE_PIXELS)
+    {
+        *error_message = QStringLiteral("画布尺寸过大，图片导出最多支持 6400 万像素");
+        return QImage();
+    }
+    for (QGraphicsItem* item : items())
+    {
+        auto* image_item = dynamic_cast<ImageItem*>(item);
+        if (image_item && (image_item->loadState() != ImageItem::ImageLoadState::Ready || image_item->pixmap().isNull()))
+        {
+            *error_message = QStringLiteral("图片尚未就绪，请等待或重新加载后再导出");
+            return QImage();
+        }
+    }
+    QImage image(size, QImage::Format_ARGB32_Premultiplied);
+    if (image.isNull())
+    {
+        *error_message = QStringLiteral("无法分配导出图片内存");
+        return image;
+    }
+    image.fill(Qt::transparent);
+
+    // 2. 隐藏选中框和橡皮擦光标，渲染完成后立即恢复原状态。
+    const QSignalBlocker signal_blocker(this);
+    const QList<QGraphicsItem*> selected_items = selectedItems();
+    const bool is_cursor_visible = _eraserCursorItem->isVisible();
+    clearSelection();
+    _eraserCursorItem->hide();
+    QPainter painter(&image);
+    painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
+    render(&painter, QRectF(QPointF(), size), sceneRect(), Qt::IgnoreAspectRatio);
+    painter.end();
+    for (QGraphicsItem* item : selected_items) item->setSelected(true);
+    _eraserCursorItem->setVisible(is_cursor_visible);
+    return image;
+}
 
 PaintScene::PaintScene(QObject* parent)
     : QGraphicsScene(parent)

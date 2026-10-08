@@ -1,6 +1,8 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "tcpmgr.h"
+#include "httpmgr.h"
+#include "voicemanager.h"
 #include <QRandomGenerator>
 #include <QTimer>
 #include <QPainter>
@@ -10,9 +12,10 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
+    // 1. 初始化主窗口界面。
     ui->setupUi(this);
 
-    //初始化背景 begin
+    // 2. 初始化背景动画。
     bubble_timer = new QTimer(this);
 
     //连接一定时间间隔更新背景
@@ -23,7 +26,7 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
     setWindowTitle("SyncCanvas");
     //初始化背景 end
 
-    //初始化欢迎页面 begin
+    // 3. 初始化欢迎页面并作为默认中央部件。
     welcome_widget = new WelcomeWidget(this);
     welcome_widget->setAttribute(Qt::WA_TranslucentBackground);     //设置透明背景
     this->setCentralWidget(welcome_widget);
@@ -31,35 +34,35 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
     welcome_widget->show();
     //初始化欢迎页面 end
 
-    //初始化登录窗口 begin
+    // 4. 初始化登录页面。
     login_widget = new LoginWidget(this);
     login_widget->setAttribute(Qt::WA_TranslucentBackground);       //设置透明背景
     login_widget->hide();
     //初始化登录窗口 end
 
-    //初始化注册窗口 begin
+    // 5. 初始化注册页面。
     register_widget = new RegisterWidget(this);
     register_widget->setAttribute(Qt::WA_TranslucentBackground);    //设置透明背景
     register_widget->hide();
     //初始化注册窗口 end
 
-    //初始化重置密码窗口 begin
+    // 6. 初始化重置密码页面。
     reset_widget = new ResetWidget(this);
     reset_widget->setAttribute(Qt::WA_TranslucentBackground);       //设置透明背景
     reset_widget->hide();
     //初始化重置密码窗口 end
 
-    //初始化大厅窗口 begin
+    // 7. 初始化大厅页面。
     lobby_widget = new LobbyWidget(this);
     //lobby_widget->setAttribute(Qt::WA_TranslucentBackground);       //设置透明背景
     lobby_widget->hide();
     //初始化大厅窗口 end
 
-    // 初始化画布窗口
+    // 8. 初始化独立画布窗口。
     canvas = new Canvas(test_options);
     canvas->setAttribute(Qt::WA_DeleteOnClose);     //关闭自动释放
 
-    //连接点击欢迎页切换登录窗口
+    // 9. 绑定页面导航、房间切换和账号退出通知。
     connect(welcome_widget,&WelcomeWidget::switchLogin,this,&MainWindow::slotSwitchLogin);
 
     //连接点击欢迎页离线模式，直接进入本地画板
@@ -94,6 +97,9 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
 
     //连接大厅返回房间
     connect(lobby_widget,&LobbyWidget::sig_returnRoom,this,&MainWindow::slotLobbyReturnRoom);
+
+    //连接大厅退出账号
+    connect(lobby_widget, &LobbyWidget::SigLogoutRequested, this, &MainWindow::OnLogoutRequested);
 
     //断线: 回到大厅
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_go_lobby,this,[this](QString tip){
@@ -355,4 +361,30 @@ void MainWindow::slotLobbyReturnRoom()
     canvas->resumeVoice();
     canvas->show();
     this->hide();
+}
+
+void MainWindow::OnLogoutRequested()
+{
+    // 1. 停止 TCP 重连并取消未完成的请求，旧回包不能再次建立账号会话。
+    TcpMgr::getInstance()->Logout();
+    HttpMgr::getInstance()->CancelPendingRequests();
+    VoiceManager::getInstance()->leaveRoom();
+    UserMgr::getInstance()->ClearSession();
+
+    // 2. 清除房间、画布和账号界面状态，下次登录重新加载资料。
+    if (canvas)
+    {
+        canvas->ClearSession();
+        canvas->hide();
+    }
+    lobby_widget->ClearSession();
+    login_widget->ClearInputs();
+
+    // 3. 先取出并保留大厅部件，再切换到登录页，防止 setCentralWidget 删除大厅。
+    if (QWidget* previous_widget = takeCentralWidget())
+        previous_widget->hide();
+    setCentralWidget(login_widget);
+    setFixedSize(login_widget->size());
+    login_widget->show();
+    show();
 }

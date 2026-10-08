@@ -1,5 +1,4 @@
 #include "canvas.h"
-#include "NewRoomDialog.h"
 #include "ui_canvas.h"
 #include "usermgr.h"
 #include "tcpmgr.h"
@@ -9,6 +8,7 @@
 #include "httpmgr.h"
 #include "canvasitems/imageitem.h"
 #include "imagepreviewdialog.h"
+#include "canvasfilemanager.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QClipboard>
@@ -26,6 +26,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMimeData>
+#include <QMessageBox>
 #include <QUuid>
 #include <QtMath>
 
@@ -56,11 +57,46 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::Canvas)
 {
+    // 1. 初始化界面及窗口拥有的资源和文件管理器。
     ui->setupUi(this);
 
     // 图片资源管理器只使用 Qt 异步网络和本地缓存，不连接数据库或 Redis。
     _imageAssetManager = new ImageAssetManager(this);
+    _canvas_file_manager = new CanvasFileManager(_imageAssetManager, this);
+    connect(_canvas_file_manager, &CanvasFileManager::sigImportReady, this,
+            [this](const QString& request_id, const CanvasDocument& document, const QString& error_message) {
+        // 1. 只处理当前画布发起的任务，换房后的结果不会触及新画布。
+        if (request_id != _file_request_id || _file_canvas_generation != _canvas_generation) return;
+        if (!error_message.isEmpty())
+        {
+            _is_file_operation_running = false;
+            UpdateCanvasFileActions();
+            TipWidget::showTip(ui->graphicsView, error_message);
+            return;
+        }
+        // 2. 完成资源准备后再确认替换，拒绝或临时场景失败都保留原画布。
+        const auto answer = QMessageBox::question(this, QStringLiteral("导入画布"),
+            QStringLiteral("将替换当前离线画布，旧画布的撤销记录也会清空。是否继续？"),
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+        if (request_id != _file_request_id || _file_canvas_generation != _canvas_generation) return;
+        QString import_error;
+        if (answer == QMessageBox::Yes && !ApplyImportedCanvas(document, &import_error))
+        {
+            TipWidget::showTip(ui->graphicsView, import_error);
+        }
+        _is_file_operation_running = false;
+        UpdateCanvasFileActions();
+    });
+    connect(_canvas_file_manager, &CanvasFileManager::sigExportFinished, this,
+            [this](const QString& request_id, bool is_success, const QString& error_message) {
+        // 1. 导出终态恢复菜单，失败信息由文件管理器提供。
+        if (request_id != _file_request_id) return;
+        _is_file_operation_running = false;
+        UpdateCanvasFileActions();
+        TipWidget::showTip(ui->graphicsView, is_success ? QStringLiteral("导出成功") : error_message);
+    });
 
+    // 2. 保留绘画节流和远端平滑应用定时器。
     // 16ms 节流：批量发送 Pen/Eraser 的 path_points
     _strokeFlushTimer = new QTimer(this);
     _strokeFlushTimer->setInterval(16);
@@ -112,18 +148,9 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
     //连接房间编辑权限变更广播
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_permission_changed,this,&Canvas::slot_permission_changed);
 
-    // PaintScene -> Canvas (发送)
-    connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
-    connect(_paintScene, &PaintScene::sigStrokeMove,  this, &Canvas::slot_onStrokeMove);
-    connect(_paintScene, &PaintScene::sigStrokeEnd,   this, &Canvas::slot_onStrokeEnd);
-    connect(_paintScene, &PaintScene::sigImageGeometryChanged,
-            this, &Canvas::slot_onImageGeometryChanged);
-    connect(_paintScene, &PaintScene::sigImageDeleteRequested,
-            this, &Canvas::slot_onImageDeleteRequested);
-    connect(_paintScene, &PaintScene::sigImageRetryRequested,
-            this, &Canvas::slot_onImageRetryRequested);
-    connect(_paintScene, &PaintScene::sigImagePreviewRequested,
-            this, &Canvas::slot_onImagePreviewRequested);
+    // 3. 场景连接集中维护，以便导入成功后重新接入原有业务槽。
+    ConnectPaintSceneSignals();
+    UpdateCanvasFileActions();
 
     //连接接收群聊消息
     connect(TcpMgr::getInstance().get(),&TcpMgr::sig_chat_received,this,&Canvas::slot_onChatReceived);
@@ -167,6 +194,9 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
 
 Canvas::~Canvas()
 {
+    // 1. 先回收文件任务，再释放它依赖的图片资源门面和界面。
+    delete _canvas_file_manager;
+    _canvas_file_manager = nullptr;
     CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
@@ -177,6 +207,8 @@ Canvas::~Canvas()
 
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
+    // 1. 换房使旧文件任务失效，保留首次加入时已收到的远端队列。
+    CancelCanvasFileOperation();
     // 首次进入房间时，JoinRoomRsp 后面的历史绘画包可能已经先到达并进入队列。
     // 此时 _room_info 为空，不能清队列，否则会丢掉房主已有的绘画内容。
     // 从已有房间切换到另一个房间时仍需清理旧队列，避免旧房间图元串到新房间。
@@ -194,7 +226,9 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
         _pending_image_imports.clear();
     }
 
+    // 2. 应用新房间元数据并恢复标准背景及菜单状态。
     this->_room_info = room_info;
+    _paintScene->setBackgroundBrush(Qt::white);
     // 每个新房间从统一的 100% 视图状态开始，缩放比例不属于房间共享状态。
     if (ui->graphicsView)
         ui->graphicsView->resetZoom();
@@ -205,16 +239,19 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
     applyRoomCanvasSize();
     refreshRoomCollaborationState();
     refreshCurrentUserProfile();
+    UpdateCanvasFileActions();
 }
 
 void Canvas::enterOfflineMode()
 {
+    // 1. 取消旧房间的文件和图片任务。
+    CancelCanvasFileOperation();
     CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
     VoiceManager::getInstance()->leaveRoom();
 
-    // 离线模式复用同一套 PaintScene 绘图能力，但不创建房间、不连接服务器。
+    // 2. 清理远端队列和原有场景，离线操作只更新本地状态。
     _pendingPointsByUuid.clear();
     _remoteDrawQueue.clear();
     _remoteImageOperationQueue.clear();
@@ -237,6 +274,7 @@ void Canvas::enterOfflineMode()
     if (_paintScene)
     {
         _paintScene->resetScene();
+        _paintScene->setBackgroundBrush(Qt::white);
         _paintScene->setEditable(true);
     }
 
@@ -244,6 +282,7 @@ void Canvas::enterOfflineMode()
     if (ui->graphicsView)
         ui->graphicsView->resetZoom();
 
+    // 3. 创建离线元数据并更新导入菜单。
     _room_info = std::make_shared<RoomInfo>();
     _room_info->id = QStringLiteral("offline");
     _room_info->name = QStringLiteral("离线画板");
@@ -255,6 +294,7 @@ void Canvas::enterOfflineMode()
     _room_info->offline = true;
 
     applyRoomCanvasSize();
+    UpdateCanvasFileActions();
 
     ui->title_label->setText(QStringLiteral("离线画板"));
     if (statusDot)
@@ -273,17 +313,19 @@ void Canvas::resumeVoice()
 
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
+    // 1. 取消当前文件和图片任务，回大厅后不再接收导入结果。
+    CancelCanvasFileOperation();
     CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
 
-    // 1) 停止 MOVE 节流定时器，防止回大厅还在发包
+    // 2. 停止绘画定时器并清空请求和统计。
     if (_strokeFlushTimer)
         _strokeFlushTimer->stop();
     if (_remoteDrawTimer)
         _remoteDrawTimer->stop();
 
-    // 2) 清空待发送点缓存
+    // 清空待发送点缓存。
     _pendingPointsByUuid.clear();
     _remoteDrawQueue.clear();
     _remoteImageOperationQueue.clear();
@@ -295,12 +337,12 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     _activeImageUploadId.clear();
     _pending_image_imports.clear();
 
-    // 2.5) 重置延迟测量统计
+    // 重置延迟测量统计。
     _latencySamples.clear();
     _latencySum = 0;
     _latencyCount = 0;
 
-    // 3) 清空画面
+    // 3. 清空画面和房间状态。
     if (_paintScene)
     {
         _paintScene->setEditable(false);
@@ -311,17 +353,31 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     if (ui->graphicsView)
         ui->graphicsView->resetZoom();
 
-    // 4) 清空用户列表 UI + map
+    // 清空用户列表 UI 和索引。
     _userItemMap.clear();
     if (ui && ui->treeWidget)
     {
         ui->treeWidget->clear();
     }
 
-    // 5) 清空房间信息
+    // 清空房间信息。
     if (_room_info)
         _room_info->connected = false;
     _room_info.reset();
+    UpdateCanvasFileActions();
+}
+
+void Canvas::ClearSession()
+{
+    // 1. 复用场景清理，停止绘画定时器并取消文件和图片任务。
+    resetForReconnect();
+
+    // 2. 清除旧房间聊天和用户资料，下一次登录不显示前一个账号的信息。
+    ui->chat_textBrowser->clear();
+    ui->input_edit->clear();
+    ui->username_label->clear();
+    ui->avator_label->clear();
+    ui->title_label->clear();
 }
 
 bool Canvas::eventFilter(QObject *watched, QEvent *event)
@@ -394,6 +450,7 @@ bool Canvas::eventFilter(QObject *watched, QEvent *event)
 
 void Canvas::initCanvasUi()
 {
+    // 1. 初始化工具停靠窗口和绘图场景。
     ui->tool_dock->setWindowTitle("工具栏");
     ui->chat_dock->setWindowTitle("聊天室");
     ui->user_dock->setWindowTitle("在线用户");
@@ -412,9 +469,6 @@ void Canvas::initCanvasUi()
             this, &Canvas::OnImageFilesDropped);
     connect(ui->graphicsView, &CanvasGraphicsView::sigPasteImageRequested,
             this, &Canvas::OnPasteImageRequested);
-    // 1. 手形关闭场景事件交互，单独转发平移后的坐标以保留状态栏显示。
-    connect(ui->graphicsView, &CanvasGraphicsView::SigCursorScenePositionChanged,
-            _paintScene, &PaintScene::sigCursorPosChanged);
     //初始化 paintScene(end)
 
     //初始化 _widthPopup(begin)
@@ -433,12 +487,16 @@ void Canvas::initCanvasUi()
 
     this->tabifyDockWidget(ui->chat_dock,ui->user_dock);                    // 两个dock叠在一起
 
-    //菜单栏
+    // 2. 文件菜单区分结构文件、图片导出和插入图片。
     ui->input_img->setIcon(style()->standardIcon(QStyle::SP_FileIcon));     // 设置action图标
     ui->menubar->setVisible(false);                                         //将菜单栏设置为不可见
     ui->file_btn->setMenu(ui->menu_F); // 直接把原来的菜单对象赋给按钮！
     connect(ui->input_img, &QAction::triggered,
             this, &Canvas::slot_onInputImgTriggered);
+    connect(ui->import_canvas_action, &QAction::triggered, this, &Canvas::OnImportCanvasTriggered);
+    connect(ui->export_canvas_action, &QAction::triggered, this, &Canvas::OnExportCanvasTriggered);
+    connect(ui->export_image_action, &QAction::triggered, this, &Canvas::OnExportImageTriggered);
+    ui->menu_F->setToolTipsVisible(true);
 
     //新建编辑菜单
     QMenu* editMenu = new QMenu(this);
@@ -468,21 +526,13 @@ void Canvas::initCanvasUi()
             ui->graphicsView->resetZoom();
     });
 
-    //状态栏
+    // 3. 状态栏标签由窗口持有，场景替换后可以继续接收坐标。
     QStatusBar *bar = this->statusBar();    //获取状态栏
     // 左侧：坐标信息 (新建一个 Label)
-    QLabel *posLabel = new QLabel("X: 0, Y: 0", this);
-    posLabel->setStyleSheet("color: #666; font-size: 12px; padding-left: 10px;");
-    posLabel->setMinimumWidth(150);
-    bar->addWidget(posLabel); // addWidget 加在左边
-
-    connect(_paintScene,&PaintScene::sigCursorPosChanged,this,[=](QPointF pos){
-        // 更新 Label 文本
-        // toPoint() 把浮点数转成整数，显示更好看
-        int x = static_cast<int>(pos.x());
-        int y = static_cast<int>(pos.y());
-        posLabel->setText(QString("X: %1, Y: %2").arg(x).arg(y));
-    });
+    _cursor_position_label = new QLabel("X: 0, Y: 0", this);
+    _cursor_position_label->setStyleSheet("color: #666; font-size: 12px; padding-left: 10px;");
+    _cursor_position_label->setMinimumWidth(150);
+    bar->addWidget(_cursor_position_label);
 
     // 中间/右侧：缩放信息，显示值始终来自 QGraphicsView 的实际变换矩阵。
     _zoomLabel = new QLabel("缩放：100%", this);
@@ -499,6 +549,178 @@ void Canvas::initCanvasUi()
     statusDot = new QLabel("● 未连接", this);
     statusDot->setStyleSheet("color: #ff4d4d; font-size: 12px; padding-right: 10px;"); // 红色圆点
     bar->addPermanentWidget(statusDot);
+}
+
+void Canvas::ConnectPaintSceneSignals()
+{
+    // 1. 重用原有业务槽，旧场景销毁后 Qt 自动移除其连接。
+    connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
+    connect(_paintScene, &PaintScene::sigStrokeMove, this, &Canvas::slot_onStrokeMove);
+    connect(_paintScene, &PaintScene::sigStrokeEnd, this, &Canvas::slot_onStrokeEnd);
+    connect(_paintScene, &PaintScene::sigImageGeometryChanged, this, &Canvas::slot_onImageGeometryChanged);
+    connect(_paintScene, &PaintScene::sigImageDeleteRequested, this, &Canvas::slot_onImageDeleteRequested);
+    connect(_paintScene, &PaintScene::sigImageRetryRequested, this, &Canvas::slot_onImageRetryRequested);
+    connect(_paintScene, &PaintScene::sigImagePreviewRequested, this, &Canvas::slot_onImagePreviewRequested);
+
+    // 2. 手形模式的坐标来自视图，其余坐标来自场景，均接入同一标签。
+    connect(ui->graphicsView, &CanvasGraphicsView::SigCursorScenePositionChanged,
+            _paintScene, &PaintScene::sigCursorPosChanged);
+    connect(_paintScene, &PaintScene::sigCursorPosChanged, this, [this](QPointF pos) {
+        _cursor_position_label->setText(QStringLiteral("X: %1, Y: %2")
+            .arg(static_cast<int>(pos.x())).arg(static_cast<int>(pos.y())));
+    });
+}
+
+void Canvas::UpdateCanvasFileActions()
+{
+    // 1. 导入仅限离线；导出读取当前客户端，任何编辑权限均可使用。
+    const bool has_canvas = _room_info && _paintScene;
+    const bool is_available = has_canvas && !_is_file_operation_running;
+    ui->import_canvas_action->setEnabled(is_available && _room_info->offline);
+    ui->import_canvas_action->setToolTip(has_canvas && !_room_info->offline
+        ? QStringLiteral("当前仅支持离线导入画布") : QStringLiteral("导入 .synccanvas 并替换当前画布"));
+    ui->export_canvas_action->setEnabled(is_available);
+    ui->export_image_action->setEnabled(is_available);
+    ui->input_img->setEnabled(is_available);
+}
+
+void Canvas::CancelCanvasFileOperation()
+{
+    // 1. 房间切换后后台结果不得修改当前画布。
+    ++_canvas_generation;
+    _canvas_file_manager->CancelFileOperation();
+    _file_request_id.clear();
+    _is_file_operation_running = false;
+    UpdateCanvasFileActions();
+}
+
+void Canvas::DrainRemoteCanvasOperations()
+{
+    // 1. 在线快照先应用已收到的队列，不向服务端请求新快照。
+    if (!_room_info || _room_info->offline || !_room_info->connected) return;
+    while (!_remoteDrawQueue.isEmpty() || !_remoteImageOperationQueue.isEmpty())
+    {
+        flushRemoteDrawQueue();
+    }
+}
+
+bool Canvas::ApplyImportedCanvas(const CanvasDocument& document, QString* error_message)
+{
+    // 1. GUI 图元和 QPixmap 只在主线程构建，失败时仅销毁临时场景。
+    auto imported_scene = std::make_unique<PaintScene>();
+    if (!imported_scene->LoadCanvasDocument(document, error_message)) return false;
+    imported_scene->setPenColor(_paintScene->getPenColor());
+    imported_scene->setPenWidth(_paintScene->getPenWidth());
+    imported_scene->setEditable(true);
+
+    // 2. 资源已准备且新场景可用，才取消旧图片请求并一次性切换场景。
+    CancelImageRequests();
+    _pending_image_imports.clear();
+    PaintScene* old_scene = _paintScene;
+    _paintScene = imported_scene.release();
+    _paintScene->setParent(this);
+    ui->graphicsView->setScene(_paintScene);
+    ConnectPaintSceneSignals();
+    SetCanvasTool(_toolGroup->checkedId());
+    delete old_scene;
+    ++_canvas_generation;
+
+    // 3. 同步离线尺寸并恢复 100% 和左上角，导入内容不进入撤销记录。
+    _room_info->width = document._canvas_size.width();
+    _room_info->height = document._canvas_size.height();
+    ui->graphicsView->resetZoom();
+    ui->graphicsView->horizontalScrollBar()->setValue(ui->graphicsView->horizontalScrollBar()->minimum());
+    ui->graphicsView->verticalScrollBar()->setValue(ui->graphicsView->verticalScrollBar()->minimum());
+    _cursor_position_label->setText(QStringLiteral("X: 0, Y: 0"));
+    return true;
+}
+
+void Canvas::OnImportCanvasTriggered()
+{
+    // 1. 在线导入需要服务端批处理，初版仅在离线模式提供入口。
+    if (_is_file_operation_running || !_room_info) return;
+    if (!_room_info->offline)
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("当前仅支持离线导入画布"));
+        return;
+    }
+    const QString file_path = QFileDialog::getOpenFileName(this, QStringLiteral("导入画布"), QString(),
+        QStringLiteral("SyncCanvas 画布 (*.synccanvas);;所有文件 (*)"));
+    if (file_path.isEmpty()) return;
+
+    // 2. 后台完成 JSON 和资源准备后才询问是否替换。
+    _is_file_operation_running = true;
+    _file_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    _file_canvas_generation = _canvas_generation;
+    UpdateCanvasFileActions();
+    _canvas_file_manager->ImportCanvasAsync(file_path, _file_request_id);
+}
+
+void Canvas::OnExportCanvasTriggered()
+{
+    // 1. 选择结构文件目标路径，未填写扩展名时补齐。
+    if (_is_file_operation_running || !_room_info) return;
+    QString file_path = QFileDialog::getSaveFileName(this, QStringLiteral("导出画布"),
+        QStringLiteral("canvas.synccanvas"), QStringLiteral("SyncCanvas 画布 (*.synccanvas)"));
+    if (file_path.isEmpty()) return;
+    const QString suffix = QFileInfo(file_path).suffix().toLower();
+    if (suffix.isEmpty()) file_path += QStringLiteral(".synccanvas");
+    else if (suffix != QStringLiteral("synccanvas"))
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("请使用 .synccanvas 扩展名重新选择文件"));
+        return;
+    }
+
+    // 2. 捕获全部本地和远端图元，后台补齐资源并提交原子文件。
+    DrainRemoteCanvasOperations();
+    CanvasDocument document;
+    QString error_message;
+    if (!_paintScene->BuildCanvasDocument(&document, &error_message))
+    {
+        TipWidget::showTip(ui->graphicsView, error_message);
+        return;
+    }
+    _is_file_operation_running = true;
+    _file_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    _file_canvas_generation = _canvas_generation;
+    UpdateCanvasFileActions();
+    _canvas_file_manager->ExportCanvasAsync(document, file_path, _file_request_id);
+}
+
+void Canvas::OnExportImageTriggered()
+{
+    // 1. 根据所选过滤器补齐扩展名，明确填写的 PNG/JPG 扩展名决定编码。
+    if (_is_file_operation_running || !_room_info) return;
+    QString selected_filter;
+    QString file_path = QFileDialog::getSaveFileName(this, QStringLiteral("导出图片"),
+        QStringLiteral("canvas"), QStringLiteral("PNG 图片 (*.png);;JPG 图片 (*.jpg *.jpeg)"), &selected_filter);
+    if (file_path.isEmpty()) return;
+    QString suffix = QFileInfo(file_path).suffix().toLower();
+    if (suffix.isEmpty())
+    {
+        suffix = selected_filter.startsWith(QStringLiteral("JPG")) ? QStringLiteral("jpg") : QStringLiteral("png");
+        file_path += QStringLiteral(".") + suffix;
+    }
+    if (suffix != "png" && suffix != "jpg" && suffix != "jpeg")
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("请使用 .png 或 .jpg 扩展名重新选择文件"));
+        return;
+    }
+
+    // 2. GUI 线程渲染场景，图片编码和原子提交交由文件任务池。
+    DrainRemoteCanvasOperations();
+    QString error_message;
+    const QImage image = _paintScene->RenderCanvasImage(&error_message);
+    if (image.isNull())
+    {
+        TipWidget::showTip(ui->graphicsView, error_message);
+        return;
+    }
+    _is_file_operation_running = true;
+    _file_request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    _file_canvas_generation = _canvas_generation;
+    UpdateCanvasFileActions();
+    _canvas_file_manager->ExportImageAsync(image, file_path, suffix == "png" ? QByteArray("png") : QByteArray("jpg"), _file_request_id);
 }
 
 void Canvas::SetCanvasTool(int tool_id)

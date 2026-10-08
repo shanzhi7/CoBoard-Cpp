@@ -39,6 +39,9 @@ public:
     void prepareLocalAssetAsync(const QString& file_path, const QString& request_id); // 保留已有导入入口，原始文件由代理读取。
     void PrepareImageDataAsync(const QImage& image, const QString& request_id); // 后台编码 PNG，再提交代理。
     void LoadAssetAsync(const QString& asset_id, const QString& sha256, const QString& mime_type); // 签名前查缓存。
+    void ReadAssetDataAsync(const QString& sha256, const QString& request_id); // 通过已有缓存指令读取原始编码数据。
+    void ImportAssetDataAsync(const QByteArray& data, const QString& request_id); // 登记画布文件内嵌资源，不创建本地图元。
+    void CancelAssetDataRequest(const QString& request_id); // 取消已离开画布的文件资源任务。
     void downloadAsset(const QString& asset_id, const QUrl& url, const QString& sha256, const QString& mime_type = QString()); // 请求代理下载。
     void uploadAsset(const QString& asset_id, const QString& asset_handle, const QUrl& url, const QString& mime_type, const QString& sha256, qint64 byte_size); // 使用受保护句柄上传。
     void ReleaseAsset(const QString& asset_handle); // 离线导入、废弃结果及上传完成解除保护。
@@ -46,6 +49,8 @@ public:
     void TouchAssetAsync(const QString& sha256); // 预览时更新 LRU。
     void CancelAll(); // 房间切换取消请求、句柄和迟到解码结果。
 signals:
+    void sigAssetDataReady(QString request_id, QByteArray data); // 文件任务取得已由代理校验的原始资源。
+    void sigAssetDataFailed(QString request_id, QString error_message); // 文件资源读取或登记失败。
     void sigAssetReady(QString asset_id, QPixmap pixmap, QString sha256, QSize original_size, QString mime_type); // 已校验图片在 UI 线程交付。
     void sigAssetCacheMiss(QString asset_id); // 仅此时向网关获取 GET 签名。
     void sigAssetFailed(QString asset_id, QString error_message); // 加载终态失败。
@@ -64,6 +69,7 @@ private:
         QString _sha256; // 预期摘要。
         QString _mime_type; // 预期 MIME。
         QString _asset_handle; // 上传保护句柄。
+        bool _is_data_request = false; // 文件任务只交付编码数据，不进入图片插入流程。
     };
     void Submit(const RequestContext& context, const QJsonObject& payload, const QByteArray& binary = QByteArray()); // 登记异步请求。
     void ReceiveResponse(const QString& request_id, const QJsonObject& response, const QByteArray& binary); // 处理结果并后台解码。

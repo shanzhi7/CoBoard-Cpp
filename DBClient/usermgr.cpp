@@ -56,6 +56,25 @@ void UserMgr::setIsHaveRoom(bool f)
     this->isHaveRoom = f;
 }
 
+void UserMgr::ClearSession()
+{
+    // 1. 取消尚未完成的头像下载，旧回调不能访问已清空的成员列表和账号标签。
+    const auto replies = _netMgr->findChildren<QNetworkReply*>();
+    for (QNetworkReply* reply : replies)
+    {
+        QObject::disconnect(reply, nullptr, nullptr, nullptr);
+        reply->abort();
+        reply->deleteLater();
+    }
+
+    // 2. 清除认证令牌和房间状态，后续网络请求不能继续使用旧会话。
+    token.clear();
+    isHaveRoom = false;
+
+    // 3. 释放当前用户资料，避免退出后界面或请求继续读取旧账号。
+    _my_info.reset();
+}
+
 void UserMgr::loadAvatar(const QString &url, QLabel *label)
 {
     if(url.isEmpty() || label == nullptr)

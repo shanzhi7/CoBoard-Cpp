@@ -87,44 +87,6 @@ QWidget#create_widget:hover, QWidget#join_widget:hover {
 }
 
 
-/* ================== 右侧：历史记录列表 ================== */
-/* 标题：最近加入 */
-QLabel#history_lbl {
-    color: #aaaaaa;
-    font-size: 14px;
-    font-weight: bold;
-    padding-left: 2px;
-    border: none;
-}
-
-/* 列表控件本身 */
-QListWidget#history_list {
-    background-color: rgba(0, 0, 0, 80); /* 比大背景更黑一点，形成深邃感 */
-    border-radius: 6px;
-	border: 1px solid rgba(255, 255, 255, 20); /* 微微的白边，增加精致感 */
-}
-
-/* 列表里的每一项 */
-QListWidget#history_list::item {
-    height: 40px;
-    color: #cccccc;
-    padding-left: 10px;
-    border-bottom: 1px solid #2d2d2d; /* 每一行加个极淡的分隔线 */
-}
-
-/* 鼠标悬停在列表项上 */
-QListWidget#history_list::item:hover {
-    background-color: #3a3a3d;
-    color: #ffffff;
-}
-
-/* 选中列表项 */
-QListWidget#history_list::item:selected {
-    background-color: #0e639c; /* 选中变为深蓝色 */
-    color: #ffffff;
-    border-left: 3px solid #ffffff; /* 左侧加个亮条 */
-}
-
 /* ================== 左侧：用户侧边栏 ================== */
 /* 用户昵称 */
 QLabel#name_lbl {
@@ -134,7 +96,7 @@ QLabel#name_lbl {
     border: none;
 }
 
-/* 退出账号按钮 (pushButton) - 幽灵按钮风格 */
+/* 侧边栏按钮 - 幽灵按钮风格 */
 QPushButton{
     background-color: transparent;
     border: 1px solid #555555;
@@ -144,7 +106,7 @@ QPushButton{
 }
 
 QPushButton:hover {
-    border-color: #ff4d4d; /* 悬停变红，暗示危险操作/退出 */
+    border-color: #ff4d4d; /* 悬停时突出显示 */
     color: #ff4d4d;
 }
 
@@ -571,33 +533,6 @@ HoverWidget[state=&quot;hover&quot;]{
         </widget>
        </item>
       </layout>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout_6">
-     <item>
-      <widget class="QLabel" name="history_lbl">
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>最近加入</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QListWidget" name="history_list">
-       <property name="maximumSize">
-        <size>
-         <width>200</width>
-         <height>16777215</height>
-        </size>
-       </property>
-      </widget>
      </item>
     </layout>
    </item>

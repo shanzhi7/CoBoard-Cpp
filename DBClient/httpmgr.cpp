@@ -156,3 +156,18 @@ void HttpMgr::slot_http_finished(ReqId reqid, QString res, ErrorCodes err, Modul
         emit sig_lobby_mod_finish(reqid, res, err);
     }
 }
+
+void HttpMgr::CancelPendingRequests()
+{
+    // 1. 先移除签名上下文，旧账号的完成回调不再对外提交结果。
+    _image_signature_replies.clear();
+
+    // 2. 取消登录、头像上传等未完成请求，退出后不能用旧回包重新建立会话。
+    const auto replies = mananger.findChildren<QNetworkReply*>();
+    for (QNetworkReply* reply : replies)
+    {
+        QObject::disconnect(reply, nullptr, this, nullptr);
+        reply->abort();
+        reply->deleteLater();
+    }
+}

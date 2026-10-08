@@ -27,6 +27,7 @@
 #include <QStringList>
 
 class ImageAssetManager;
+class CanvasFileManager;
 class QImage;
 
 namespace Ui {
@@ -36,6 +37,7 @@ class Canvas;
 class Canvas : public QMainWindow
 {
     Q_OBJECT
+    friend class CanvasFileTests;
 
 public:
     explicit Canvas(const LatencyTestOptions& test_options = LatencyTestOptions(),
@@ -45,6 +47,7 @@ public:
     void setRoomInfo(std::shared_ptr<RoomInfo> room_info); // 设置房间信息
     void enterOfflineMode(); // 进入离线画板模式
     void resetForReconnect(); // 断线回大厅时调用
+    void ClearSession(); // 退出账号时清除画布、聊天和账号显示。
     void resumeVoice(); // 从大厅返回画板时恢复语音音频
 protected:
     virtual bool eventFilter(QObject* watched, QEvent* event) override; // 事件过滤器
@@ -64,6 +67,9 @@ private slots:
     void on_color_tool_clicked();                                               // color_tool槽函数，选择画笔颜色
     void on_width_tool_clicked();                                               // width_tool槽函数，选择画笔粗细
     void slot_onInputImgTriggered();                                             // 导入图片动作槽函数，离线模式创建本地图元
+    void OnImportCanvasTriggered(); // 选择并异步解析离线画布文件。
+    void OnExportCanvasTriggered(); // 导出当前客户端的完整画布快照。
+    void OnExportImageTriggered(); // 将完整画布导出为 PNG 或 JPG。
     void OnImageFilesDropped(QStringList file_paths, QPointF scene_pos); // 处理从资源管理器拖入画板的图片文件。
     void OnPasteImageRequested(); // 处理画布获得焦点后的 Ctrl+V 图片粘贴请求。
 
@@ -133,6 +139,12 @@ private:
     QQueue<message::ImageOperation> _remoteImageOperationQueue; // JoinRoomRsp 尚未完成时暂存的图片历史操作
 
     ImageAssetManager* _imageAssetManager = nullptr; // 图片资源缓存和本地文件校验管理器
+    CanvasFileManager* _canvas_file_manager = nullptr; // 本窗口拥有的异步文件任务管理器。
+    QLabel* _cursor_position_label = nullptr; // 切换场景后继续显示光标坐标的标签。
+    bool _is_file_operation_running = false; // 文件任务期间屏蔽重复菜单触发。
+    QString _file_request_id; // 当前文件任务唯一标识。
+    quint64 _canvas_generation = 0; // 换房或替换画布时递增，拒绝旧导入结果。
+    quint64 _file_canvas_generation = 0; // 文件任务开始时对应的画布代次。
 
     struct PendingImageUpload
     {
@@ -170,6 +182,11 @@ private:
     int _latencyCount = 0; // 采样计数
 
     void initCanvasUi(); // 初始化 UI 界面
+    void ConnectPaintSceneSignals(); // 为当前场景重建绘图、图片和坐标信号连接。
+    bool ApplyImportedCanvas(const CanvasDocument& document, QString* error_message); // 临时场景成功构建后一次性替换离线画布。
+    void UpdateCanvasFileActions(); // 按离线状态和任务状态更新文件菜单。
+    void CancelCanvasFileOperation(); // 切换房间时废弃后台结果并恢复菜单。
+    void DrainRemoteCanvasOperations(); // 快照前应用当前客户端已接收的远端队列。
     void initToolBtn(); // 初始化工具按钮
     void refreshCurrentUserProfile(); // 刷新当前用户头像和名称
     void applyRoomCanvasSize(); // 按房间信息应用画布尺寸

@@ -53,6 +53,13 @@ QSize LoginWidget::sizeHint() const
     return QSize(this->rect().size());
 }
 
+void LoginWidget::ClearInputs()
+{
+    // 1. 清除账号和密码，避免退出后继续显示上一个账号的登录信息。
+    ui->email_edit->clear();
+    ui->password_edit->clear();
+}
+
 void LoginWidget::on_login_btn_clicked()    //登录按钮槽函数
 {
     // 遍历所有验证器

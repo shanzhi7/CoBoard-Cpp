@@ -1,5 +1,11 @@
-#ifndef TCPMGR_H
-#define TCPMGR_H
+/***********************************************************************************
+* @file         tcpmgr.h
+* @brief        画布 TCP 通信、房间重定向和登录连接生命周期
+* @author       shanzhi
+* @date         2026/10/08
+* @history
+***********************************************************************************/
+#pragma once
 
 #include "global.h"
 #include "singleton.h"
@@ -16,7 +22,7 @@ class TcpMgr : public QObject,public Singleton<TcpMgr>,public std::enable_shared
 {
     Q_OBJECT
 public:
-    explicit TcpMgr();
+    explicit TcpMgr(); // 初始化画布连接、消息处理表和重连定时器。
 public:
     friend class Singleton<TcpMgr>;
 
@@ -30,21 +36,22 @@ private:
     quint16 _message_len;       //内容长度
 
     // 暂存重定向后的目标房间信息
-    QString _pending_room_id;
-    int _pending_uid = 0;
+    QString _pending_room_id; // 重定向后等待加入的房间 ID。
+    int _pending_uid = 0; // 重定向后等待重新登录的用户 ID。
 
     // --断线重连 (指数退避) 相关--
     QTimer* _reconnect_timer = nullptr; //重连定时器 (singleShot)，挂到 TcpMgr 保证线程随对象迁移
     int _reconnect_cnt;             //重连失败次数 (用于指数退避)
     bool _is_offline_reconnect = false; //用于是否处于 "掉线重连流程" (区分重定向切服流程)
+    bool _is_logged_out = false; // 主动退出后屏蔽旧连接通知和自动重连。
 
     //恢复房间信息 (用于自动join)
     QString _resume_room_id;        //上次所在房间id (Join成功后记录)
     QString _room_host;             //房间所在CanvasServer (Join成功后记录)
-    uint16_t _room_port = 0;
+    uint16_t _room_port = 0; // 恢复房间时使用的服务器端口。
 
 
-    QMap<ReqId,std::function<void(ReqId,int,QByteArray)>> _handlers;
+    QMap<ReqId,std::function<void(ReqId,int,QByteArray)>> _handlers; // 消息 ID 对应的处理函数。
 
     void initHandlers();        //注册回包函数
     void handleMsg(ReqId id,int len,QByteArray data);   //处理收到的Msg
@@ -78,7 +85,7 @@ signals:
                            const QString& avatarUrl,
                            const QString& roomId,
                            const QString& content,
-                           qulonglong serverTs);
+                           qulonglong serverTs); // 通知当前房间的聊天消息。
 
 
 public slots:
@@ -87,8 +94,7 @@ public slots:
     void slot_grant_edit(const QString& room_id, int target_uid);        //房主授权成员编辑
     void slot_revoke_edit(const QString& room_id, int target_uid);       //房主取消成员编辑权限
     void slot_switch_server(const QString& host,int port,const QString& room_id, int uid);              //重定向连接服务器
+    void Logout(); // 主动退出账号并停止后续自动重连。
     void slot_start_reconnect();                                        // 启动/继续指数退避重连
     void slot_do_reconnect();                                           // 真正执行一次 connectToHost
 };
-
-#endif // TCPMGR_H

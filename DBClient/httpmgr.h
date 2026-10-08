@@ -7,8 +7,7 @@
 * @date         2026/01/20
 * @history
 ***********************************************************************************/
-#ifndef HTTPMGR_H
-#define HTTPMGR_H
+#pragma once
 
 #include "singleton.h"
 #include <QObject>
@@ -27,13 +26,14 @@ class HttpMgr : public QObject,public Singleton<HttpMgr>,
     friend class Singleton<HttpMgr>;
 
 public:
-    ~HttpMgr();
+    ~HttpMgr(); // 释放 HTTP 管理器。
 
     void postHttpRequest(QUrl url,QJsonObject json,ReqId reqid,Modules mod); //post请求
     // 上传文件专用接口 (PUT 方法直传 OSS)
-    void uploadFile(QUrl url, QString filePath, ReqId reqid, Modules mod);
+    void uploadFile(QUrl url, QString filePath, ReqId reqid, Modules mod); // 异步上传本地文件到 OSS。
     QString PostImageSignature(const QUrl& url, const QJsonObject& json, ReqId reqid); // 图片签名独立关联，不与房间切换后的请求混淆。
     void CancelImageSignature(const QString& request_id); // 撤销旧房间签名请求。
+    void CancelPendingRequests(); // 退出账号时取消未完成的请求并丢弃旧回包。
 
 private:
     explicit HttpMgr();    //私有构造函数
@@ -52,5 +52,3 @@ signals:
 private slots:
     void slot_http_finished(ReqId reqid, QString res, ErrorCodes err, Modules mod);              //http请求完成信号
 };
-
-#endif // HTTPMGR_H

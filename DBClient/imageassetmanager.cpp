@@ -97,6 +97,42 @@ void ImageAssetManager::LoadAssetAsync(const QString& asset_id, const QString& s
     Submit(context, {{"sha256", sha256}});
 }
 
+void ImageAssetManager::ReadAssetDataAsync(const QString& sha256, const QString& request_id)
+{
+    // 1. 复用 LoadAsset，原始文件只能由缓存代理读取。
+    RequestContext context;
+    context._command = QStringLiteral("LoadAsset");
+    context._request_id = request_id;
+    context._sha256 = sha256;
+    context._is_data_request = true;
+    Submit(context, {{"sha256", sha256}});
+}
+
+void ImageAssetManager::ImportAssetDataAsync(const QByteArray& data, const QString& request_id)
+{
+    // 1. 复用内存图片登记指令，文件导入结果不触发单图片插入信号。
+    RequestContext context;
+    context._command = QStringLiteral("ImportImageData");
+    context._request_id = request_id;
+    context._is_data_request = true;
+    Submit(context, {}, data);
+}
+
+void ImageAssetManager::CancelAssetDataRequest(const QString& request_id)
+{
+    // 1. 只取消携带该文件关联 ID 的门面请求，不影响其他图片传输。
+    const auto request_ids = _requests.keys();
+    for (const QString& ipc_request_id : request_ids)
+    {
+        const RequestContext context = _requests.value(ipc_request_id);
+        if (context._is_data_request && context._request_id == request_id)
+        {
+            _requests.remove(ipc_request_id);
+            ServiceCommandClient::getInstance()->CancelRequest(ipc_request_id);
+        }
+    }
+}
+
 void ImageAssetManager::downloadAsset(const QString& asset_id, const QUrl& url, const QString& sha256, const QString& mime_type)
 {
     // 1. 代理再次查缓存并合并跨窗口下载。
@@ -128,7 +164,10 @@ void ImageAssetManager::uploadAsset(const QString& asset_id, const QString& asse
 void ImageAssetManager::Fail(const RequestContext& context, const QString& message)
 {
     // 1. 按业务类型返回终态失败。
-    if (context._command.startsWith("Import"))
+    if (context._is_data_request)
+    {
+        emit sigAssetDataFailed(context._request_id, message);
+    } else if (context._command.startsWith("Import"))
     {
         emit sigLocalAssetFailed(context._request_id, context._source_path, message);
     } else if (context._command == "UploadAsset")
@@ -151,7 +190,7 @@ void ImageAssetManager::ReceiveResponse(const QString& request_id, const QJsonOb
     }
     const RequestContext context = _requests.take(request_id); // 终态关联。
     const QString status = response.value("status").toString(); // 响应状态。
-    if (status == "miss" && context._command == "LoadAsset")
+    if (status == "miss" && context._command == "LoadAsset" && !context._is_data_request)
     {
         _pending_downloads.remove(context._asset_id);
         emit sigAssetCacheMiss(context._asset_id);
@@ -180,6 +219,13 @@ void ImageAssetManager::ReceiveResponse(const QString& request_id, const QJsonOb
     {
         _asset_handles.insert(handle);
     }
+    // 2. 文件任务只取得编码数据，临时登记保护立即归还，像素已由文件线程准备。
+    if (context._is_data_request)
+    {
+        ReleaseAsset(handle);
+        emit sigAssetDataReady(context._request_id, binary);
+        return;
+    }
     const quint64 generation = _generation; // 房间切换校验。
     const quint64 service_generation = _service_generation; // 断线后旧结果不可继续交付。
     auto* watcher = new QFutureWatcher<QImage>(this); // QPixmap 只在 UI 线程创建。
@@ -202,7 +248,7 @@ void ImageAssetManager::ReceiveResponse(const QString& request_id, const QJsonOb
             Fail(context, "图片解码或完整性校验失败");
             return;
         }
-        // 2. 在主线程创建 QPixmap，交付业务结果。
+        // 3. 在主线程创建 QPixmap，交付业务结果。
         const QPixmap pixmap = QPixmap::fromImage(image); // GUI 像素。
         if (context._command.startsWith("Import"))
         {
