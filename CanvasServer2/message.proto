@@ -37,6 +37,8 @@ enum ErrorCodes {
     RoomFull = 1043;          // 房间人数已满
     RoomJoinFailed = 1044;    // 加入房间失败 (泛指)
     NotInRoom = 1045;         // 用户不在房间内 (非法操作)
+    TextStateConflict = 1047; // 文字目标版本冲突或不存在
+    TextInvalidArgument = 1048; // 文字内容或样式无效
     NotOwner = 1046;          // 权限不足 (非房主操作)
     
     // --- 房间语音相关错误 (1060 - 1069) ---
@@ -59,6 +61,8 @@ enum MsgID {
     ID_DRAW_RSP = 1004;       // 广播绘画数据
     ID_CLEAR_REQ = 1005;      // 清屏请求
     ID_CLEAR_RSP = 1006;      // 广播清屏
+    ID_TEXT_OPERATION_REQ = 1031; // 文字操作请求
+    ID_TEXT_OPERATION_RSP = 1032; // 文字确认和广播
     ID_IMAGE_OPERATION_REQ = 1027; // 图片结构化操作请求，不携带图片二进制
     ID_IMAGE_OPERATION_RSP = 1028; // 图片结构化操作广播，房间历史按此消息类型回放
 }
@@ -374,4 +378,39 @@ message ChatRsp {
   string room_id = 4;
   string content = 5;
   uint64 server_ts = 6;
+}
+
+// 文字独立于绘画路径和图片资源，完整内容只在结束编辑时提交。
+enum TextOperationType {
+    TEXT_OPERATION_UNKNOWN = 0; // 未知操作
+    TEXT_CREATE = 1; // 创建文字
+    TEXT_UPDATE = 2; // 更新内容和统一样式
+    TEXT_MOVE = 3; // 只更新位置
+    TEXT_DELETE = 4; // 删除文字
+}
+message TextItem {
+    string item_id = 1; // 稳定图元标识
+    string text = 2; // UTF-8 纯文本，最多 16 KiB
+    string font_family = 3; // 请求字体名称
+    uint32 font_size = 4; // 场景像素字号，8 至 144
+    uint32 color = 5; // ARGB 全文颜色
+    bool bold = 6; // 全文加粗
+    double x = 7; // 原始场景位置
+    double y = 8; // 原始场景位置
+}
+message TextOperation {
+    int32 uid = 1; // 必须匹配已登录会话
+    string room_id = 2; // 必须匹配会话所在房间
+    string operation_id = 3; // 操作关联标识
+    TextOperationType operation_type = 4; // 创建、修改、移动、删除
+    TextItem item = 5; // 对应操作所需字段
+    string target_item_id = 6; // 操作目标
+    uint64 server_sequence = 7; // 服务端规范化顺序，客户端不指定
+    uint64 expected_sequence = 8; // 撤销所要求的目标版本，普通操作为零
+}
+message TextOperationRsp {
+    int32 error = 1; // 沿用公共错误码
+    TextOperation operation = 2; // 关联请求和规范化顺序
+    TextItem current_item = 3; // 当前完整状态，不存在时省略
+    string error_message = 4; // 可显示的失败原因
 }

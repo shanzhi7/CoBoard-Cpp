@@ -59,6 +59,10 @@ public slots:
     void slot_creat_room_finish(std::shared_ptr<RoomInfo>); // 创建房间完成槽函数
     void slot_join_room_finish(std::shared_ptr<RoomInfo>); // 加入房间完成槽函数
 private slots:
+    void OnTextToolTriggered(); // 选择独立文字工具。
+    void OnTextStyleChanged(); // 在编辑中更新草稿，普通状态提交一次样式操作。
+    void OnUndoTriggered(); // 按离线或在线规则执行统一撤销。
+    void OnTextOperationReceived(QByteArray data); // 接收确认、远端修改及历史文字状态。
     void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
     void slot_user_leaved(int uid);                                             //用户离开槽函数    (广播)
@@ -103,6 +107,25 @@ private slots:
     void on_return_btn_clicked();                //返回大厅槽函数
 
 private:
+    void UpdateTextControls(); // 按工具和选中文字同步字号及加粗控件。
+    void SubmitTextOperation(message::TextOperationType type, const TextItemData& before,
+                             const TextItemData& after, bool is_undo = false); // 提交文字操作并锁定该目标直到确认。
+    void ApplyTextResponse(const message::TextOperationRsp& response); // 按每个图元序号应用已确认状态。
+    void ClearTextOperations(); // 断线、切换房间或退出账号时废弃草稿与待确认状态。
+    bool PrepareTextExport(); // 完成草稿，在线等待确认时阻止本次导出。
+    struct PendingTextOperation
+    {
+        QString _operation_id; // 关联服务端确认与本次本地提交。
+        TextItemData _before; // 确认后登记撤销时使用的旧值。
+        TextItemData _after; // 当前提交的内容、样式和坐标。
+        message::TextOperationType _type = message::TEXT_OPERATION_UNKNOWN; // 本次创建、修改、移动或删除。
+        bool _is_undo = false; // 撤销确认不再生成新的撤销记录。
+    };
+    TextStyle _text_style; // 新建文字默认样式。
+    QHash<QString, quint64> _text_sequenceMap; // 各文字已确认的最新顺序号。
+    QHash<QString, TextItemData> _confirmed_textMap; // 服务端已确认状态，失败时恢复。
+    QHash<QString, PendingTextOperation> _pending_text_operationMap; // 以图元 ID 保存等待确认的操作。
+    QQueue<message::TextOperationRsp> _remote_text_operations; // 房间初始化前暂存的文字历史。
     Ui::Canvas* ui; // 界面对象
     QLabel* statusDot; // 状态栏标签
     PaintScene* _paintScene; // 画布场景
@@ -135,6 +158,7 @@ private:
     // 这里先把远端 DrawReq 放入队列，再用固定间隔批量应用，用少量额外显示延迟换取更稳定的视觉刷新。
     QTimer* _remoteDrawTimer = nullptr; // 固定刷新远端绘画的定时器
     QQueue<message::DrawReq> _remoteDrawQueue; // 等待应用到 PaintScene 的远端绘画包
+    QQueue<ReqId> _remote_operation_order; // 文字、图片和笔画按收到的消息顺序回放。
     void flushRemoteDrawQueue(); // 按固定节奏应用远端绘画包
     QQueue<message::ImageOperation> _remoteImageOperationQueue; // JoinRoomRsp 尚未完成时暂存的图片历史操作
 

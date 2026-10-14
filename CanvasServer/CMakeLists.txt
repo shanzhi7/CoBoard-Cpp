@@ -87,6 +87,8 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 "src/LogicSystem.cpp" 
 "include/CanvasServer/ImageOperationHandler.h"
 "src/ImageOperationHandler.cpp"
+"include/CanvasServer/TextOperationHandler.h"
+"src/TextOperationHandler.cpp"
 "include/CanvasServer/SessionMgr.h" 
 "src/SessionMgr.cpp"
 "include/CanvasServer/Room.h"
@@ -97,6 +99,7 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 # 5.1 头文件路径
 target_include_directories(CanvasServer PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/CanvasServer
     ${PROJECT_SOURCE_DIR}/../Common
 )
 
@@ -145,6 +148,25 @@ if(WIN32)
 elseif(UNIX AND NOT APPLE)
     target_link_options(CanvasServer PRIVATE -static -static-libgcc -static-libstdc++)
     target_link_libraries(CanvasServer PRIVATE ${CMAKE_DL_LIBS} resolv)
+endif()
+
+option(SYNCCANVAS_BUILD_TESTS "Build focused text operation tests" OFF)
+if(SYNCCANVAS_BUILD_TESTS)
+    enable_testing()
+    get_target_property(TextTestSources CanvasServer SOURCES)
+    list(REMOVE_ITEM TextTestSources "src/CanvasServer.cpp")
+    add_executable(TextOperationTests
+        ${PROJECT_SOURCE_DIR}/../CanvasServer/tests/textoperationtests.cpp
+        ${TextTestSources}
+    )
+    target_include_directories(TextOperationTests PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+        ${PROJECT_SOURCE_DIR}/include/CanvasServer
+        ${PROJECT_SOURCE_DIR}/../Common
+    )
+    get_target_property(TextTestLibraries CanvasServer LINK_LIBRARIES)
+    target_link_libraries(TextOperationTests PRIVATE ${TextTestLibraries})
+    add_test(NAME TextOperationTests COMMAND TextOperationTests)
 endif()
 
 # ---------------------------------------------------------

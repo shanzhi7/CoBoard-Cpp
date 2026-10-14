@@ -27,11 +27,11 @@ void Room::AppendHistory(const std::string& raw_body, short msg_id)
 
 void Room::AppendHistoryLocked(HistoryEntry entry)
 {
-    // 保存消息 ID 与正文的配对关系；图片和绘画共用历史容器，但回放时不能混用消息类型。
+    // 1. 保存消息 ID 与正文的配对关系，文字、图片和绘画回放保持原消息类型。
     // 调用方必须已持有 _mutex：图片操作在 ApplyImageOperation 的锁内直接记录历史，拆出加锁版本会造成死锁。
     _history.push_back(std::move(entry));
 
-    // 简单裁切: 超过上限丢掉最老的部分 (避免vector频繁erase头部)
+    // 2. 超限时裁剪最早的条目，随后重建图片和文字历史下标。
     if (_history.size() > MAX_HISTORY_OPS)
     {
         const size_t kTrim = MAX_HISTORY_OPS / 10 + 1; // 每次裁剪约10%
@@ -41,6 +41,7 @@ void Room::AppendHistoryLocked(HistoryEntry entry)
         }
         // 头部删除会让所有保留条目下标前移，图片创建条目索引必须整体重建，否则变换更新会改写到错误条目。
         RebuildImageHistoryIndexLocked();
+        RebuildTextHistoryIndexLocked();
     }
 }
 
@@ -67,12 +68,120 @@ std::vector<Room::HistoryEntry> Room::GetHistorySnapshot()
 // 实现：清空历史记录
 void Room::ClearHistory()
 {
+    // 1. 清屏同步移除文字、图片和创建历史索引，操作总序号继续递增。
     std::lock_guard<std::mutex> lock(_mutex);
     _history.clear();
     // 清屏必须同时清除服务端维护的图片索引，否则后续复用 item_id 会被错误判定为重复图元。
     _image_items.clear();
     // 历史已清空，创建条目索引全部失效，必须同步清空避免改写到悬空下标。
     _image_create_index.clear();
+    _text_itemMap.clear();
+    _text_create_indexMap.clear();
+    _text_sequenceMap.clear();
+}
+
+void Room::RebuildTextHistoryIndexLocked()
+{
+	// 1. 历史裁剪改变下标，按保留下来的文字创建条目重新建立索引。
+	_text_create_indexMap.clear();
+	for (std::size_t index = 0; index < _history.size(); ++index)
+	{
+		if (!_history[index]._text_item_id.empty()) _text_create_indexMap[_history[index]._text_item_id] = index;
+	}
+}
+
+void Room::FillTextStateLocked(message::TextOperationRsp& response)
+{
+	// 1. 返回目标当前状态或不存在状态，同时提供该图元独立版本。
+	const auto& item_id = response.operation().target_item_id();
+	response.clear_current_item();
+	auto item_iterator = _text_itemMap.find(item_id);
+	if (item_iterator != _text_itemMap.end()) *response.mutable_current_item() = item_iterator->second;
+	auto sequence_iterator = _text_sequenceMap.find(item_id);
+	response.mutable_operation()->set_server_sequence(sequence_iterator == _text_sequenceMap.end() ? 0 : sequence_iterator->second);
+}
+
+void Room::FillTextState(message::TextOperationRsp& response)
+{
+	// 1. 权限或字段失败时也提供已确认状态供客户端恢复。
+	std::lock_guard<std::mutex> lock(_mutex);
+	FillTextStateLocked(response);
+}
+
+bool Room::ApplyTextOperation(const message::TextOperation& operation, message::TextOperationRsp& response)
+{
+	// 1. 同一房间锁内校验目标版本及权限，普通请求按服务端接收顺序生效。
+	std::lock_guard<std::mutex> lock(_mutex);
+	response.Clear();
+	*response.mutable_operation() = operation;
+	const std::string item_id = operation.target_item_id();
+	auto iterator = _text_itemMap.find(item_id);
+	const std::uint64_t known_sequence = _text_sequenceMap.count(item_id) ? _text_sequenceMap.at(item_id) : 0;
+	if (operation.operation_type() < message::TEXT_CREATE || operation.operation_type() > message::TEXT_DELETE ||
+		(operation.uid() != _owner_uid && _editable_users.count(operation.uid()) == 0) ||
+		(operation.expected_sequence() != 0 && operation.expected_sequence() != known_sequence) ||
+		(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 : iterator == _text_itemMap.end()))
+	{
+		response.set_error(message::TextStateConflict);
+		response.set_error_message("文字状态已改变、已删除或没有编辑权限");
+		FillTextStateLocked(response);
+		return false;
+	}
+
+	// 2. 更新内容样式与位置分别处理，防止编辑草稿覆盖同时提交的移动。
+	message::TextItem state;
+	if (operation.operation_type() == message::TEXT_CREATE) state = operation.item();
+	else state = iterator->second;
+	if (operation.operation_type() == message::TEXT_UPDATE)
+	{
+		state.set_text(operation.item().text());
+		state.set_font_family(operation.item().font_family());
+		state.set_font_size(operation.item().font_size());
+		state.set_color(operation.item().color());
+		state.set_bold(operation.item().bold());
+	} else if (operation.operation_type() == message::TEXT_MOVE)
+	{
+		state.set_x(operation.item().x());
+		state.set_y(operation.item().y());
+	}
+	const bool is_delete = operation.operation_type() == message::TEXT_DELETE;
+	const std::uint64_t sequence = _text_sequence + 1;
+	response.set_error(0);
+	response.mutable_operation()->set_server_sequence(sequence);
+	*response.mutable_operation()->mutable_item() = state;
+	if (!is_delete) *response.mutable_current_item() = state;
+	std::string body;
+	message::TextOperationRsp snapshot = response;
+	snapshot.mutable_operation()->set_operation_type(message::TEXT_CREATE);
+	std::string snapshot_body;
+	if (!response.SerializeToString(&body) || (!is_delete && !snapshot.SerializeToString(&snapshot_body)))
+	{
+		response.set_error(message::ServerInternalErr);
+		response.set_error_message("文字状态编码失败");
+		FillTextStateLocked(response);
+		return false;
+	}
+	_text_sequence = sequence;
+	_text_sequenceMap[item_id] = sequence;
+	if (is_delete) _text_itemMap.erase(item_id);
+	else _text_itemMap[item_id] = state;
+
+	// 3. 创建顺序保留，修改原位重写最新创建快照；删除追加历史以保证回放结果一致。
+	if (is_delete)
+	{
+		AppendHistoryLocked(HistoryEntry{ID_TEXT_OPERATION_RSP, body, std::string(), std::string()});
+		_text_create_indexMap.erase(item_id);
+	} else
+	{
+		auto index_iterator = _text_create_indexMap.find(item_id);
+		if (index_iterator != _text_create_indexMap.end()) _history[index_iterator->second]._body = std::move(snapshot_body);
+		else
+		{
+			_text_create_indexMap[item_id] = _history.size();
+			AppendHistoryLocked(HistoryEntry{ID_TEXT_OPERATION_RSP, snapshot_body, std::string(), item_id});
+		}
+	}
+	return true;
 }
 
 bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* normalized_body)

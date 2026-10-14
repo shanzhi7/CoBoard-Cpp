@@ -68,6 +68,7 @@ qt_add_executable(DBClient
     canvasitemserializer.h canvasitemserializer.cpp
     canvasfilemanager.h canvasfilemanager.cpp
     canvasitems/canvasitem.h canvasitems/canvasitem.cpp
+    canvasitems/textitem.h canvasitems/textitem.cpp
     canvasitems/imageitem.h canvasitems/imageitem.cpp
     canvasitems/pathitem.h canvasitems/pathitem.cpp
     canvasitems/penitem.h canvasitems/penitem.cpp

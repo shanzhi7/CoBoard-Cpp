@@ -12,13 +12,16 @@
 #include <QGraphicsScene>
 #include <QHash>
 #include <QPixmap>
+#include <QPointer>
 #include <QSize>
 #include <QSizeF>
 #include <QStack>
+#include <QSet>
 
 #include "canvasinteractionmode.h"
 #include "canvasdocument.h"
 #include "drawtool.h"
+#include "canvasitems/textitem.h"
 
 class QGraphicsEllipseItem;
 class QGraphicsSceneMouseEvent;
@@ -49,6 +52,22 @@ public:
     bool BuildCanvasDocument(CanvasDocument* document, QString* error_message) const; // 按场景绘制顺序构建独立快照。
     bool LoadCanvasDocument(const CanvasDocument& document, QString* error_message); // 仅向尚未接入视图的新场景恢复图元。
     QImage RenderCanvasImage(QString* error_message); // 按画布原尺寸渲染并恢复交互反馈。
+    TextItem* AddTextItem(const TextItemData& data); // 创建文字并登记稳定 ID，不生成撤销记录。
+    TextItem* FindTextItem(const QString& item_id) const; // 查找场景拥有的文字图元。
+    bool UpdateTextItem(const TextItemData& data); // 应用完整的已确认文字状态。
+    bool RemoveTextItem(const QString& item_id); // 删除文字并使对应撤销记录失效。
+    bool BeginTextEditing(TextItem* item); // 切换唯一活动文字编辑器。
+    bool FinishTextEditing(bool is_cancel = false); // 提交或取消草稿，空内容按删除处理。
+    bool IsTextEditing() const; // 返回是否存在活动文字草稿。
+    TextItem* ActiveTextItem() const; // 返回编辑文字或单个选中文字。
+    void SetTextStyle(const TextStyle& style); // 更新新建默认样式或活动文字样式。
+    void SetTextUndoEnabled(bool enabled); // 离线即时登记撤销，在线等待确认后登记。
+    void SetTextPending(const QString& item_id, bool is_pending); // 确认期间禁止目标文字再次修改。
+    void RecordTextOperation(const TextItemData& before, const TextItemData& after); // 登记创建或完整编辑快照。
+    void InvalidateTextUndo(const QString& item_id); // 远端修改或删除后使该文字的本地记录失效。
+    bool TakeTextUndoOperation(TextItemData* before, bool* is_create); // 取出最近一条仍有效的本地文字操作。
+    bool CanUndoLocalOperation() const; // 返回统一撤销栈是否有记录。
+    void UndoLastLocalOperation(); // 离线撤销最近操作，文字修改保留当前坐标。
 
     ImageItem* addImageItem(const QString& item_id,
                            const QString& asset_id,
@@ -70,6 +89,12 @@ public:
                               qreal rotation); // 应用调用方已经校验过的远端图片变换。
 
 signals:
+    void SigTextEditingChanged(); // 活动文字编辑器切换后同步样式控件。
+    void SigTextCommitted(TextItemData before, TextItemData after); // 完整编辑结束后提交创建或修改。
+    void SigTextDeleteRequested(QString item_id); // 转交删除操作，不建立删除撤销。
+    void SigTextMoved(QString item_id); // 拖动松开时提交最终坐标。
+    void SigTextError(QString message); // 转发文本长度等编辑错误。
+    void SigUndoRequested(); // 非文本编辑期间的 Ctrl+Z 交给窗口。
     void sigStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width); // 转发本地 START 的 ID、样式和起点。
     void sigStrokeMove(QString uuid, int type, QPointF currentPos); // 转发本地路径点或几何终点。
     void sigStrokeEnd(QString uuid, int type, QPointF endPos); // 转发本地 END 和最终位置。
@@ -95,6 +120,8 @@ protected:
     void keyPressEvent(QKeyEvent* event) override; // 按模式和权限处理图片编辑快捷键。
 
 private:
+    void ConnectTextItem(TextItem* item); // 重建文字索引和编辑信号。
+    void UpdateTextInteraction(TextItem* item); // 按工具、权限和待确认状态更新移动能力。
     void finishCurrentOperation(const QPointF& end_pos); // 补齐笔画并记录撤销和 END。
     void clearCurrentOperation(); // 释放当前操作引用，不删除图元。
     void recordFinishedLocalItem(const QString& item_id,
@@ -118,6 +145,9 @@ private:
         std::shared_ptr<IDrawTool> operation; // 绘画句柄，图片记录为空。
         ImageItem* image_item = nullptr; // 场景拥有的图片指针。
         bool is_image = false; // 当前记录是否为图片。
+        bool is_text = false; // 当前记录是否为文字操作。
+        TextItemData before_text; // 创建前为空，修改前保存内容及样式。
+        TextItemData after_text; // 完整操作完成后的文字值。
     };
 
     ShapeType _currShapeType = Shape_Pen; // 当前绘图类型，不包含交互模式。
@@ -134,4 +164,11 @@ private:
     QHash<QString, QGraphicsItem*> _localItems; // 本地绘画图元 ID 索引。
     QHash<QString, ImageItem*> _imageItems; // 本地和远端图片统一索引。
     QHash<QString, QPointF> _image_drag_start_positions; // 拖动起始位置，避免持有图片裸指针。
+    QHash<QString, TextItem*> _text_itemMap; // 场景拥有的文字稳定 ID 索引。
+    QHash<QString, QPointF> _text_drag_positionMap; // 鼠标拖动开始时的文字坐标。
+    QSet<QString> _pending_text_ids; // 等待在线确认的文字 ID。
+    QPointer<TextItem> _editing_text_item; // 场景销毁图元后自动清空活动引用。
+    TextItemData _text_before_edit; // 完整编辑操作的开始快照。
+    TextStyle _text_style; // 没有目标文字时使用的新建默认样式。
+    bool _is_text_undo_enabled = true; // 在线仅由确认回包登记撤销。
 };

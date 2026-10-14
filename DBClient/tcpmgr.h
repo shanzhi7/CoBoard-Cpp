@@ -60,6 +60,7 @@ private:
     void send_canvas_login();                           //复用LoginWidget 的 CanvasLogin 组包
 
 signals:
+    void SigTextOperationReceived(QByteArray data); // 转发文字确认、远端状态和房间历史。
     void sig_con_success(bool);                                         //连接成功发送该信号
     void sig_send_data(ReqId reqid,QByteArray data);                    //发送tcp包信号
     void sig_login_failed(int err);                                     //登录失败信号

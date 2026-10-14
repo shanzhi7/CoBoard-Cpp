@@ -173,7 +173,7 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
 
 void TcpMgr::initHandlers()
 {
-    //注册登录回包函数
+    // 1. 按消息编号登记账号、房间和图元回调，文字确认交给画布处理。
     _handlers.insert(ReqId::ID_CANVAS_LOGIN_RSP,[this](ReqId id,int len,QByteArray data){
         qDebug()<<"handle id is "<<id<<" data is "<<data;
 
@@ -410,6 +410,9 @@ void TcpMgr::initHandlers()
     // 图片操作使用独立消息 ID，不能复用 DrawReq 的解析路径，否则字段含义会被误解释。
     _handlers.insert(ReqId::ID_IMAGE_OPERATION_RSP,[this](ReqId,int,QByteArray data){
         emit sig_image_operation_broadcast(data);
+    });
+    _handlers.insert(ReqId::ID_TEXT_OPERATION_RSP, [this](ReqId, int, QByteArray data) {
+        emit SigTextOperationReceived(data);
     });
 
     // 注册收到群聊消息

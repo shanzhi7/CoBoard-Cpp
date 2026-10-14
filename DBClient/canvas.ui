@@ -193,6 +193,12 @@ QTreeWidget::item:hover {
     background-color: #e6f4ff;
     border: 1px solid #0078d7; /* 选中时加个蓝框 */
 }
+#text_tool, #text_bold_button {
+    font-size: 20px;
+}
+#text_bold_button {
+    font-weight: bold;
+}
 
 /* ================= 8. 顶部 Tab (切换条) - 纯色块风格 ================= */
 QMainWindow QTabBar::tab {
@@ -439,7 +445,7 @@ QToolButton:hover {
      <item>
       <widget class="QToolButton" name="select_tool">
        <property name="toolTip">
-        <string>鼠标工具：选择和移动图片（Ctrl 多选）</string>
+        <string>鼠标工具：选择和移动图片、文字（Ctrl 多选）</string>
        </property>
        <property name="text">
         <string/>
@@ -474,6 +480,31 @@ QToolButton:hover {
        <property name="checkable">
         <bool>true</bool>
        </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="text_tool">
+       <property name="text"><string>T</string></property>
+       <property name="toolTip"><string>文字工具：点击创建或编辑文字</string></property>
+       <property name="checkable"><bool>true</bool></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QSpinBox" name="text_size_spinbox">
+       <property name="minimumSize"><size><width>68</width><height>24</height></size></property>
+       <property name="toolTip"><string>文字字号</string></property>
+       <property name="suffix"><string> px</string></property>
+       <property name="minimum"><number>8</number></property>
+       <property name="maximum"><number>144</number></property>
+       <property name="value"><number>24</number></property>
+       <property name="keyboardTracking"><bool>false</bool></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="text_bold_button">
+       <property name="text"><string>B</string></property>
+       <property name="toolTip"><string>文字加粗</string></property>
+       <property name="checkable"><bool>true</bool></property>
       </widget>
      </item>
      <item>

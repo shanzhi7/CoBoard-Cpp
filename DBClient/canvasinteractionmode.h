@@ -12,5 +12,6 @@ enum class CanvasInteractionMode
 {
     Draw, // 由绘图 Tool 创建和更新笔迹。
     Select, // 使用 Qt 默认选择规则操作图片图元。
+    Text, // 创建和编辑纯文本图元。
     Pan // 只滚动本地视口，不修改场景图元。
 };

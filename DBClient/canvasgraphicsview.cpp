@@ -5,6 +5,7 @@
 #include <QDragMoveEvent>
 #include <QDropEvent>
 #include <QFileInfo>
+#include <QGraphicsTextItem>
 #include <QKeyEvent>
 #include <QKeySequence>
 #include <QMimeData>
@@ -145,7 +146,9 @@ void CanvasGraphicsView::wheelEvent(QWheelEvent* event)
 
 void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
 {
-    if (event && event->matches(QKeySequence::Paste))
+    // 1. 原生文字编辑器优先接收纯文本粘贴，其余状态才触发图片插入。
+    if (event && event->matches(QKeySequence::Paste) &&
+        (!scene() || !dynamic_cast<QGraphicsTextItem*>(scene()->focusItem())))
     {
         // 只在画布视图拥有焦点时触发，避免抢占聊天输入框等其他控件的粘贴行为。
         emit sigPasteImageRequested();
@@ -153,7 +156,7 @@ void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    // 其他快捷键继续交给 QGraphicsView，由 PaintScene 处理图片变换和绘图快捷键。
+    // 2. 其余按键进入场景，按编辑状态处理文字撤销或画布操作。
     QGraphicsView::keyPressEvent(event);
 }
 

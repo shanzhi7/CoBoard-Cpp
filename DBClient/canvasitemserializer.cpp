@@ -11,6 +11,7 @@
 #include "canvasitems/diamonditem.h"
 #include "canvasitems/eraseritem.h"
 #include "canvasitems/imageitem.h"
+#include "canvasitems/textitem.h"
 #include "canvasitems/lineitem.h"
 #include "canvasitems/ovalitem.h"
 #include "canvasitems/pathitem.h"
@@ -217,6 +218,7 @@ QString TypeForItem(CanvasItem* item)
     if (dynamic_cast<LineItem*>(item)) return QStringLiteral("line");
     if (dynamic_cast<ArrowItem*>(item)) return QStringLiteral("arrow");
     if (dynamic_cast<DiamondItem*>(item)) return QStringLiteral("diamond");
+    if (dynamic_cast<TextItem*>(item)) return QStringLiteral("text");
     if (dynamic_cast<ImageItem*>(item)) return QStringLiteral("image");
     return QString();
 }
@@ -242,7 +244,7 @@ bool CanvasItemSerializer::ValidateItem(const QJsonObject& item_data,
         is_valid = is_valid && IsNumber(item_data.value(field));
     }
     is_valid = is_valid && item_data.value("opacity").toDouble() >= 0.0 && item_data.value("opacity").toDouble() <= 1.0;
-    if (type != "image") is_valid = is_valid && ReadPen(item_data.value("pen").toObject(), &pen);
+    if (type != "image" && type != "text") is_valid = is_valid && ReadPen(item_data.value("pen").toObject(), &pen);
 
     // 2. 检查对应几何及图片资源元数据，防止隐式默认值掩盖非法文件。
     if (type == "pen" || type == "eraser")
@@ -259,6 +261,17 @@ bool CanvasItemSerializer::ValidateItem(const QJsonObject& item_data,
     {
         QLineF line;
         is_valid = is_valid && ReadLine(item_data.value("line"), &line);
+    } else if (type == "text")
+    {
+        TextItemData data;
+        data._item_id = item_data.value("item_id").toString();
+        data._text = item_data.value("text").toString();
+        data._position = position;
+        data._style = {item_data.value("font_family").toString(), item_data.value("font_size").toInt(),
+                       QColor(item_data.value("text_color").toString()), item_data.value("bold").toBool()};
+        is_valid = is_valid && item_data.value("text").isString() && item_data.value("bold").isBool() &&
+                   IsNumber(item_data.value("font_size")) &&
+                   item_data.value("font_size").toDouble() == data._style._font_size && TextItem::IsValidData(data);
     } else if (type == "image")
     {
         QPointF original_size;
@@ -342,6 +355,14 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
     {
         data.insert(QStringLiteral("rect"), RectToJson(diamond_item->Rect()));
         data.insert(QStringLiteral("pen"), PenToJson(diamond_item->Pen()));
+    } else if (auto* text_item = dynamic_cast<TextItem*>(item))
+    {
+        const TextItemData text_data = text_item->GetTextData();
+        data.insert("text", text_data._text);
+        data.insert("font_family", text_data._style._font_family);
+        data.insert("font_size", text_data._style._font_size);
+        data.insert("text_color", text_data._style._color.name(QColor::HexArgb));
+        data.insert("bold", text_data._style._is_bold);
     } else if (auto* image_item = dynamic_cast<ImageItem*>(item))
     {
         if (image_item->loadState() != ImageItem::ImageLoadState::Ready || image_item->pixmap().isNull())
@@ -384,7 +405,7 @@ CanvasItem* CanvasItemSerializer::DeserializeItem(const QJsonObject& item_data,
         if (error_message) *error_message = QStringLiteral("图元属性不完整或画笔枚举无效");
         return nullptr;
     }
-    if (type != "image") ReadPen(item_data.value("pen").toObject(), &pen);
+    if (type != "image" && type != "text") ReadPen(item_data.value("pen").toObject(), &pen);
 
     const QJsonArray matrix = item_data.value(QStringLiteral("transform")).toArray();
     if (matrix.size() != 9)
@@ -409,6 +430,7 @@ CanvasItem* CanvasItemSerializer::DeserializeItem(const QJsonObject& item_data,
         if (type == "arrow") return new ArrowItem(item_id);
         if (type == "diamond") return new DiamondItem(item_id);
         if (type == "image") return new ImageItem(item_id);
+        if (type == "text") return new TextItem(item_id);
         return nullptr;
     }();
     if (!item)
@@ -419,7 +441,13 @@ CanvasItem* CanvasItemSerializer::DeserializeItem(const QJsonObject& item_data,
 
     // 2. 按具体图元类型恢复完整几何，并在失败时释放尚未加入场景的对象。
     bool is_valid = true;
-    if (auto* path_item = dynamic_cast<PathItem*>(item))
+    if (auto* text_item = dynamic_cast<TextItem*>(item))
+    {
+        TextItemData data{item_id, item_data.value("text").toString(),
+            {item_data.value("font_family").toString(), item_data.value("font_size").toInt(),
+             QColor(item_data.value("text_color").toString()), item_data.value("bold").toBool()}, position};
+        text_item->SetTextData(data);
+    } else if (auto* path_item = dynamic_cast<PathItem*>(item))
     {
         QPainterPath path;
         is_valid = ReadPath(item_data.value(QStringLiteral("path")), &path);

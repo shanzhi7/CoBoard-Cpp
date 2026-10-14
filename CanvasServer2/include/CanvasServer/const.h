@@ -1,3 +1,10 @@
+/***********************************************************************************
+* @file         const.h
+* @brief        TCP 消息编号和房间公共数据
+* @author       shanzhi
+* @date         2026/10/08
+* @history
+***********************************************************************************/
 #pragma once
 #include <functional>
 #include <string>
@@ -23,8 +30,8 @@ enum MSG_IDS {
 	ID_REGISTER = 1002,                         //注册账号
 	ID_RESET_PWD = 1003,                        //重置密码
 	ID_LOGIN_REQ = 1004,                        //登录
-	ID_JOIN_ROOM_REQ_DEL = 1005,
-	ID_DRAW_REQ_DEL = 1006,
+	ID_JOIN_ROOM_REQ_DEL = 1005, // 废弃的加入房间编号，保留兼容。
+	ID_DRAW_REQ_DEL = 1006, // 废弃的绘画编号，保留兼容。
 	ID_CANVAS_LOGIN_REQ = 1007,                 //登录到CanvasServer
 	ID_CANVAS_LOGIN_RSP = 1008,                 //登录CanvasServer回包
 	ID_CREAT_ROOM_REQ = 1009,                   //创建房间请求
@@ -45,6 +52,8 @@ enum MSG_IDS {
     ID_REVOKE_EDIT_REQ = 1024,    //取消编辑权限请求
     ID_REVOKE_EDIT_RSP = 1025,    //取消编辑权限回包
     ID_PERMISSION_CHANGED_BROADCAST = 1026,    //编辑权限变更广播
+    ID_TEXT_OPERATION_REQ = 1031, // 文字操作请求。
+    ID_TEXT_OPERATION_RSP = 1032, // 文字操作确认和广播。
     ID_IMAGE_OPERATION_REQ = 1027,              //图片图元操作请求，正文为 ImageOperation
     ID_IMAGE_OPERATION_RSP = 1028,              //图片图元操作广播，正文为服务端规范化后的 ImageOperation
 };
@@ -53,31 +62,35 @@ enum MSG_IDS {
 class Defer
 {
 public:
-	Defer(std::function<void()> func) :_func(std::move(func)) {};
+	Defer(std::function<void()> func) :_func(std::move(func)) // 保存作用域结束时执行的清理回调。
+	{
+		// 1. 回调归当前守卫所有，离开作用域时统一执行。
+	}
 
 	//作用域结束自动调用
-	~Defer()
+	~Defer() // 离开作用域时执行一次清理。
 	{
+		// 1. 有回调时执行清理，空回调无需处理。
 		if (_func)
 			_func();	//执行清理逻辑
 	}
 
 	// 禁止拷贝（避免重复执行）
-	Defer(const Defer&) = delete;
-	Defer& operator=(const Defer&) = delete;
+	Defer(const Defer&) = delete; // 禁止复制以避免重复清理。
+	Defer& operator=(const Defer&) = delete; // 禁止赋值以避免重复清理。
 private:
 	std::function<void()> _func;	//存储延迟执行的函数
 };
 
 // 定义房间信息结构体
 struct RoomInfo {
-	std::string id;
-	std::string name;
-	int owner_uid;
+	std::string id; // 房间唯一标识。
+	std::string name; // 房间名称。
+	int owner_uid; // 房主用户 ID。
 	std::string host; // CanvasServer IP
 	int port;         // CanvasServer Port
-	int width = 1920;
-	int height = 1080;
+	int width = 1920; // 画布宽度，单位为场景像素。
+	int height = 1080; // 画布高度，单位为场景像素。
 };
 
 #define CODEPREFIX "code_"
