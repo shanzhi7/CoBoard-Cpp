@@ -412,7 +412,15 @@ QToolButton:hover {
     <addaction name="separator"/>
     <addaction name="input_img"/>
    </widget>
+   <widget class="QMenu" name="menu_return">
+    <property name="title">
+     <string>返回</string>
+    </property>
+    <addaction name="return_lobby_action"/>
+    <addaction name="exit_room_action"/>
+   </widget>
    <addaction name="menu_F"/>
+   <addaction name="menu_return"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QDockWidget" name="tool_dock">
@@ -885,6 +893,22 @@ QToolButton:hover {
     </layout>
    </widget>
   </widget>
+  <action name="return_lobby_action">
+   <property name="text">
+    <string>回到大厅</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="exit_room_action">
+   <property name="text">
+    <string>退出房间</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
   <action name="import_canvas_action">
    <property name="text">
     <string>导入画布</string>

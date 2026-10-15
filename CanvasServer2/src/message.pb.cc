@@ -85,6 +85,9 @@ inline constexpr UserLeaveRoomBroadcast::Impl_::Impl_(
       : reason_(
             &::google::protobuf::internal::fixed_address_empty_string,
             ::_pbi::ConstantInitialized()),
+        room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
         uid_{0},
         _cached_size_{0} {}
 
@@ -237,6 +240,37 @@ struct TextItemDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 TextItemDefaultTypeInternal _TextItem_default_instance_;
+
+inline constexpr RoomDestroyedBroadcast::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        reason_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        operator_uid_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR RoomDestroyedBroadcast::RoomDestroyedBroadcast(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct RoomDestroyedBroadcastDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR RoomDestroyedBroadcastDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~RoomDestroyedBroadcastDefaultTypeInternal() {}
+  union {
+    RoomDestroyedBroadcast _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 RoomDestroyedBroadcastDefaultTypeInternal _RoomDestroyedBroadcast_default_instance_;
 
 inline constexpr RevokeEditRsp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -453,6 +487,66 @@ struct PermissionChangedBroadcastDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 PermissionChangedBroadcastDefaultTypeInternal _PermissionChangedBroadcast_default_instance_;
 
+inline constexpr LogoutRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_{0},
+        uid_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LogoutRsp::LogoutRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LogoutRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LogoutRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LogoutRspDefaultTypeInternal() {}
+  union {
+    LogoutRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LogoutRspDefaultTypeInternal _LogoutRsp_default_instance_;
+
+inline constexpr LogoutReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : token_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LogoutReq::LogoutReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LogoutReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LogoutReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LogoutReqDefaultTypeInternal() {}
+  union {
+    LogoutReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LogoutReqDefaultTypeInternal _LogoutReq_default_instance_;
+
 inline constexpr LoginRsp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : token_(
@@ -523,6 +617,67 @@ struct LoginReqDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LoginReqDefaultTypeInternal _LoginReq_default_instance_;
+
+inline constexpr LeaveRoomRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LeaveRoomRsp::LeaveRoomRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LeaveRoomRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LeaveRoomRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LeaveRoomRspDefaultTypeInternal() {}
+  union {
+    LeaveRoomRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LeaveRoomRspDefaultTypeInternal _LeaveRoomRsp_default_instance_;
+
+inline constexpr LeaveRoomReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR LeaveRoomReq::LeaveRoomReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct LeaveRoomReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR LeaveRoomReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~LeaveRoomReqDefaultTypeInternal() {}
+  union {
+    LeaveRoomReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 LeaveRoomReqDefaultTypeInternal _LeaveRoomReq_default_instance_;
 
 inline constexpr JoinRoomReq::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -725,6 +880,67 @@ struct DrawReq_PointDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DrawReq_PointDefaultTypeInternal _DrawReq_Point_default_instance_;
+
+inline constexpr DestroyRoomRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        error_{0},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DestroyRoomRsp::DestroyRoomRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DestroyRoomRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DestroyRoomRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DestroyRoomRspDefaultTypeInternal() {}
+  union {
+    DestroyRoomRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DestroyRoomRspDefaultTypeInternal _DestroyRoomRsp_default_instance_;
+
+inline constexpr DestroyRoomReq::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        request_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR DestroyRoomReq::DestroyRoomReq(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct DestroyRoomReqDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR DestroyRoomReqDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~DestroyRoomReqDefaultTypeInternal() {}
+  union {
+    DestroyRoomReq _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 DestroyRoomReqDefaultTypeInternal _DestroyRoomReq_default_instance_;
 
 inline constexpr ChatRsp::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1220,6 +1436,7 @@ const ::uint32_t
         ~0u,  // no _inlined_string_donated_
         ~0u,  // no _split_
         ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::UserLeaveRoomBroadcast, _impl_.room_id_),
         PROTOBUF_FIELD_OFFSET(::message::UserLeaveRoomBroadcast, _impl_.uid_),
         PROTOBUF_FIELD_OFFSET(::message::UserLeaveRoomBroadcast, _impl_.reason_),
         ~0u,  // no _has_bits_
@@ -1474,6 +1691,81 @@ const ::uint32_t
         0,
         1,
         ~0u,
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomReq, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomReq, _impl_.request_id_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomRsp, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomRsp, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::LeaveRoomRsp, _impl_.request_id_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomReq, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomReq, _impl_.request_id_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomRsp, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomRsp, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::DestroyRoomRsp, _impl_.request_id_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::RoomDestroyedBroadcast, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::RoomDestroyedBroadcast, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::RoomDestroyedBroadcast, _impl_.operator_uid_),
+        PROTOBUF_FIELD_OFFSET(::message::RoomDestroyedBroadcast, _impl_.reason_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::LogoutReq, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::LogoutReq, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::LogoutReq, _impl_.token_),
+        PROTOBUF_FIELD_OFFSET(::message::LogoutReq, _impl_.request_id_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::LogoutRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::LogoutRsp, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::message::LogoutRsp, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::LogoutRsp, _impl_.request_id_),
 };
 
 static const ::_pbi::MigrationSchema
@@ -1493,23 +1785,30 @@ static const ::_pbi::MigrationSchema
         {133, -1, -1, sizeof(::message::JoinRoomRsp)},
         {150, 159, -1, sizeof(::message::UserJoinRoomBroadcast)},
         {160, -1, -1, sizeof(::message::UserLeaveRoomBroadcast)},
-        {170, -1, -1, sizeof(::message::GrantEditReq)},
-        {181, -1, -1, sizeof(::message::GrantEditRsp)},
-        {193, -1, -1, sizeof(::message::RevokeEditReq)},
-        {204, -1, -1, sizeof(::message::RevokeEditRsp)},
-        {216, -1, -1, sizeof(::message::PermissionChangedBroadcast)},
-        {228, -1, -1, sizeof(::message::UpdateAvatarReq)},
-        {238, -1, -1, sizeof(::message::UpdateAvatarRsp)},
-        {248, -1, -1, sizeof(::message::DrawReq_Point)},
-        {258, -1, -1, sizeof(::message::DrawReq)},
-        {279, -1, -1, sizeof(::message::ImageTransform)},
-        {294, 310, -1, sizeof(::message::ImageItem)},
-        {318, 333, -1, sizeof(::message::ImageOperation)},
-        {340, -1, -1, sizeof(::message::ChatReq)},
-        {352, -1, -1, sizeof(::message::ChatRsp)},
-        {366, -1, -1, sizeof(::message::TextItem)},
-        {382, 398, -1, sizeof(::message::TextOperation)},
-        {406, 418, -1, sizeof(::message::TextOperationRsp)},
+        {171, -1, -1, sizeof(::message::GrantEditReq)},
+        {182, -1, -1, sizeof(::message::GrantEditRsp)},
+        {194, -1, -1, sizeof(::message::RevokeEditReq)},
+        {205, -1, -1, sizeof(::message::RevokeEditRsp)},
+        {217, -1, -1, sizeof(::message::PermissionChangedBroadcast)},
+        {229, -1, -1, sizeof(::message::UpdateAvatarReq)},
+        {239, -1, -1, sizeof(::message::UpdateAvatarRsp)},
+        {249, -1, -1, sizeof(::message::DrawReq_Point)},
+        {259, -1, -1, sizeof(::message::DrawReq)},
+        {280, -1, -1, sizeof(::message::ImageTransform)},
+        {295, 311, -1, sizeof(::message::ImageItem)},
+        {319, 334, -1, sizeof(::message::ImageOperation)},
+        {341, -1, -1, sizeof(::message::ChatReq)},
+        {353, -1, -1, sizeof(::message::ChatRsp)},
+        {367, -1, -1, sizeof(::message::TextItem)},
+        {383, 399, -1, sizeof(::message::TextOperation)},
+        {407, 419, -1, sizeof(::message::TextOperationRsp)},
+        {423, -1, -1, sizeof(::message::LeaveRoomReq)},
+        {433, -1, -1, sizeof(::message::LeaveRoomRsp)},
+        {444, -1, -1, sizeof(::message::DestroyRoomReq)},
+        {454, -1, -1, sizeof(::message::DestroyRoomRsp)},
+        {465, -1, -1, sizeof(::message::RoomDestroyedBroadcast)},
+        {476, -1, -1, sizeof(::message::LogoutReq)},
+        {487, -1, -1, sizeof(::message::LogoutRsp)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserInfo_default_instance_._instance,
@@ -1544,6 +1843,13 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::message::_TextItem_default_instance_._instance,
     &::message::_TextOperation_default_instance_._instance,
     &::message::_TextOperationRsp_default_instance_._instance,
+    &::message::_LeaveRoomReq_default_instance_._instance,
+    &::message::_LeaveRoomRsp_default_instance_._instance,
+    &::message::_DestroyRoomReq_default_instance_._instance,
+    &::message::_DestroyRoomRsp_default_instance_._instance,
+    &::message::_RoomDestroyedBroadcast_default_instance_._instance,
+    &::message::_LogoutReq_default_instance_._instance,
+    &::message::_LogoutRsp_default_instance_._instance,
 };
 const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -1573,119 +1879,136 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "\rredirect_host\030\007 \001(\t\022\025\n\rredirect_port\030\010 "
     "\001(\005\022&\n\013member_list\030\t \003(\0132\021.message.UserI"
     "nfo\"=\n\025UserJoinRoomBroadcast\022$\n\tuser_inf"
-    "o\030\001 \001(\0132\021.message.UserInfo\"5\n\026UserLeaveR"
-    "oomBroadcast\022\013\n\003uid\030\001 \001(\005\022\016\n\006reason\030\002 \001("
-    "\t\"I\n\014GrantEditReq\022\024\n\014operator_uid\030\001 \001(\005\022"
-    "\017\n\007room_id\030\002 \001(\t\022\022\n\ntarget_uid\030\003 \001(\005\"T\n\014"
-    "GrantEditRsp\022\r\n\005error\030\001 \001(\005\022\017\n\007room_id\030\002"
-    " \001(\t\022\022\n\ntarget_uid\030\003 \001(\005\022\020\n\010can_edit\030\004 \001"
-    "(\010\"J\n\rRevokeEditReq\022\024\n\014operator_uid\030\001 \001("
-    "\005\022\017\n\007room_id\030\002 \001(\t\022\022\n\ntarget_uid\030\003 \001(\005\"U"
-    "\n\rRevokeEditRsp\022\r\n\005error\030\001 \001(\005\022\017\n\007room_i"
-    "d\030\002 \001(\t\022\022\n\ntarget_uid\030\003 \001(\005\022\020\n\010can_edit\030"
-    "\004 \001(\010\"i\n\032PermissionChangedBroadcast\022\017\n\007r"
-    "oom_id\030\001 \001(\t\022\022\n\ntarget_uid\030\002 \001(\005\022\020\n\010can_"
-    "edit\030\003 \001(\010\022\024\n\014operator_uid\030\004 \001(\005\"2\n\017Upda"
-    "teAvatarReq\022\013\n\003uid\030\001 \001(\005\022\022\n\navatar_url\030\002"
-    " \001(\t\"-\n\017UpdateAvatarRsp\022\r\n\005error\030\001 \001(\005\022\013"
-    "\n\003uid\030\002 \001(\005\"\311\002\n\007DrawReq\022\013\n\003uid\030\001 \001(\005\022\017\n\007"
-    "item_id\030\002 \001(\t\022\035\n\003cmd\030\003 \001(\0162\020.message.Dra"
-    "wCmd\022!\n\005shape\030\004 \001(\0162\022.message.ShapeType\022"
-    "\r\n\005color\030\005 \001(\005\022\r\n\005width\030\006 \001(\005\022\021\n\tpen_sty"
-    "le\030\007 \001(\005\022\017\n\007start_x\030\010 \001(\002\022\017\n\007start_y\030\t \001"
-    "(\002\022\021\n\tcurrent_x\030\n \001(\002\022\021\n\tcurrent_y\030\013 \001(\002"
-    "\022+\n\013path_points\030\014 \003(\0132\026.message.DrawReq."
-    "Point\022\031\n\021send_timestamp_ms\030\r \001(\004\032\035\n\005Poin"
-    "t\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\"y\n\016ImageTransfor"
-    "m\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002\022\r\n\005width\030\003 \001(\002\022\016"
-    "\n\006height\030\004 \001(\002\022\017\n\007scale_x\030\005 \001(\002\022\017\n\007scale"
-    "_y\030\006 \001(\002\022\020\n\010rotation\030\007 \001(\002\"\307\001\n\tImageItem"
-    "\022\017\n\007item_id\030\001 \001(\t\022\020\n\010asset_id\030\002 \001(\t\022\021\n\ta"
-    "sset_ref\030\003 \001(\t\022\024\n\014asset_sha256\030\004 \001(\t\022\021\n\t"
-    "mime_type\030\005 \001(\t\022\026\n\016original_width\030\006 \001(\r\022"
-    "\027\n\017original_height\030\007 \001(\r\022*\n\ttransform\030\010 "
-    "\001(\0132\027.message.ImageTransform\"\314\001\n\016ImageOp"
-    "eration\022\013\n\003uid\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\024\n"
-    "\014operation_id\030\003 \001(\t\0223\n\016operation_type\030\004 "
-    "\001(\0162\033.message.ImageOperationType\022 \n\004item"
-    "\030\005 \001(\0132\022.message.ImageItem\022\026\n\016target_ite"
-    "m_id\030\006 \001(\t\022\027\n\017server_sequence\030\007 \001(\004\"K\n\007C"
-    "hatReq\022\013\n\003uid\030\001 \001(\004\022\017\n\007room_id\030\002 \001(\t\022\017\n\007"
-    "content\030\003 \001(\t\022\021\n\tclient_ts\030\004 \001(\004\"m\n\007Chat"
-    "Rsp\022\013\n\003uid\030\001 \001(\004\022\014\n\004name\030\002 \001(\t\022\022\n\navatar"
-    "_url\030\003 \001(\t\022\017\n\007room_id\030\004 \001(\t\022\017\n\007content\030\005"
-    " \001(\t\022\021\n\tserver_ts\030\006 \001(\004\"\204\001\n\010TextItem\022\017\n\007"
-    "item_id\030\001 \001(\t\022\014\n\004text\030\002 \001(\t\022\023\n\013font_fami"
-    "ly\030\003 \001(\t\022\021\n\tfont_size\030\004 \001(\r\022\r\n\005color\030\005 \001"
-    "(\r\022\014\n\004bold\030\006 \001(\010\022\t\n\001x\030\007 \001(\001\022\t\n\001y\030\010 \001(\001\"\344"
-    "\001\n\rTextOperation\022\013\n\003uid\030\001 \001(\005\022\017\n\007room_id"
-    "\030\002 \001(\t\022\024\n\014operation_id\030\003 \001(\t\0222\n\016operatio"
-    "n_type\030\004 \001(\0162\032.message.TextOperationType"
-    "\022\037\n\004item\030\005 \001(\0132\021.message.TextItem\022\026\n\016tar"
-    "get_item_id\030\006 \001(\t\022\027\n\017server_sequence\030\007 \001"
-    "(\004\022\031\n\021expected_sequence\030\010 \001(\004\"\214\001\n\020TextOp"
-    "erationRsp\022\r\n\005error\030\001 \001(\005\022)\n\toperation\030\002"
-    " \001(\0132\026.message.TextOperation\022\'\n\014current_"
-    "item\030\003 \001(\0132\021.message.TextItem\022\025\n\rerror_m"
-    "essage\030\004 \001(\t*\264\005\n\nErrorCodes\022\013\n\007SUCCESS\020\000"
-    "\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVar"
-    "ifyExpired\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPas"
-    "swdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016PasswdU"
-    "pFailed\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021\n\014TokenI"
-    "nvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010LoginErr\020\365"
-    "\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010RedisErr\020\367\007"
-    "\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserN"
-    "otExist\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022\n\rFriend"
-    "Offline\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022\025\n\020RoomC"
-    "reateFailed\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020Roo"
-    "mAlreadyExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\023\n\016RoomJ"
-    "oinFailed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\026\n\021TextStat"
-    "eConflict\020\227\010\022\030\n\023TextInvalidArgument\020\230\010\022\r"
-    "\n\010NotOwner\020\226\010\022\036\n\031VoiceTokenInvalidArgume"
-    "nt\020\244\010\022\034\n\027VoiceTokenConfigInvalid\020\245\010\022\035\n\030V"
-    "oiceTokenGenerateFailed\020\246\010\022\024\n\017VoiceAuthF"
-    "ailed\020\247\010\022\021\n\014NeedRedirect\020\271\027*\371\001\n\005MsgID\022\016\n"
-    "\nID_UNKNOWN\020\000\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_L"
-    "OGIN_RSP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW"
-    "_RSP\020\354\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_R"
-    "SP\020\356\007\022\032\n\025ID_TEXT_OPERATION_REQ\020\207\010\022\032\n\025ID_"
-    "TEXT_OPERATION_RSP\020\210\010\022\033\n\026ID_IMAGE_OPERAT"
-    "ION_REQ\020\203\010\022\033\n\026ID_IMAGE_OPERATION_RSP\020\204\010*"
-    "a\n\007DrawCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START"
-    "\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UND"
-    "O\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n\tShapeType\022\021\n\rSHAP"
-    "E_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT"
-    "\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SH"
-    "APE_ERASER\020\005\022\017\n\013SHAPE_ARROW\020\006\022\021\n\rSHAPE_D"
-    "IAMOND\020\007*q\n\022ImageOperationType\022\033\n\027IMAGE_"
-    "OPERATION_UNKNOWN\020\000\022\020\n\014IMAGE_CREATE\020\001\022\032\n"
-    "\026IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014IMAGE_DELET"
-    "E\020\003*q\n\021TextOperationType\022\032\n\026TEXT_OPERATI"
-    "ON_UNKNOWN\020\000\022\017\n\013TEXT_CREATE\020\001\022\017\n\013TEXT_UP"
-    "DATE\020\002\022\r\n\tTEXT_MOVE\020\003\022\017\n\013TEXT_DELETE\020\0042P"
-    "\n\rVarifyService\022\?\n\rGetVarifyCode\022\025.messa"
-    "ge.GetVarifyReq\032\025.message.GetVarifyRsp\"\000"
-    "2\313\002\n\014LogicService\022<\n\014RegisterUser\022\024.mess"
-    "age.RegisterReq\032\024.message.RegisterRsp\"\000\022"
-    "G\n\rResetPassword\022\031.message.ResetPassword"
-    "Req\032\031.message.ResetPasswordRsp\"\000\022-\n\005Logi"
-    "n\022\021.message.LoginReq\032\021.message.LoginRsp\022"
-    "A\n\013VerifyToken\022\027.message.VerifyTokenReq\032"
-    "\027.message.VerifyTokenRsp\"\000\022B\n\014UpdateAvat"
-    "ar\022\030.message.UpdateAvatarReq\032\030.message.U"
-    "pdateAvatarRspb\006proto3"
+    "o\030\001 \001(\0132\021.message.UserInfo\"F\n\026UserLeaveR"
+    "oomBroadcast\022\017\n\007room_id\030\003 \001(\t\022\013\n\003uid\030\001 \001"
+    "(\005\022\016\n\006reason\030\002 \001(\t\"I\n\014GrantEditReq\022\024\n\014op"
+    "erator_uid\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\022\n\ntar"
+    "get_uid\030\003 \001(\005\"T\n\014GrantEditRsp\022\r\n\005error\030\001"
+    " \001(\005\022\017\n\007room_id\030\002 \001(\t\022\022\n\ntarget_uid\030\003 \001("
+    "\005\022\020\n\010can_edit\030\004 \001(\010\"J\n\rRevokeEditReq\022\024\n\014"
+    "operator_uid\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\022\n\nt"
+    "arget_uid\030\003 \001(\005\"U\n\rRevokeEditRsp\022\r\n\005erro"
+    "r\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\022\n\ntarget_uid\030\003"
+    " \001(\005\022\020\n\010can_edit\030\004 \001(\010\"i\n\032PermissionChan"
+    "gedBroadcast\022\017\n\007room_id\030\001 \001(\t\022\022\n\ntarget_"
+    "uid\030\002 \001(\005\022\020\n\010can_edit\030\003 \001(\010\022\024\n\014operator_"
+    "uid\030\004 \001(\005\"2\n\017UpdateAvatarReq\022\013\n\003uid\030\001 \001("
+    "\005\022\022\n\navatar_url\030\002 \001(\t\"-\n\017UpdateAvatarRsp"
+    "\022\r\n\005error\030\001 \001(\005\022\013\n\003uid\030\002 \001(\005\"\311\002\n\007DrawReq"
+    "\022\013\n\003uid\030\001 \001(\005\022\017\n\007item_id\030\002 \001(\t\022\035\n\003cmd\030\003 "
+    "\001(\0162\020.message.DrawCmd\022!\n\005shape\030\004 \001(\0162\022.m"
+    "essage.ShapeType\022\r\n\005color\030\005 \001(\005\022\r\n\005width"
+    "\030\006 \001(\005\022\021\n\tpen_style\030\007 \001(\005\022\017\n\007start_x\030\010 \001"
+    "(\002\022\017\n\007start_y\030\t \001(\002\022\021\n\tcurrent_x\030\n \001(\002\022\021"
+    "\n\tcurrent_y\030\013 \001(\002\022+\n\013path_points\030\014 \003(\0132\026"
+    ".message.DrawReq.Point\022\031\n\021send_timestamp"
+    "_ms\030\r \001(\004\032\035\n\005Point\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002"
+    "\"y\n\016ImageTransform\022\t\n\001x\030\001 \001(\002\022\t\n\001y\030\002 \001(\002"
+    "\022\r\n\005width\030\003 \001(\002\022\016\n\006height\030\004 \001(\002\022\017\n\007scale"
+    "_x\030\005 \001(\002\022\017\n\007scale_y\030\006 \001(\002\022\020\n\010rotation\030\007 "
+    "\001(\002\"\307\001\n\tImageItem\022\017\n\007item_id\030\001 \001(\t\022\020\n\010as"
+    "set_id\030\002 \001(\t\022\021\n\tasset_ref\030\003 \001(\t\022\024\n\014asset"
+    "_sha256\030\004 \001(\t\022\021\n\tmime_type\030\005 \001(\t\022\026\n\016orig"
+    "inal_width\030\006 \001(\r\022\027\n\017original_height\030\007 \001("
+    "\r\022*\n\ttransform\030\010 \001(\0132\027.message.ImageTran"
+    "sform\"\314\001\n\016ImageOperation\022\013\n\003uid\030\001 \001(\005\022\017\n"
+    "\007room_id\030\002 \001(\t\022\024\n\014operation_id\030\003 \001(\t\0223\n\016"
+    "operation_type\030\004 \001(\0162\033.message.ImageOper"
+    "ationType\022 \n\004item\030\005 \001(\0132\022.message.ImageI"
+    "tem\022\026\n\016target_item_id\030\006 \001(\t\022\027\n\017server_se"
+    "quence\030\007 \001(\004\"K\n\007ChatReq\022\013\n\003uid\030\001 \001(\004\022\017\n\007"
+    "room_id\030\002 \001(\t\022\017\n\007content\030\003 \001(\t\022\021\n\tclient"
+    "_ts\030\004 \001(\004\"m\n\007ChatRsp\022\013\n\003uid\030\001 \001(\004\022\014\n\004nam"
+    "e\030\002 \001(\t\022\022\n\navatar_url\030\003 \001(\t\022\017\n\007room_id\030\004"
+    " \001(\t\022\017\n\007content\030\005 \001(\t\022\021\n\tserver_ts\030\006 \001(\004"
+    "\"\204\001\n\010TextItem\022\017\n\007item_id\030\001 \001(\t\022\014\n\004text\030\002"
+    " \001(\t\022\023\n\013font_family\030\003 \001(\t\022\021\n\tfont_size\030\004"
+    " \001(\r\022\r\n\005color\030\005 \001(\r\022\014\n\004bold\030\006 \001(\010\022\t\n\001x\030\007"
+    " \001(\001\022\t\n\001y\030\010 \001(\001\"\344\001\n\rTextOperation\022\013\n\003uid"
+    "\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\024\n\014operation_id\030"
+    "\003 \001(\t\0222\n\016operation_type\030\004 \001(\0162\032.message."
+    "TextOperationType\022\037\n\004item\030\005 \001(\0132\021.messag"
+    "e.TextItem\022\026\n\016target_item_id\030\006 \001(\t\022\027\n\017se"
+    "rver_sequence\030\007 \001(\004\022\031\n\021expected_sequence"
+    "\030\010 \001(\004\"\214\001\n\020TextOperationRsp\022\r\n\005error\030\001 \001"
+    "(\005\022)\n\toperation\030\002 \001(\0132\026.message.TextOper"
+    "ation\022\'\n\014current_item\030\003 \001(\0132\021.message.Te"
+    "xtItem\022\025\n\rerror_message\030\004 \001(\t\"3\n\014LeaveRo"
+    "omReq\022\017\n\007room_id\030\001 \001(\t\022\022\n\nrequest_id\030\002 \001"
+    "(\t\"B\n\014LeaveRoomRsp\022\r\n\005error\030\001 \001(\005\022\017\n\007roo"
+    "m_id\030\002 \001(\t\022\022\n\nrequest_id\030\003 \001(\t\"5\n\016Destro"
+    "yRoomReq\022\017\n\007room_id\030\001 \001(\t\022\022\n\nrequest_id\030"
+    "\002 \001(\t\"D\n\016DestroyRoomRsp\022\r\n\005error\030\001 \001(\005\022\017"
+    "\n\007room_id\030\002 \001(\t\022\022\n\nrequest_id\030\003 \001(\t\"O\n\026R"
+    "oomDestroyedBroadcast\022\017\n\007room_id\030\001 \001(\t\022\024"
+    "\n\014operator_uid\030\002 \001(\005\022\016\n\006reason\030\003 \001(\t\";\n\t"
+    "LogoutReq\022\013\n\003uid\030\001 \001(\005\022\r\n\005token\030\002 \001(\t\022\022\n"
+    "\nrequest_id\030\003 \001(\t\";\n\tLogoutRsp\022\r\n\005error\030"
+    "\001 \001(\005\022\013\n\003uid\030\002 \001(\005\022\022\n\nrequest_id\030\003 \001(\t*\341"
+    "\005\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\017\n\nError_Json"
+    "\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpired\020\353\007\022"
+    "\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rE"
+    "mailNotMatch\020\357\007\022\023\n\016PasswdUpFailed\020\360\007\022\022\n\r"
+    "PasswdInvalid\020\361\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\nU"
+    "idInvalid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021ServerInt"
+    "ernalErr\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010MysqlErr\020\370"
+    "\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n\r"
+    "AlreadyFriend\020\374\007\022\022\n\rFriendOffline\020\375\007\022\023\n\016"
+    "TargetUserBusy\020\376\007\022\025\n\020RoomCreateFailed\020\220\010"
+    "\022\021\n\014RoomNotExist\020\221\010\022\025\n\020RoomAlreadyExist\020"
+    "\222\010\022\r\n\010RoomFull\020\223\010\022\020\n\013RoomClosing\020\231\010\022\031\n\024O"
+    "wnerMustDestroyRoom\020\232\010\022\023\n\016RoomJoinFailed"
+    "\020\224\010\022\016\n\tNotInRoom\020\225\010\022\026\n\021TextStateConflict"
+    "\020\227\010\022\030\n\023TextInvalidArgument\020\230\010\022\r\n\010NotOwne"
+    "r\020\226\010\022\036\n\031VoiceTokenInvalidArgument\020\244\010\022\034\n\027"
+    "VoiceTokenConfigInvalid\020\245\010\022\035\n\030VoiceToken"
+    "GenerateFailed\020\246\010\022\024\n\017VoiceAuthFailed\020\247\010\022"
+    "\021\n\014NeedRedirect\020\271\027*\377\002\n\005MsgID\022\016\n\nID_UNKNO"
+    "WN\020\000\022\026\n\021ID_LEAVE_ROOM_REQ\020\211\010\022\026\n\021ID_LEAVE"
+    "_ROOM_RSP\020\212\010\022\030\n\023ID_DESTROY_ROOM_REQ\020\213\010\022\030"
+    "\n\023ID_DESTROY_ROOM_RSP\020\214\010\022 \n\033ID_ROOM_DEST"
+    "ROYED_BROADCAST\020\215\010\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n"
+    "\014ID_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID"
+    "_DRAW_RSP\020\354\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CL"
+    "EAR_RSP\020\356\007\022\032\n\025ID_TEXT_OPERATION_REQ\020\207\010\022\032"
+    "\n\025ID_TEXT_OPERATION_RSP\020\210\010\022\033\n\026ID_IMAGE_O"
+    "PERATION_REQ\020\203\010\022\033\n\026ID_IMAGE_OPERATION_RS"
+    "P\020\204\010*a\n\007DrawCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_"
+    "START\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CM"
+    "D_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n\tShapeType\022\021\n"
+    "\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE"
+    "_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022"
+    "\020\n\014SHAPE_ERASER\020\005\022\017\n\013SHAPE_ARROW\020\006\022\021\n\rSH"
+    "APE_DIAMOND\020\007*q\n\022ImageOperationType\022\033\n\027I"
+    "MAGE_OPERATION_UNKNOWN\020\000\022\020\n\014IMAGE_CREATE"
+    "\020\001\022\032\n\026IMAGE_UPDATE_TRANSFORM\020\002\022\020\n\014IMAGE_"
+    "DELETE\020\003*q\n\021TextOperationType\022\032\n\026TEXT_OP"
+    "ERATION_UNKNOWN\020\000\022\017\n\013TEXT_CREATE\020\001\022\017\n\013TE"
+    "XT_UPDATE\020\002\022\r\n\tTEXT_MOVE\020\003\022\017\n\013TEXT_DELET"
+    "E\020\0042P\n\rVarifyService\022\?\n\rGetVarifyCode\022\025."
+    "message.GetVarifyReq\032\025.message.GetVarify"
+    "Rsp\"\0002\377\002\n\014LogicService\0222\n\006Logout\022\022.messa"
+    "ge.LogoutReq\032\022.message.LogoutRsp\"\000\022<\n\014Re"
+    "gisterUser\022\024.message.RegisterReq\032\024.messa"
+    "ge.RegisterRsp\"\000\022G\n\rResetPassword\022\031.mess"
+    "age.ResetPasswordReq\032\031.message.ResetPass"
+    "wordRsp\"\000\022-\n\005Login\022\021.message.LoginReq\032\021."
+    "message.LoginRsp\022A\n\013VerifyToken\022\027.messag"
+    "e.VerifyTokenReq\032\027.message.VerifyTokenRs"
+    "p\"\000\022B\n\014UpdateAvatar\022\030.message.UpdateAvat"
+    "arReq\032\030.message.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    5062,
+    5759,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
     nullptr,
     0,
-    32,
+    39,
     schemas,
     file_default_instances,
     TableStruct_message_2eproto::offsets,
@@ -1698,7 +2021,7 @@ const ::google::protobuf::EnumDescriptor* ErrorCodes_descriptor() {
   return file_level_enum_descriptors_message_2eproto[0];
 }
 PROTOBUF_CONSTINIT const uint32_t ErrorCodes_internal_data_[] = {
-    65536u, 2162688u, 1021u, 1010u, 1046u, 1006u, 1014u, 1042u, 1061u, 1004u, 1008u, 1012u, 1016u, 1040u, 1044u, 1048u, 1063u, 1002u, 1005u, 1007u, 1009u, 1011u, 1013u, 1015u, 1020u, 1022u, 1041u, 1043u, 1045u, 1047u, 1060u, 1062u, 3001u, 1001u, 1003u, };
+    65536u, 66624u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u, 956301056u, 67076096u, 120u, 3001u, };
 bool ErrorCodes_IsValid(int value) {
   return ::_pbi::ValidateEnum(value, ErrorCodes_internal_data_);
 }
@@ -1707,7 +2030,7 @@ const ::google::protobuf::EnumDescriptor* MsgID_descriptor() {
   return file_level_enum_descriptors_message_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t MsgID_internal_data_[] = {
-    65536u, 655360u, 1027u, 1004u, 1031u, 1002u, 1006u, 1028u, 1032u, 1001u, 1003u, 1005u, };
+    65536u, 983040u, 1028u, 1004u, 1034u, 1002u, 1006u, 1032u, 1036u, 1001u, 1003u, 1005u, 1027u, 1031u, 1033u, 1035u, 1037u, };
 bool MsgID_IsValid(int value) {
   return ::_pbi::ValidateEnum(value, MsgID_internal_data_);
 }
@@ -5916,6 +6239,7 @@ inline PROTOBUF_NDEBUG_INLINE UserLeaveRoomBroadcast::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
     const Impl_& from, const ::message::UserLeaveRoomBroadcast& from_msg)
       : reason_(arena, from.reason_),
+        room_id_(arena, from.room_id_),
         _cached_size_{0} {}
 
 UserLeaveRoomBroadcast::UserLeaveRoomBroadcast(
@@ -5939,6 +6263,7 @@ inline PROTOBUF_NDEBUG_INLINE UserLeaveRoomBroadcast::Impl_::Impl_(
     ::google::protobuf::internal::InternalVisibility visibility,
     ::google::protobuf::Arena* arena)
       : reason_(arena),
+        room_id_(arena),
         _cached_size_{0} {}
 
 inline void UserLeaveRoomBroadcast::SharedCtor(::_pb::Arena* arena) {
@@ -5954,6 +6279,7 @@ inline void UserLeaveRoomBroadcast::SharedDtor(MessageLite& self) {
   this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
   ABSL_DCHECK(this_.GetArena() == nullptr);
   this_._impl_.reason_.Destroy();
+  this_._impl_.room_id_.Destroy();
   this_._impl_.~Impl_();
 }
 
@@ -5993,15 +6319,15 @@ const ::google::protobuf::internal::ClassData* UserLeaveRoomBroadcast::GetClassD
   return _class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<1, 2, 0, 45, 2> UserLeaveRoomBroadcast::_table_ = {
+const ::_pbi::TcParseTable<2, 3, 0, 52, 2> UserLeaveRoomBroadcast::_table_ = {
   {
     0,  // no _has_bits_
     0, // no _extensions_
-    2, 8,  // max_field_number, fast_idx_mask
+    3, 24,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294967292,  // skipmap
+    4294967288,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    2,  // num_field_entries
+    3,  // num_field_entries
     0,  // num_aux_entries
     offsetof(decltype(_table_), field_names),  // no aux_entries
     _class_data_.base(),
@@ -6011,12 +6337,16 @@ const ::_pbi::TcParseTable<1, 2, 0, 45, 2> UserLeaveRoomBroadcast::_table_ = {
     ::_pbi::TcParser::GetTable<::message::UserLeaveRoomBroadcast>(),  // to_prefetch
     #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
   }, {{
-    // string reason = 2;
-    {::_pbi::TcParser::FastUS1,
-     {18, 63, 0, PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.reason_)}},
+    {::_pbi::TcParser::MiniParse, {}},
     // int32 uid = 1;
     {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(UserLeaveRoomBroadcast, _impl_.uid_), 63>(),
      {8, 63, 0, PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.uid_)}},
+    // string reason = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.reason_)}},
+    // string room_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.room_id_)}},
   }}, {{
     65535, 65535
   }}, {{
@@ -6026,12 +6356,16 @@ const ::_pbi::TcParseTable<1, 2, 0, 45, 2> UserLeaveRoomBroadcast::_table_ = {
     // string reason = 2;
     {PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.reason_), 0, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string room_id = 3;
+    {PROTOBUF_FIELD_OFFSET(UserLeaveRoomBroadcast, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
   }},
   // no aux_entries
   {{
-    "\36\0\6\0\0\0\0\0"
+    "\36\0\6\7\0\0\0\0"
     "message.UserLeaveRoomBroadcast"
     "reason"
+    "room_id"
   }},
 };
 
@@ -6043,6 +6377,7 @@ PROTOBUF_NOINLINE void UserLeaveRoomBroadcast::Clear() {
   (void) cached_has_bits;
 
   _impl_.reason_.ClearToEmpty();
+  _impl_.room_id_.ClearToEmpty();
   _impl_.uid_ = 0;
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -6077,6 +6412,14 @@ PROTOBUF_NOINLINE void UserLeaveRoomBroadcast::Clear() {
             target = stream->WriteStringMaybeAliased(2, _s, target);
           }
 
+          // string room_id = 3;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.UserLeaveRoomBroadcast.room_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
           if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -6107,6 +6450,11 @@ PROTOBUF_NOINLINE void UserLeaveRoomBroadcast::Clear() {
               total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
                                               this_._internal_reason());
             }
+            // string room_id = 3;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
             // int32 uid = 1;
             if (this_._internal_uid() != 0) {
               total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
@@ -6128,6 +6476,9 @@ void UserLeaveRoomBroadcast::MergeImpl(::google::protobuf::MessageLite& to_msg, 
   if (!from._internal_reason().empty()) {
     _this->_internal_set_reason(from._internal_reason());
   }
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
   if (from._internal_uid() != 0) {
     _this->_impl_.uid_ = from._impl_.uid_;
   }
@@ -6148,6 +6499,7 @@ void UserLeaveRoomBroadcast::InternalSwap(UserLeaveRoomBroadcast* PROTOBUF_RESTR
   ABSL_DCHECK_EQ(arena, other->GetArena());
   _internal_metadata_.InternalSwap(&other->_internal_metadata_);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.reason_, &other->_impl_.reason_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
         swap(_impl_.uid_, other->_impl_.uid_);
 }
 
@@ -12112,6 +12464,1967 @@ void TextOperationRsp::InternalSwap(TextOperationRsp* PROTOBUF_RESTRICT other) {
 }
 
 ::google::protobuf::Metadata TextOperationRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LeaveRoomReq::_Internal {
+ public:
+};
+
+LeaveRoomReq::LeaveRoomReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.LeaveRoomReq)
+}
+inline PROTOBUF_NDEBUG_INLINE LeaveRoomReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::LeaveRoomReq& from_msg)
+      : room_id_(arena, from.room_id_),
+        request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+LeaveRoomReq::LeaveRoomReq(
+    ::google::protobuf::Arena* arena,
+    const LeaveRoomReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LeaveRoomReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:message.LeaveRoomReq)
+}
+inline PROTOBUF_NDEBUG_INLINE LeaveRoomReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        request_id_(arena),
+        _cached_size_{0} {}
+
+inline void LeaveRoomReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+LeaveRoomReq::~LeaveRoomReq() {
+  // @@protoc_insertion_point(destructor:message.LeaveRoomReq)
+  SharedDtor(*this);
+}
+inline void LeaveRoomReq::SharedDtor(MessageLite& self) {
+  LeaveRoomReq& this_ = static_cast<LeaveRoomReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* LeaveRoomReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) LeaveRoomReq(arena);
+}
+constexpr auto LeaveRoomReq::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(LeaveRoomReq),
+                                            alignof(LeaveRoomReq));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull LeaveRoomReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_LeaveRoomReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &LeaveRoomReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<LeaveRoomReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &LeaveRoomReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<LeaveRoomReq>(), &LeaveRoomReq::ByteSizeLong,
+            &LeaveRoomReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(LeaveRoomReq, _impl_._cached_size_),
+        false,
+    },
+    &LeaveRoomReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* LeaveRoomReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 46, 2> LeaveRoomReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::LeaveRoomReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string request_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LeaveRoomReq, _impl_.request_id_)}},
+    // string room_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(LeaveRoomReq, _impl_.room_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string room_id = 1;
+    {PROTOBUF_FIELD_OFFSET(LeaveRoomReq, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string request_id = 2;
+    {PROTOBUF_FIELD_OFFSET(LeaveRoomReq, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\24\7\12\0\0\0\0\0"
+    "message.LeaveRoomReq"
+    "room_id"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void LeaveRoomReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.LeaveRoomReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.request_id_.ClearToEmpty();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* LeaveRoomReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const LeaveRoomReq& this_ = static_cast<const LeaveRoomReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* LeaveRoomReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const LeaveRoomReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.LeaveRoomReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // string room_id = 1;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LeaveRoomReq.room_id");
+            target = stream->WriteStringMaybeAliased(1, _s, target);
+          }
+
+          // string request_id = 2;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LeaveRoomReq.request_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.LeaveRoomReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t LeaveRoomReq::ByteSizeLong(const MessageLite& base) {
+          const LeaveRoomReq& this_ = static_cast<const LeaveRoomReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t LeaveRoomReq::ByteSizeLong() const {
+          const LeaveRoomReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.LeaveRoomReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 1;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string request_id = 2;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void LeaveRoomReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<LeaveRoomReq*>(&to_msg);
+  auto& from = static_cast<const LeaveRoomReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.LeaveRoomReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void LeaveRoomReq::CopyFrom(const LeaveRoomReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.LeaveRoomReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LeaveRoomReq::InternalSwap(LeaveRoomReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+}
+
+::google::protobuf::Metadata LeaveRoomReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LeaveRoomRsp::_Internal {
+ public:
+};
+
+LeaveRoomRsp::LeaveRoomRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.LeaveRoomRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE LeaveRoomRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::LeaveRoomRsp& from_msg)
+      : room_id_(arena, from.room_id_),
+        request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+LeaveRoomRsp::LeaveRoomRsp(
+    ::google::protobuf::Arena* arena,
+    const LeaveRoomRsp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LeaveRoomRsp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.error_ = from._impl_.error_;
+
+  // @@protoc_insertion_point(copy_constructor:message.LeaveRoomRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE LeaveRoomRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        request_id_(arena),
+        _cached_size_{0} {}
+
+inline void LeaveRoomRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.error_ = {};
+}
+LeaveRoomRsp::~LeaveRoomRsp() {
+  // @@protoc_insertion_point(destructor:message.LeaveRoomRsp)
+  SharedDtor(*this);
+}
+inline void LeaveRoomRsp::SharedDtor(MessageLite& self) {
+  LeaveRoomRsp& this_ = static_cast<LeaveRoomRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* LeaveRoomRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) LeaveRoomRsp(arena);
+}
+constexpr auto LeaveRoomRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(LeaveRoomRsp),
+                                            alignof(LeaveRoomRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull LeaveRoomRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_LeaveRoomRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &LeaveRoomRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<LeaveRoomRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &LeaveRoomRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<LeaveRoomRsp>(), &LeaveRoomRsp::ByteSizeLong,
+            &LeaveRoomRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_._cached_size_),
+        false,
+    },
+    &LeaveRoomRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* LeaveRoomRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 46, 2> LeaveRoomRsp::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::LeaveRoomRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 error = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LeaveRoomRsp, _impl_.error_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.error_)}},
+    // string room_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.room_id_)}},
+    // string request_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.request_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 error = 1;
+    {PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.error_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string room_id = 2;
+    {PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string request_id = 3;
+    {PROTOBUF_FIELD_OFFSET(LeaveRoomRsp, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\24\0\7\12\0\0\0\0"
+    "message.LeaveRoomRsp"
+    "room_id"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void LeaveRoomRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.LeaveRoomRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.request_id_.ClearToEmpty();
+  _impl_.error_ = 0;
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* LeaveRoomRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const LeaveRoomRsp& this_ = static_cast<const LeaveRoomRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* LeaveRoomRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const LeaveRoomRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.LeaveRoomRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 error = 1;
+          if (this_._internal_error() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_error(), target);
+          }
+
+          // string room_id = 2;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LeaveRoomRsp.room_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string request_id = 3;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LeaveRoomRsp.request_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.LeaveRoomRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t LeaveRoomRsp::ByteSizeLong(const MessageLite& base) {
+          const LeaveRoomRsp& this_ = static_cast<const LeaveRoomRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t LeaveRoomRsp::ByteSizeLong() const {
+          const LeaveRoomRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.LeaveRoomRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 2;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string request_id = 3;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+            // int32 error = 1;
+            if (this_._internal_error() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_error());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void LeaveRoomRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<LeaveRoomRsp*>(&to_msg);
+  auto& from = static_cast<const LeaveRoomRsp&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.LeaveRoomRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  if (from._internal_error() != 0) {
+    _this->_impl_.error_ = from._impl_.error_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void LeaveRoomRsp::CopyFrom(const LeaveRoomRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.LeaveRoomRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LeaveRoomRsp::InternalSwap(LeaveRoomRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+        swap(_impl_.error_, other->_impl_.error_);
+}
+
+::google::protobuf::Metadata LeaveRoomRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DestroyRoomReq::_Internal {
+ public:
+};
+
+DestroyRoomReq::DestroyRoomReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.DestroyRoomReq)
+}
+inline PROTOBUF_NDEBUG_INLINE DestroyRoomReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::DestroyRoomReq& from_msg)
+      : room_id_(arena, from.room_id_),
+        request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+DestroyRoomReq::DestroyRoomReq(
+    ::google::protobuf::Arena* arena,
+    const DestroyRoomReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DestroyRoomReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+
+  // @@protoc_insertion_point(copy_constructor:message.DestroyRoomReq)
+}
+inline PROTOBUF_NDEBUG_INLINE DestroyRoomReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        request_id_(arena),
+        _cached_size_{0} {}
+
+inline void DestroyRoomReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+}
+DestroyRoomReq::~DestroyRoomReq() {
+  // @@protoc_insertion_point(destructor:message.DestroyRoomReq)
+  SharedDtor(*this);
+}
+inline void DestroyRoomReq::SharedDtor(MessageLite& self) {
+  DestroyRoomReq& this_ = static_cast<DestroyRoomReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* DestroyRoomReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) DestroyRoomReq(arena);
+}
+constexpr auto DestroyRoomReq::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DestroyRoomReq),
+                                            alignof(DestroyRoomReq));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull DestroyRoomReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_DestroyRoomReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &DestroyRoomReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<DestroyRoomReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &DestroyRoomReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<DestroyRoomReq>(), &DestroyRoomReq::ByteSizeLong,
+            &DestroyRoomReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(DestroyRoomReq, _impl_._cached_size_),
+        false,
+    },
+    &DestroyRoomReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* DestroyRoomReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<1, 2, 0, 48, 2> DestroyRoomReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    2, 8,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967292,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    2,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::DestroyRoomReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // string request_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(DestroyRoomReq, _impl_.request_id_)}},
+    // string room_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(DestroyRoomReq, _impl_.room_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string room_id = 1;
+    {PROTOBUF_FIELD_OFFSET(DestroyRoomReq, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string request_id = 2;
+    {PROTOBUF_FIELD_OFFSET(DestroyRoomReq, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\26\7\12\0\0\0\0\0"
+    "message.DestroyRoomReq"
+    "room_id"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void DestroyRoomReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.DestroyRoomReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.request_id_.ClearToEmpty();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* DestroyRoomReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const DestroyRoomReq& this_ = static_cast<const DestroyRoomReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* DestroyRoomReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const DestroyRoomReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.DestroyRoomReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // string room_id = 1;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.DestroyRoomReq.room_id");
+            target = stream->WriteStringMaybeAliased(1, _s, target);
+          }
+
+          // string request_id = 2;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.DestroyRoomReq.request_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.DestroyRoomReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t DestroyRoomReq::ByteSizeLong(const MessageLite& base) {
+          const DestroyRoomReq& this_ = static_cast<const DestroyRoomReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t DestroyRoomReq::ByteSizeLong() const {
+          const DestroyRoomReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.DestroyRoomReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 1;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string request_id = 2;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void DestroyRoomReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DestroyRoomReq*>(&to_msg);
+  auto& from = static_cast<const DestroyRoomReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.DestroyRoomReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DestroyRoomReq::CopyFrom(const DestroyRoomReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.DestroyRoomReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DestroyRoomReq::InternalSwap(DestroyRoomReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+}
+
+::google::protobuf::Metadata DestroyRoomReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class DestroyRoomRsp::_Internal {
+ public:
+};
+
+DestroyRoomRsp::DestroyRoomRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.DestroyRoomRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE DestroyRoomRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::DestroyRoomRsp& from_msg)
+      : room_id_(arena, from.room_id_),
+        request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+DestroyRoomRsp::DestroyRoomRsp(
+    ::google::protobuf::Arena* arena,
+    const DestroyRoomRsp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  DestroyRoomRsp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.error_ = from._impl_.error_;
+
+  // @@protoc_insertion_point(copy_constructor:message.DestroyRoomRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE DestroyRoomRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        request_id_(arena),
+        _cached_size_{0} {}
+
+inline void DestroyRoomRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.error_ = {};
+}
+DestroyRoomRsp::~DestroyRoomRsp() {
+  // @@protoc_insertion_point(destructor:message.DestroyRoomRsp)
+  SharedDtor(*this);
+}
+inline void DestroyRoomRsp::SharedDtor(MessageLite& self) {
+  DestroyRoomRsp& this_ = static_cast<DestroyRoomRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* DestroyRoomRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) DestroyRoomRsp(arena);
+}
+constexpr auto DestroyRoomRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(DestroyRoomRsp),
+                                            alignof(DestroyRoomRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull DestroyRoomRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_DestroyRoomRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &DestroyRoomRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<DestroyRoomRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &DestroyRoomRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<DestroyRoomRsp>(), &DestroyRoomRsp::ByteSizeLong,
+            &DestroyRoomRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_._cached_size_),
+        false,
+    },
+    &DestroyRoomRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* DestroyRoomRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 48, 2> DestroyRoomRsp::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::DestroyRoomRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 error = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(DestroyRoomRsp, _impl_.error_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.error_)}},
+    // string room_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.room_id_)}},
+    // string request_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.request_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 error = 1;
+    {PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.error_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string room_id = 2;
+    {PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string request_id = 3;
+    {PROTOBUF_FIELD_OFFSET(DestroyRoomRsp, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\26\0\7\12\0\0\0\0"
+    "message.DestroyRoomRsp"
+    "room_id"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void DestroyRoomRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.DestroyRoomRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.request_id_.ClearToEmpty();
+  _impl_.error_ = 0;
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* DestroyRoomRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const DestroyRoomRsp& this_ = static_cast<const DestroyRoomRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* DestroyRoomRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const DestroyRoomRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.DestroyRoomRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 error = 1;
+          if (this_._internal_error() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_error(), target);
+          }
+
+          // string room_id = 2;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.DestroyRoomRsp.room_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string request_id = 3;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.DestroyRoomRsp.request_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.DestroyRoomRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t DestroyRoomRsp::ByteSizeLong(const MessageLite& base) {
+          const DestroyRoomRsp& this_ = static_cast<const DestroyRoomRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t DestroyRoomRsp::ByteSizeLong() const {
+          const DestroyRoomRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.DestroyRoomRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 2;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string request_id = 3;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+            // int32 error = 1;
+            if (this_._internal_error() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_error());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void DestroyRoomRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<DestroyRoomRsp*>(&to_msg);
+  auto& from = static_cast<const DestroyRoomRsp&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.DestroyRoomRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  if (from._internal_error() != 0) {
+    _this->_impl_.error_ = from._impl_.error_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void DestroyRoomRsp::CopyFrom(const DestroyRoomRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.DestroyRoomRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void DestroyRoomRsp::InternalSwap(DestroyRoomRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+        swap(_impl_.error_, other->_impl_.error_);
+}
+
+::google::protobuf::Metadata DestroyRoomRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class RoomDestroyedBroadcast::_Internal {
+ public:
+};
+
+RoomDestroyedBroadcast::RoomDestroyedBroadcast(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.RoomDestroyedBroadcast)
+}
+inline PROTOBUF_NDEBUG_INLINE RoomDestroyedBroadcast::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::RoomDestroyedBroadcast& from_msg)
+      : room_id_(arena, from.room_id_),
+        reason_(arena, from.reason_),
+        _cached_size_{0} {}
+
+RoomDestroyedBroadcast::RoomDestroyedBroadcast(
+    ::google::protobuf::Arena* arena,
+    const RoomDestroyedBroadcast& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  RoomDestroyedBroadcast* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.operator_uid_ = from._impl_.operator_uid_;
+
+  // @@protoc_insertion_point(copy_constructor:message.RoomDestroyedBroadcast)
+}
+inline PROTOBUF_NDEBUG_INLINE RoomDestroyedBroadcast::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : room_id_(arena),
+        reason_(arena),
+        _cached_size_{0} {}
+
+inline void RoomDestroyedBroadcast::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.operator_uid_ = {};
+}
+RoomDestroyedBroadcast::~RoomDestroyedBroadcast() {
+  // @@protoc_insertion_point(destructor:message.RoomDestroyedBroadcast)
+  SharedDtor(*this);
+}
+inline void RoomDestroyedBroadcast::SharedDtor(MessageLite& self) {
+  RoomDestroyedBroadcast& this_ = static_cast<RoomDestroyedBroadcast&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.reason_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* RoomDestroyedBroadcast::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) RoomDestroyedBroadcast(arena);
+}
+constexpr auto RoomDestroyedBroadcast::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(RoomDestroyedBroadcast),
+                                            alignof(RoomDestroyedBroadcast));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull RoomDestroyedBroadcast::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_RoomDestroyedBroadcast_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &RoomDestroyedBroadcast::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<RoomDestroyedBroadcast>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &RoomDestroyedBroadcast::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<RoomDestroyedBroadcast>(), &RoomDestroyedBroadcast::ByteSizeLong,
+            &RoomDestroyedBroadcast::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_._cached_size_),
+        false,
+    },
+    &RoomDestroyedBroadcast::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* RoomDestroyedBroadcast::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 52, 2> RoomDestroyedBroadcast::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::RoomDestroyedBroadcast>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // string room_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.room_id_)}},
+    // int32 operator_uid = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(RoomDestroyedBroadcast, _impl_.operator_uid_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.operator_uid_)}},
+    // string reason = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.reason_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string room_id = 1;
+    {PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // int32 operator_uid = 2;
+    {PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.operator_uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string reason = 3;
+    {PROTOBUF_FIELD_OFFSET(RoomDestroyedBroadcast, _impl_.reason_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\36\7\0\6\0\0\0\0"
+    "message.RoomDestroyedBroadcast"
+    "room_id"
+    "reason"
+  }},
+};
+
+PROTOBUF_NOINLINE void RoomDestroyedBroadcast::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.RoomDestroyedBroadcast)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.reason_.ClearToEmpty();
+  _impl_.operator_uid_ = 0;
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* RoomDestroyedBroadcast::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const RoomDestroyedBroadcast& this_ = static_cast<const RoomDestroyedBroadcast&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* RoomDestroyedBroadcast::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const RoomDestroyedBroadcast& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.RoomDestroyedBroadcast)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // string room_id = 1;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.RoomDestroyedBroadcast.room_id");
+            target = stream->WriteStringMaybeAliased(1, _s, target);
+          }
+
+          // int32 operator_uid = 2;
+          if (this_._internal_operator_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<2>(
+                    stream, this_._internal_operator_uid(), target);
+          }
+
+          // string reason = 3;
+          if (!this_._internal_reason().empty()) {
+            const std::string& _s = this_._internal_reason();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.RoomDestroyedBroadcast.reason");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.RoomDestroyedBroadcast)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t RoomDestroyedBroadcast::ByteSizeLong(const MessageLite& base) {
+          const RoomDestroyedBroadcast& this_ = static_cast<const RoomDestroyedBroadcast&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t RoomDestroyedBroadcast::ByteSizeLong() const {
+          const RoomDestroyedBroadcast& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.RoomDestroyedBroadcast)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string room_id = 1;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string reason = 3;
+            if (!this_._internal_reason().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_reason());
+            }
+            // int32 operator_uid = 2;
+            if (this_._internal_operator_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_operator_uid());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void RoomDestroyedBroadcast::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<RoomDestroyedBroadcast*>(&to_msg);
+  auto& from = static_cast<const RoomDestroyedBroadcast&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.RoomDestroyedBroadcast)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_reason().empty()) {
+    _this->_internal_set_reason(from._internal_reason());
+  }
+  if (from._internal_operator_uid() != 0) {
+    _this->_impl_.operator_uid_ = from._impl_.operator_uid_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void RoomDestroyedBroadcast::CopyFrom(const RoomDestroyedBroadcast& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.RoomDestroyedBroadcast)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void RoomDestroyedBroadcast::InternalSwap(RoomDestroyedBroadcast* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.reason_, &other->_impl_.reason_, arena);
+        swap(_impl_.operator_uid_, other->_impl_.operator_uid_);
+}
+
+::google::protobuf::Metadata RoomDestroyedBroadcast::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LogoutReq::_Internal {
+ public:
+};
+
+LogoutReq::LogoutReq(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.LogoutReq)
+}
+inline PROTOBUF_NDEBUG_INLINE LogoutReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::LogoutReq& from_msg)
+      : token_(arena, from.token_),
+        request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+LogoutReq::LogoutReq(
+    ::google::protobuf::Arena* arena,
+    const LogoutReq& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LogoutReq* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  _impl_.uid_ = from._impl_.uid_;
+
+  // @@protoc_insertion_point(copy_constructor:message.LogoutReq)
+}
+inline PROTOBUF_NDEBUG_INLINE LogoutReq::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : token_(arena),
+        request_id_(arena),
+        _cached_size_{0} {}
+
+inline void LogoutReq::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  _impl_.uid_ = {};
+}
+LogoutReq::~LogoutReq() {
+  // @@protoc_insertion_point(destructor:message.LogoutReq)
+  SharedDtor(*this);
+}
+inline void LogoutReq::SharedDtor(MessageLite& self) {
+  LogoutReq& this_ = static_cast<LogoutReq&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.token_.Destroy();
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* LogoutReq::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) LogoutReq(arena);
+}
+constexpr auto LogoutReq::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(LogoutReq),
+                                            alignof(LogoutReq));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull LogoutReq::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_LogoutReq_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &LogoutReq::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<LogoutReq>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &LogoutReq::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<LogoutReq>(), &LogoutReq::ByteSizeLong,
+            &LogoutReq::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_._cached_size_),
+        false,
+    },
+    &LogoutReq::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* LogoutReq::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 41, 2> LogoutReq::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::LogoutReq>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogoutReq, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.uid_)}},
+    // string token = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.token_)}},
+    // string request_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.request_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string token = 2;
+    {PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.token_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string request_id = 3;
+    {PROTOBUF_FIELD_OFFSET(LogoutReq, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\21\0\5\12\0\0\0\0"
+    "message.LogoutReq"
+    "token"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void LogoutReq::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.LogoutReq)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.token_.ClearToEmpty();
+  _impl_.request_id_.ClearToEmpty();
+  _impl_.uid_ = 0;
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* LogoutReq::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const LogoutReq& this_ = static_cast<const LogoutReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* LogoutReq::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const LogoutReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.LogoutReq)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          // string token = 2;
+          if (!this_._internal_token().empty()) {
+            const std::string& _s = this_._internal_token();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LogoutReq.token");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string request_id = 3;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LogoutReq.request_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.LogoutReq)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t LogoutReq::ByteSizeLong(const MessageLite& base) {
+          const LogoutReq& this_ = static_cast<const LogoutReq&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t LogoutReq::ByteSizeLong() const {
+          const LogoutReq& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.LogoutReq)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string token = 2;
+            if (!this_._internal_token().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_token());
+            }
+            // string request_id = 3;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+            // int32 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void LogoutReq::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<LogoutReq*>(&to_msg);
+  auto& from = static_cast<const LogoutReq&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.LogoutReq)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_token().empty()) {
+    _this->_internal_set_token(from._internal_token());
+  }
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void LogoutReq::CopyFrom(const LogoutReq& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.LogoutReq)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LogoutReq::InternalSwap(LogoutReq* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.token_, &other->_impl_.token_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+        swap(_impl_.uid_, other->_impl_.uid_);
+}
+
+::google::protobuf::Metadata LogoutReq::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class LogoutRsp::_Internal {
+ public:
+};
+
+LogoutRsp::LogoutRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.LogoutRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE LogoutRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::LogoutRsp& from_msg)
+      : request_id_(arena, from.request_id_),
+        _cached_size_{0} {}
+
+LogoutRsp::LogoutRsp(
+    ::google::protobuf::Arena* arena,
+    const LogoutRsp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  LogoutRsp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, error_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, error_),
+           offsetof(Impl_, uid_) -
+               offsetof(Impl_, error_) +
+               sizeof(Impl_::uid_));
+
+  // @@protoc_insertion_point(copy_constructor:message.LogoutRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE LogoutRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : request_id_(arena),
+        _cached_size_{0} {}
+
+inline void LogoutRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, error_),
+           0,
+           offsetof(Impl_, uid_) -
+               offsetof(Impl_, error_) +
+               sizeof(Impl_::uid_));
+}
+LogoutRsp::~LogoutRsp() {
+  // @@protoc_insertion_point(destructor:message.LogoutRsp)
+  SharedDtor(*this);
+}
+inline void LogoutRsp::SharedDtor(MessageLite& self) {
+  LogoutRsp& this_ = static_cast<LogoutRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.request_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* LogoutRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) LogoutRsp(arena);
+}
+constexpr auto LogoutRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(LogoutRsp),
+                                            alignof(LogoutRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull LogoutRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_LogoutRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &LogoutRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<LogoutRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &LogoutRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<LogoutRsp>(), &LogoutRsp::ByteSizeLong,
+            &LogoutRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_._cached_size_),
+        false,
+    },
+    &LogoutRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* LogoutRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 0, 36, 2> LogoutRsp::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::LogoutRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 error = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogoutRsp, _impl_.error_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.error_)}},
+    // int32 uid = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(LogoutRsp, _impl_.uid_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.uid_)}},
+    // string request_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.request_id_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 error = 1;
+    {PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.error_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // int32 uid = 2;
+    {PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string request_id = 3;
+    {PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.request_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }},
+  // no aux_entries
+  {{
+    "\21\0\0\12\0\0\0\0"
+    "message.LogoutRsp"
+    "request_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void LogoutRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.LogoutRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.request_id_.ClearToEmpty();
+  ::memset(&_impl_.error_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.uid_) -
+      reinterpret_cast<char*>(&_impl_.error_)) + sizeof(_impl_.uid_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* LogoutRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const LogoutRsp& this_ = static_cast<const LogoutRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* LogoutRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const LogoutRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.LogoutRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 error = 1;
+          if (this_._internal_error() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_error(), target);
+          }
+
+          // int32 uid = 2;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<2>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          // string request_id = 3;
+          if (!this_._internal_request_id().empty()) {
+            const std::string& _s = this_._internal_request_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.LogoutRsp.request_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.LogoutRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t LogoutRsp::ByteSizeLong(const MessageLite& base) {
+          const LogoutRsp& this_ = static_cast<const LogoutRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t LogoutRsp::ByteSizeLong() const {
+          const LogoutRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.LogoutRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string request_id = 3;
+            if (!this_._internal_request_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_request_id());
+            }
+            // int32 error = 1;
+            if (this_._internal_error() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_error());
+            }
+            // int32 uid = 2;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void LogoutRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<LogoutRsp*>(&to_msg);
+  auto& from = static_cast<const LogoutRsp&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.LogoutRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_request_id().empty()) {
+    _this->_internal_set_request_id(from._internal_request_id());
+  }
+  if (from._internal_error() != 0) {
+    _this->_impl_.error_ = from._impl_.error_;
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void LogoutRsp::CopyFrom(const LogoutRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.LogoutRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void LogoutRsp::InternalSwap(LogoutRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.request_id_, &other->_impl_.request_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.uid_)
+      + sizeof(LogoutRsp::_impl_.uid_)
+      - PROTOBUF_FIELD_OFFSET(LogoutRsp, _impl_.error_)>(
+          reinterpret_cast<char*>(&_impl_.error_),
+          reinterpret_cast<char*>(&other->_impl_.error_));
+}
+
+::google::protobuf::Metadata LogoutRsp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

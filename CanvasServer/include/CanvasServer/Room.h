@@ -45,7 +45,9 @@ public:
 	bool GrantEdit(int uid);								//授权用户编辑画板
 	bool RevokeEdit(int uid);								//取消用户编辑权限
 
+	bool TryJoin(std::shared_ptr<CSession> session); // 仅接受活动房间的有效会话。
 	void Join(std::shared_ptr<CSession> session);				//加入房间
+	bool Leave(int uid, const CSession* expected_session); // 移除预期会话及编辑授权，不操作 Redis。
 	void Leave(int uid);										//用户离开
 
 	// 广播消息
@@ -70,7 +72,15 @@ public:
 	bool ApplyTextOperation(const message::TextOperation& operation, message::TextOperationRsp& response); // 原子更新文字状态、版本和历史。
 	void FillTextState(message::TextOperationRsp& response); // 失败响应附带当前目标状态和版本。
 
+	bool BeginLeave(int uid, const CSession* expected_session); // 标记成员退出中，暂停其房间操作。
+	bool ContainsSession(int uid, const CSession* expected_session) const; // 比较具体成员会话，保护重连。
+	bool BeginClose(); // 封住房间，重复解散保持关闭中。
+	bool IsClosing() const; // 返回房间是否禁止新操作。
+	std::vector<std::shared_ptr<CSession>> FinishClose(); // 清空全部状态并返回结束通知快照。
+	bool AcceptDraw(std::shared_ptr<CSession> session, const message::DrawReq& request, const std::string& body); // 原子接受绘画、记录历史并入队广播。
+
 private:
+	bool IsActiveMemberLocked(int uid) const; // 已持有房间锁时检查活动成员。
 	void RebuildTextHistoryIndexLocked(); // 裁剪后重新建立文字创建历史下标。
 	void FillTextStateLocked(message::TextOperationRsp& response); // 已持有房间锁时填写目标当前状态。
 	void AppendHistoryLocked(HistoryEntry entry); // 在已持有房间锁时追加历史并执行裁剪；公共入口 AppendHistory 负责加锁
@@ -80,6 +90,9 @@ private:
 	std::string _name; // 房间显示名称。
     int _owner_uid = 0; // 房主用户 ID。
 
+	bool _is_closing = false; // 关闭开始后不再接受任何房间业务。
+	bool _is_closed = false; // Redis 与内存清理完成的终态。
+	std::unordered_set<int> _leaving_users; // Redis 清理未确认的退出中成员。
 	mutable std::mutex _mutex;		// 互斥锁：保护 _sessions、_history 和房间状态
 	std::map<int, std::shared_ptr<CSession>> _sessions;	// 房间内的用户列表: UID -> Session
 	std::unordered_set<int> _editable_users;			//被房主授权可编辑画板的用户集合

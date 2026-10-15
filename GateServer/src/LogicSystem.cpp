@@ -297,6 +297,32 @@ LogicSystem::LogicSystem()	//构造函数
 		return true;
 		});
 
+	// 账号注销归逻辑服所有，禁止记录请求中的凭据。
+	RegPost("/user_logout", [](std::shared_ptr<HttpConnection> connection) {
+		// 1. 参数失败直接返回，不执行账号 RPC。
+		connection->_response.set(boost::beast::http::field::content_type, "application/json");
+		Json::Value request;
+		Json::Value response;
+		Json::Reader reader;
+		const std::string body = boost::beast::buffers_to_string(connection->_request.body().data());
+		response["error"] = message::Error_Json;
+		if (reader.parse(body, request) && request["uid"].isInt() && request["token"].isString() && request["request_id"].isString())
+		{
+			// 2. 原子注销自身处理过期及重复请求，不先执行普通 Token 校验。
+			message::LogoutReq logout_request;
+			logout_request.set_uid(request["uid"].asInt());
+			logout_request.set_token(request["token"].asString());
+			logout_request.set_request_id(request["request_id"].asString());
+			const auto result = LogicGrpcClient::getInstance()->Logout(logout_request);
+			response["error"] = result.error();
+			response["uid"] = result.uid();
+			response["request_id"] = result.request_id();
+		}
+		// 3. 返回可关联的结果，客户端确认后才释放账号状态。
+		boost::beast::ostream(connection->_response.body()) << response.toStyledString();
+		return true;
+	});
+
 	// 注册房间语音 Token 请求
 	RegPost("/voice_token", [](std::shared_ptr<HttpConnection> connection) {
 		auto body_str = boost::beast::buffers_to_string(connection->_request.body().data());

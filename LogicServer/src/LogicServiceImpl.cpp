@@ -281,3 +281,21 @@ Status LogicServiceImpl::UpdateAvatar(ServerContext* context, const UpdateAvatar
     reply->set_uid(request->uid());
     return Status::OK;
 }
+
+Status LogicServiceImpl::Logout(ServerContext* context, const message::LogoutReq* request, message::LogoutRsp* reply)
+{
+    // 1. 保留请求关联，重复注销不要求 Token 仍然存在。
+    (void)context;
+    reply->set_uid(request->uid());
+    reply->set_request_id(request->request_id());
+    if (request->uid() <= 0 || request->token().empty() || request->token().size() > 128 ||
+        request->request_id().empty() || request->request_id().size() > 128)
+    {
+        reply->set_error(message::TokenInvalid);
+        return Status::OK;
+    }
+    // 2. 原子撤销指定凭据，其他设备的新登录不会被旧请求删除。
+    reply->set_error(RedisMgr::getInstance()->RevokeToken(request->uid(), request->token()));
+    LOG_INFO_CTX("LogicServiceImpl::Logout", "注销 uid=" << request->uid() << " error=" << reply->error());
+    return Status::OK;
+}

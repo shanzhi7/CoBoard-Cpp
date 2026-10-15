@@ -1,4 +1,7 @@
 #include "CanvasServer/CSession.h"
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+#include <iostream>
 #include "CanvasServer/Room.h"
 #include "CanvasServer/LogicSystem.h"
 #include "CanvasServer/SessionMgr.h"
@@ -214,7 +217,7 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				auto room = _room.lock();	//weak ptr获取
+				auto room = GetRoomLocked();	//weak ptr获取
 				if (!room)	//用户还没加入房间
 				{
 					std::cout << "[CSession] DrawReq rejected: not in room. UID=" << _uid << std::endl;
@@ -250,39 +253,9 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				//广播给其他人
-				std::string rawBinary(recv_node->_data, recv_node->_cur_len);
-
-				//--写入房间内存 history,记录用
-				// - Pen/Eraser: START + MOVE(flush) + END , - 其他图形: START + END（MOVE 不预览、不写 history）
-				{
-					const auto shape = drawReq.shape();	// 图形类型
-					const auto cmd = drawReq.cmd();		// 命令类型
-
-					const bool is_pen_like = (shape == message::SHAPE_PEN || shape == message::SHAPE_ERASER);
-					bool should_record = false;			//标记是否应该记录
-
-					if (is_pen_like)
-					{
-						// 画笔需要 MOVE 才能更新路径
-						should_record = (cmd == message::CMD_START ||
-							cmd == message::CMD_MOVE ||
-							cmd == message::CMD_END);
-					}
-					else
-					{
-						// 其他图形，只放行最终结果
-						should_record = (cmd == message::CMD_START ||
-							cmd == message::CMD_END);
-					}
-					if (should_record)	//需要记录，添加到历史记录 (画笔和图形都要，图形类不需要MOVE，MOVE是预览)
-					{
-						room->AppendHistory(rawBinary);
-					}
-				}
-
-				// 除了发消息的人，其他人转发给自己
-				room->Broadcast(rawBinary, ID_DRAW_RSP, _uid);
+				// 1. 房间在同一锁内接受绘画、写历史并入发送队列，关闭后不会再接受旧操作。
+				const std::string body(recv_node->_data, recv_node->_cur_len);
+				room->AcceptDraw(self, drawReq, body);
 
 				ReadHead();	//读取下一个消息头
 				return;
@@ -304,33 +277,16 @@ void CSession::ReadBody(short msg_id, short msg_len)
 //资源清理
 void CSession::Close()
 {
-	// atomic exchange 会将 _b_close 设为 true，并返回之前的值
-		// 如果之前已经是 true，说明别的线程正在关，我就直接返回
-	bool expected = false;
-	if (!_b_close.compare_exchange_strong(expected, true))
-	{
-		return;
-	}
-
-
-	// 从 SessionMgr 移除 (防止 LogicServer 踢人时找不到)
-	if (_uid != 0)
-	{
-		SessionMgr::getInstance()->RemoveSession(_uid);
-	}
-
-	// 从房间移除 (通知房间里的其他人)
-	if (auto room = _room.lock())
-	{
-		room->Leave(_uid);
-	}
-
-
-	// 关闭 socket
-	boost::system::error_code ec;
-	_socket.close(ec);
-
-	std::cout << "Session closed, UID: " << _uid << std::endl;
+	// 1. 原子标记关闭，重复回调不会重复投递清理事件。
+	if (_b_close.exchange(true)) return;
+	// 2. 房间和账号索引统一在业务队列中清理，IO 线程不访问业务容器。
+	LogicSystem::getInstance()->PostSessionClosed(shared_from_this());
+	// 3. 实际套接字关闭在它所属的 executor 执行，Token 不随 TCP 断开撤销。
+	auto self = shared_from_this();
+	boost::asio::post(_socket.get_executor(), [self]() {
+		boost::system::error_code error;
+		self->_socket.close(error);
+	});
 }
 
 boost::asio::ip::tcp::socket& CSession::GetSocket()
@@ -355,7 +311,9 @@ int CSession::GetUserId()
 
 void CSession::SetRoom(std::shared_ptr<Room> room)
 {
-	this->_room = room;
+	// 1. 使用会话状态锁同步业务线程与 IO 线程。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	_room = room;
 }
 bool CSession::IsClosed()
 {
@@ -364,23 +322,54 @@ bool CSession::IsClosed()
 
 std::string CSession::GetName()
 {
+	// 1. 在短锁内复制状态，不向调用者暴露受保护引用。
+	std::lock_guard<std::mutex> lock(_state_mutex);
 	return _name;
 }
 void CSession::SetName(const std::string& name)
 {
+	// 1. 使用会话状态锁同步业务线程与 IO 线程。
+	std::lock_guard<std::mutex> lock(_state_mutex);
 	_name = name;
 }
 
 void CSession::SetAvatarUrl(const std::string& avatar_url)
 {
+	// 1. 使用会话状态锁同步业务线程与 IO 线程。
+	std::lock_guard<std::mutex> lock(_state_mutex);
 	_avatar_url = avatar_url;
 }
 
 std::string CSession::GetAvatarUrl()
 {
-	return this->_avatar_url;
+	// 1. 在短锁内复制状态，不向调用者暴露受保护引用。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	return _avatar_url;
 }
 std::shared_ptr<Room> CSession::GetRoomLocked()
 {
-    return this->_room.lock();
+	// 1. 在短锁内复制状态，不向调用者暴露受保护引用。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	return _room.lock();
+}
+
+void CSession::ClearRoom(const Room* expected_room)
+{
+	// 1. 延迟清理只解绑原房间，不影响后续绑定。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	if (_room.lock().get() == expected_room) _room.reset();
+}
+
+std::string CSession::GetToken()
+{
+	// 1. 内部认证校验只取得副本，凭据不进入日志。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	return _token;
+}
+
+void CSession::SetToken(const std::string& token)
+{
+	// 1. 只保存登录 handler 已验证的凭据。
+	std::lock_guard<std::mutex> lock(_state_mutex);
+	_token = token;
 }

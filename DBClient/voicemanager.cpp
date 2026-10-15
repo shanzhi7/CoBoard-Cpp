@@ -15,29 +15,33 @@
 VoiceManager::VoiceManager()
     : _network_manager(new QNetworkAccessManager(this))
 {
+    // 1. Token 请求与状态交付由 Qt 线程的事件循环驱动。
 }
 
 VoiceManager::~VoiceManager()
 {
+    // 1. 应用关闭必须等待全部后台线程，防止 SDK 释放后继续访问资源。
     leaveRoom();
 }
 
 void VoiceManager::joinRoom(const QString& room_id)
 {
-    // 房间加入成功后才请求语音 Token，避免离线画板触发网络请求。
-    qInfo() << "[VoiceManager] request room:" << room_id;
+    // 1. 房间确认后才请求语音；同一会话不重复初始化设备。
     if (room_id.isEmpty())
     {
         emit sig_error(QStringLiteral("语音房间号为空"));
         setState(State::Error);
         return;
     }
+    if (_state.load() != State::Disconnected && _room_id == room_id) return;
 
-    if (_state.load() != State::Disconnected && _room_id == room_id)
+    // 2. 旧连接及平台音频先异步释放，防止同一设备被两个会话同时占用。
+    LeaveRoomAsync();
+    if (!_cleanup_threads.isEmpty())
+    {
+        _pending_join_room_id = room_id;
         return;
-
-    // 切换房间前先清理旧连接，保证同一客户端只保留一个语音会话。
-    leaveRoom();
+    }
     _room_id = room_id;
     setState(State::RequestingToken);
     requestVoiceToken(room_id);
@@ -45,44 +49,79 @@ void VoiceManager::joinRoom(const QString& room_id)
 
 void VoiceManager::leaveRoom()
 {
-    // 先清空房间标识，让尚未投递的旧请求和旧回调失效。
-    _room_id.clear();
+    // 1. 仅在应用关闭时同步回收线程，正常退房使用 LeaveRoomAsync。
+    LeaveRoomAsync();
+    const auto cleanup_threads = _cleanup_threads;
+    for (QThread* cleanup_thread : cleanup_threads)
+    {
+        disconnect(cleanup_thread, nullptr, this, nullptr);
+        cleanup_thread->wait();
+        delete cleanup_thread;
+    }
+    _cleanup_threads.clear();
+}
 
-    // 取消尚未完成的 Token 请求，避免离开房间后继续创建新的 Room。
+void VoiceManager::LeaveRoomAsync()
+{
+    // 1. 先废弃所有旧回调和待加入目标，取消 Token 请求不触发新的连接。
+    ++_voice_generation;
+    _room_id.clear();
+    _pending_join_room_id.clear();
     if (_token_reply)
     {
-        _token_reply->abort();
+        QNetworkReply* reply = _token_reply;
         _token_reply = nullptr;
+        reply->abort();
     }
 
-    // Room::connect 可能仍在工作线程中阻塞，先等待线程结束再销毁 Room。
-    if (_connect_thread)
-    {
-        _connect_thread->wait();
-        _connect_thread->deleteLater();
-        _connect_thread = nullptr;
-    }
-
-    if (_room)
-    {
-        // 先注销回调，再断开连接，避免断开过程中继续访问 VoiceManager。
-        _room->setDelegate(nullptr);
-        // disconnect 可以从非 delegate 线程调用；这里不在 SDK 回调内部执行。
-        _room->disconnect();
-    }
-
-    _audio_track.reset();
-    _audio_source.reset();
-    _platform_audio.reset();
-    _room.reset();
-    _room_id.clear();
+    // 2. 立即停止麦克风并移交资源，连接线程仍只访问自己捕获的 Room。
+    if (_audio_track) _audio_track->mute();
+    if (_room) _room->setDelegate(nullptr);
+    QThread* connect_thread = _connect_thread;
+    _connect_thread = nullptr;
+    if (connect_thread) disconnect(connect_thread, nullptr, nullptr, nullptr);
     _audio_suspended.store(false);
-
-    // 顺手清空设备缓存，避免下次进房持有旧会话的脏数据
     _cached_recording_devices.clear();
     _cached_playout_devices.clear();
-
     setState(State::Disconnected);
+    if (!_room && !_platform_audio && !connect_thread)
+    {
+        if (_cleanup_threads.isEmpty()) emit SigRoomLeft();
+        return;
+    }
+
+    // 3. 耗时 wait、disconnect 和设备析构在后台完成；线程终止后由 Qt 线程回收。
+    QThread* cleanup_thread = QThread::create([
+        connect_thread, room = std::move(_room), audio_track = std::move(_audio_track),
+        audio_source = std::move(_audio_source), platform_audio = std::move(_platform_audio)]() mutable {
+        if (connect_thread)
+        {
+            connect_thread->wait();
+            delete connect_thread;
+        }
+        try
+        {
+            if (room) room->disconnect();
+        } catch (const std::exception& exception)
+        {
+            qWarning() << "[VoiceManager] LeaveRoomAsync disconnect failed:" << exception.what();
+        }
+        audio_track.reset();
+        audio_source.reset();
+        platform_audio.reset();
+        room.reset();
+    });
+    _cleanup_threads.append(cleanup_thread);
+    connect(cleanup_thread, &QThread::finished, this, [this, cleanup_thread]() {
+        _cleanup_threads.removeOne(cleanup_thread);
+        cleanup_thread->deleteLater();
+        if (!_cleanup_threads.isEmpty()) return;
+        const QString pending_room = _pending_join_room_id;
+        _pending_join_room_id.clear();
+        emit SigRoomLeft();
+        if (!pending_room.isEmpty()) joinRoom(pending_room);
+    });
+    cleanup_thread->start();
 }
 
 void VoiceManager::suspendAudio()
@@ -110,6 +149,7 @@ void VoiceManager::resumeAudio()
 
 QVector<VoiceManager::AudioDevice> VoiceManager::recordingDevices() const
 {
+    // 1. 从当前平台音频枚举设备并刷新稳定 ID 缓存，失败返回空列表。
     QVector<AudioDevice> devices;
     if (!_platform_audio)
         return devices;
@@ -123,8 +163,7 @@ QVector<VoiceManager::AudioDevice> VoiceManager::recordingDevices() const
             devices.append(dev);
             _cached_recording_devices.insert(dev.id,dev);
         }
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         qWarning() << "[VoiceManager] enumerate recording devices failed:"
                    << QString::fromUtf8(exception.what());
@@ -134,6 +173,7 @@ QVector<VoiceManager::AudioDevice> VoiceManager::recordingDevices() const
 
 QVector<VoiceManager::AudioDevice> VoiceManager::playoutDevices() const
 {
+    // 1. 从当前平台音频枚举输出设备并刷新缓存，旧会话设备不跨退出保留。
     QVector<AudioDevice> devices;
     if (!_platform_audio)
         return devices;
@@ -147,8 +187,7 @@ QVector<VoiceManager::AudioDevice> VoiceManager::playoutDevices() const
             devices.append(dev);
             _cached_playout_devices.insert(dev.id,dev);
         }
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         qWarning() << "[VoiceManager] enumerate playout devices failed:"
                    << QString::fromUtf8(exception.what());
@@ -186,11 +225,10 @@ bool VoiceManager::setRecordingDevice(const QString& device_id)
         if (!_room || room_id.isEmpty())
             return false;
 
-        leaveRoom();
+        LeaveRoomAsync();
         joinRoom(room_id);
         return true;
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         const QString message = QString::fromUtf8(exception.what());
         qWarning() << "[VoiceManager] set recording device failed:" << message;
@@ -228,11 +266,10 @@ bool VoiceManager::setPlayoutDevice(const QString& device_id)
         if (!_room || room_id.isEmpty())
             return false;
 
-        leaveRoom();
+        LeaveRoomAsync();
         joinRoom(room_id);
         return true;
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         const QString message = QString::fromUtf8(exception.what());
         qWarning() << "[VoiceManager] set playout device failed:" << message;
@@ -279,7 +316,7 @@ VoiceManager::State VoiceManager::state() const
 
 void VoiceManager::requestVoiceToken(const QString& room_id)
 {
-    // GateServer 会先校验 app_token，再向 VerifyServer 请求 LiveKit 短期 Token。
+    // 1. GateServer 会先校验 app_token，再向 VerifyServer 请求 LiveKit 短期 Token。
     qInfo() << "[VoiceManager] POST /voice_token room:" << room_id;
     QJsonObject request_body;
     request_body[QStringLiteral("uid")] = UserMgr::getInstance()->getUid();
@@ -294,7 +331,9 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
         QJsonDocument(request_body).toJson(QJsonDocument::Compact));
     _token_reply = reply;
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, room_id]() {
+    // 2. 同一房间重新加入也必须拒绝旧代次的请求结果。
+    const quint64 generation = _voice_generation.load();
+    connect(reply, &QNetworkReply::finished, this, [this, reply, room_id, generation]() {
         const QByteArray response_data = reply->readAll();
         const QString network_error = reply->errorString();
         const bool request_succeeded = reply->error() == QNetworkReply::NoError;
@@ -303,7 +342,7 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
         reply->deleteLater();
 
         // 离开房间或切换房间后，忽略旧请求的响应，避免误连到旧房间。
-        if (_room_id != room_id)
+        if (_room_id != room_id || _voice_generation.load() != generation)
             return;
 
         if (!request_succeeded)
@@ -343,7 +382,7 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
 
 void VoiceManager::connectLiveKit(const QString& url, const QString& token)
 {
-    // LiveKit 的 connect 是阻塞调用，必须放到独立线程，不能阻塞 Qt UI 线程。
+    // 1. LiveKit 的 connect 是阻塞调用，必须放到独立线程，不能阻塞 Qt UI 线程。
     qInfo() << "[VoiceManager] connecting to LiveKit";
     try
     {
@@ -351,8 +390,7 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
         // WebRTC ADM 拒绝为 Device not found。
         _platform_audio = std::make_unique<livekit::PlatformAudio>();
         applyPreferredAudioDevices();
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         qWarning() << "[VoiceManager] platform audio init failed:"
                    << QString::fromUtf8(exception.what());
@@ -360,44 +398,50 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
         _platform_audio.reset();
     }
 
+    // 2. 捕获本轮 Room 和代次，后台连接不访问可能已被移交的成员。
     _room = std::make_unique<livekit::Room>();
     _room->setDelegate(this);       //设置livekit代理对象
     setState(State::Connecting);
 
     const std::string server_url = url.toStdString();
     const std::string access_token = token.toStdString();
-    _connect_thread = QThread::create([this, server_url, access_token]() {
+    livekit::Room* connecting_room = _room.get();
+    const quint64 generation = _voice_generation.load();
+    _connect_thread = QThread::create([this, server_url, access_token, connecting_room, generation]() {
         livekit::RoomOptions options;
         // 自动订阅远端轨道，否则不会收到远端语音。
         options.auto_subscribe = true;
 
         try
         {
-            const bool connected = _room->connect(server_url, access_token, options);   //触发onCnnectionStateChanged回调
+            const bool connected = connecting_room->connect(server_url, access_token, options);   //触发onCnnectionStateChanged回调
             qInfo() << "[VoiceManager] Room::connect returned:" << connected;
             if (!connected)
             {
-                QMetaObject::invokeMethod(this, [this]() {
+                QMetaObject::invokeMethod(this, [this, generation]() {
+                    if (_voice_generation.load() != generation) return;
                     emit sig_error(QStringLiteral("LiveKit 房间连接失败"));
                     setState(State::Error);
                 }, Qt::QueuedConnection);
             }
-        }
-        catch (const std::exception& exception)
+        } catch (const std::exception& exception)
         {
             const QString message = QString::fromUtf8(exception.what());
-            QMetaObject::invokeMethod(this, [this, message]() { //投递错误到UI线程处理
+            QMetaObject::invokeMethod(this, [this, message, generation]() {
+                if (_voice_generation.load() != generation) return;
                 emit sig_error(QStringLiteral("LiveKit 连接异常: ") + message);
                 setState(State::Error);
             }, Qt::QueuedConnection);
         }
     });
 
-    connect(_connect_thread, &QThread::finished, this, [this]() {
+    // 3. 已完成的连接线程仅由当前拥有者回收，清理线程接手后不重复删除。
+    QThread* connect_thread = _connect_thread;
+    connect(connect_thread, &QThread::finished, this, [this, connect_thread]() {
+        if (_connect_thread != connect_thread) return;
         _connect_thread = nullptr;
+        connect_thread->deleteLater();
     });
-    connect(_connect_thread, &QThread::finished,
-            _connect_thread, &QObject::deleteLater);
     _connect_thread->start();
 }
 
@@ -420,8 +464,7 @@ void VoiceManager::applyPreferredAudioDevices()
                 _platform_audio->setRecordingDevice(_preferred_recording_device_id.toStdString());
                 emit sig_audio_device_changed(true, _preferred_recording_device_id);
             }
-        }
-        catch (const std::exception& exception)
+        } catch (const std::exception& exception)
         {
             qWarning() << "[VoiceManager] apply recording device failed:"
                        << QString::fromUtf8(exception.what());
@@ -442,8 +485,7 @@ void VoiceManager::applyPreferredAudioDevices()
                 _platform_audio->setPlayoutDevice(_preferred_playout_device_id.toStdString());
                 emit sig_audio_device_changed(false, _preferred_playout_device_id);
             }
-        }
-        catch (const std::exception& exception)
+        } catch (const std::exception& exception)
         {
             qWarning() << "[VoiceManager] apply playout device failed:"
                        << QString::fromUtf8(exception.what());
@@ -453,6 +495,7 @@ void VoiceManager::applyPreferredAudioDevices()
 
 void VoiceManager::publishMicrophone()
 {
+    // 1. 当前 Room 只发布一条麦克风轨道，自动重连复用现有音轨。
     if (!_room || !_platform_audio) //livekit房间对象或者声卡硬件层未初始化
         return;
 
@@ -482,8 +525,7 @@ void VoiceManager::publishMicrophone()
         participant->publishTrack(_audio_track, options);           //将本地音轨正式推流到 LiveKit 房间(触发底层 WebRTC 的 PeerConnection::AddTrack)
         setMicrophoneEnabled(_microphone_enabled.load());           //恢复并应用预设的静音开关状态
         qInfo() << "[VoiceManager] microphone published";
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         // publishTrack 失败时释放已创建的对象，允许后续真正的连接恢复再次尝试。
         _audio_track.reset();
@@ -496,6 +538,7 @@ void VoiceManager::publishMicrophone()
 
 void VoiceManager::handleConnected()
 {
+    // 1. 只为当前房间初始化或恢复音频，重复 Connected 不重复发布。
     if (!_room || _room_id.isEmpty())
         return;
 
@@ -520,8 +563,7 @@ void VoiceManager::handleConnected()
         applySpeakerState();    //订阅远端音频
         setState(State::Connected);
         qInfo() << "[VoiceManager] voice connected, audio initialized";
-    }
-    catch (const std::exception& exception)
+    } catch (const std::exception& exception)
     {
         qWarning() << "[VoiceManager] platform audio init failed:"
                    << QString::fromUtf8(exception.what());
@@ -562,40 +604,46 @@ void VoiceManager::setState(State state)
 void VoiceManager::onConnectionStateChanged(
     livekit::Room& room, const livekit::ConnectionStateChangedEvent& event)
 {
-    // 连接回调来自 LiveKit 线程，不能在这里初始化音频设备或发布轨道，交给UI线程初始化，防止阻塞过长导致连接超时。
-    if (event.state == livekit::ConnectionState::Connected)
-    {
-        // 连接切换期间，旧 Room 的排队回调不能初始化新 Room 的音频资源。
-        livekit::Room* connected_room = &room;
-        QMetaObject::invokeMethod(this, [this, connected_room]() {
-            if (_room.get() != connected_room)
-                return;
-            handleConnected();
-        }, Qt::QueuedConnection);
-    }
-    else if (event.state == livekit::ConnectionState::Reconnecting)
-    {
-        setState(State::Reconnecting);
-    }
-    else
-    {
-        setState(State::Disconnected);
-    }
+    // 1. SDK 回调只排队，状态和音频都在 Qt 线程验证当前 Room 及代次。
+    livekit::Room* source_room = &room;
+    const quint64 generation = _voice_generation.load();
+    const auto connection_state = event.state;
+    QMetaObject::invokeMethod(this, [this, source_room, generation, connection_state]() {
+        if (_voice_generation.load() != generation || _room.get() != source_room) return;
+        if (connection_state == livekit::ConnectionState::Connected) handleConnected();
+        else if (connection_state == livekit::ConnectionState::Reconnecting) setState(State::Reconnecting);
+        else setState(State::Disconnected);
+    }, Qt::QueuedConnection);
 }
 
-void VoiceManager::onDisconnected(livekit::Room&, const livekit::DisconnectedEvent&)
+void VoiceManager::onDisconnected(livekit::Room& room, const livekit::DisconnectedEvent&)
 {
-    setState(State::Disconnected);
+    // 1. 已退出房间的断开回调不能覆盖新房间状态。
+    livekit::Room* source_room = &room;
+    const quint64 generation = _voice_generation.load();
+    QMetaObject::invokeMethod(this, [this, source_room, generation]() {
+        if (_voice_generation.load() == generation && _room.get() == source_room) setState(State::Disconnected);
+    }, Qt::QueuedConnection);
 }
 
-void VoiceManager::onReconnecting(livekit::Room&, const livekit::ReconnectingEvent&)
+void VoiceManager::onReconnecting(livekit::Room& room, const livekit::ReconnectingEvent&)
 {
-    setState(State::Reconnecting);
+    // 1. 只更新仍被管理器拥有的语音连接。
+    livekit::Room* source_room = &room;
+    const quint64 generation = _voice_generation.load();
+    QMetaObject::invokeMethod(this, [this, source_room, generation]() {
+        if (_voice_generation.load() == generation && _room.get() == source_room) setState(State::Reconnecting);
+    }, Qt::QueuedConnection);
 }
 
-void VoiceManager::onReconnected(livekit::Room&, const livekit::ReconnectedEvent&)
+void VoiceManager::onReconnected(livekit::Room& room, const livekit::ReconnectedEvent&)
 {
-    setState(State::Connected);
+    // 1. 恢复音频前确认本轮房间，旧重连不能重新发布麦克风。
+    livekit::Room* source_room = &room;
+    const quint64 generation = _voice_generation.load();
+    QMetaObject::invokeMethod(this, [this, source_room, generation]() {
+        if (_voice_generation.load() == generation && _room.get() == source_room) handleConnected();
+    }, Qt::QueuedConnection);
 }
 
 void VoiceManager::onTrackPublished(
@@ -620,9 +668,9 @@ void VoiceManager::onTrackSubscribed(
 }
 
 void VoiceManager::onActiveSpeakersChanged(
-    livekit::Room&, const livekit::ActiveSpeakersChangedEvent& event)
+    livekit::Room& room, const livekit::ActiveSpeakersChangedEvent& event)
 {
-    // Participant 指针由 Room 管理，只在回调内转换为身份字符串，不跨线程保存。
+    // 1. Participant 指针由 Room 管理，只在回调内转换为身份字符串，不跨线程保存。
     QStringList identities;
     for (livekit::Participant* participant : event.speakers)
     {
@@ -630,5 +678,10 @@ void VoiceManager::onActiveSpeakersChanged(
             identities.append(QString::fromStdString(participant->identity()));
     }
 
-    emit sig_active_speakers_changed(identities);
+    // 2. 旧 Room 的成员列表不能覆盖新房间 UI。
+    livekit::Room* source_room = &room;
+    const quint64 generation = _voice_generation.load();
+    QMetaObject::invokeMethod(this, [this, source_room, generation, identities]() {
+        if (_voice_generation.load() == generation && _room.get() == source_room) emit sig_active_speakers_changed(identities);
+    }, Qt::QueuedConnection);
 }

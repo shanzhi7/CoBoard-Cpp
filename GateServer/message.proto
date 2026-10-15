@@ -35,6 +35,8 @@ enum ErrorCodes {
     RoomNotExist = 1041;      // 房间不存在 (房间号错误或已销毁)
     RoomAlreadyExist = 1042;  // 房间已存在 (ID冲突)
     RoomFull = 1043;          // 房间人数已满
+    RoomClosing = 1049; // 房间正在解散，拒绝新的操作。
+    OwnerMustDestroyRoom = 1050; // 房主必须解散房间，不能普通退出。
     RoomJoinFailed = 1044;    // 加入房间失败 (泛指)
     NotInRoom = 1045;         // 用户不在房间内 (非法操作)
     NotOwner = 1046;          // 权限不足 (非房主操作)
@@ -53,6 +55,11 @@ enum ErrorCodes {
 // 消息ID (用于 TCP 长连接区分包类型)
 enum MsgID {
     ID_UNKNOWN = 0;
+    ID_LEAVE_ROOM_REQ = 1033; // 普通成员退出请求。
+    ID_LEAVE_ROOM_RSP = 1034; // 普通成员退出完成。
+    ID_DESTROY_ROOM_REQ = 1035; // 房主解散请求。
+    ID_DESTROY_ROOM_RSP = 1036; // 房主解散完成。
+    ID_ROOM_DESTROYED_BROADCAST = 1037; // 房间解散通知。
     ID_LOGIN_REQ = 1001;      // 客户端连接 CanvasServer 发送的认证包
     ID_LOGIN_RSP = 1002;
     ID_DRAW_REQ = 1003;       // 绘画请求
@@ -75,6 +82,8 @@ service VarifyService
 // 逻辑业务服务 (LogicServer 实现)
 service LogicService
 {
+    // 原子撤销本次登录，重复注销安全。
+    rpc Logout (LogoutReq) returns (LogoutRsp) {}
     // 注册账号
     rpc RegisterUser (RegisterReq) returns (RegisterRsp) {} 
 
@@ -220,6 +229,7 @@ message UserJoinRoomBroadcast {
 
 // 广播：有人离开了
 message UserLeaveRoomBroadcast {
+    string room_id = 3; // 成员离开的房间，旧客户端忽略该追加字段。
     int32 uid = 1;          // 离开的人的 UID
     string reason = 2;      // 离开原因
 }
@@ -394,4 +404,39 @@ message ChatRsp {
   string room_id = 4;
   string content = 5;
   uint64 server_ts = 6;
+}
+
+// 房间退出使用请求关联，重复发送不会重复清理后续会话。
+message LeaveRoomReq {
+    string room_id = 1; // 目标房间号。
+    string request_id = 2; // 本次退出 UUID，重试保持不变。
+}
+message LeaveRoomRsp {
+    int32 error = 1; // 服务端处理结果。
+    string room_id = 2; // 本次退出的房间号。
+    string request_id = 3; // 原样返回的请求关联。
+}
+message DestroyRoomReq {
+    string room_id = 1; // 房主请求解散的房间。
+    string request_id = 2; // 本次解散 UUID。
+}
+message DestroyRoomRsp {
+    int32 error = 1; // Redis 和内存清理完成后才返回成功。
+    string room_id = 2; // 已处理的房间号。
+    string request_id = 3; // 原样返回的请求关联。
+}
+message RoomDestroyedBroadcast {
+    string room_id = 1; // 已解散的房间。
+    int32 operator_uid = 2; // 发起解散的房主。
+    string reason = 3; // 可显示的结束原因。
+}
+message LogoutReq {
+    int32 uid = 1; // 当前账号 ID。
+    string token = 2; // 仅撤销本次登录的凭据，不得写入日志。
+    string request_id = 3; // 客户端注销 UUID。
+}
+message LogoutRsp {
+    int32 error = 1; // Token 原子撤销的结果。
+    int32 uid = 2; // 本次注销账号。
+    string request_id = 3; // 原样返回的请求关联。
 }

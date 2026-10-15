@@ -48,12 +48,15 @@ public:
     void enterOfflineMode(); // 进入离线画板模式
     void resetForReconnect(); // 断线回大厅时调用
     void ClearSession(); // 退出账号时清除画布、聊天和账号显示。
+    void ClearRoom(); // 清除已结束房间的场景、任务和聊天，保留账号资料。
+    void SetExitState(bool busy, bool can_retry); // 等待退出时暂停交互，失败后开放原请求重试。
     void resumeVoice(); // 从大厅返回画板时恢复语音音频
 protected:
     virtual bool eventFilter(QObject* watched, QEvent* event) override; // 事件过滤器
 
 signals:
     void sig_return_lobby(); // 返回大厅信号
+    void SigRoomExitRequested(); // 退出或解散由主窗口确认并交给生命周期控制器。
 
 public slots:
     void slot_creat_room_finish(std::shared_ptr<RoomInfo>); // 创建房间完成槽函数
@@ -104,9 +107,10 @@ private slots:
                              qulonglong ts); // 将房间聊天广播显示到聊天区域。
     void slot_onSendChatClicked();               //发送消息按钮槽函数
 
-    void on_return_btn_clicked();                //返回大厅槽函数
+    void OnReturnLobbyTriggered(); // 从返回菜单暂回大厅，在线时保留房间身份。
 
 private:
+    void UpdateReturnActions(bool can_retry = false); // 按房主身份及退出状态更新返回菜单。
     void UpdateTextControls(); // 按工具和选中文字同步字号及加粗控件。
     void SubmitTextOperation(message::TextOperationType type, const TextItemData& before,
                              const TextItemData& after, bool is_undo = false); // 提交文字操作并锁定该目标直到确认。
@@ -131,6 +135,7 @@ private:
     PaintScene* _paintScene; // 画布场景
     WidthPopup* _widthPopup; // 画笔粗细预览窗口
     std::shared_ptr<RoomInfo> _room_info; // 当前房间信息
+    bool _exit_busy = false; // 生命周期未完成时禁止画布交互和新任务。
     QMap<int, QTreeWidgetItem*> _userItemMap; // 用户列表
 
     QButtonGroup* _toolGroup; // 工具按钮组

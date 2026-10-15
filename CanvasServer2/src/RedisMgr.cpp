@@ -1,6 +1,7 @@
 #include "CanvasServer/RedisMgr.h"
 #include "CanvasServer/ConfigMgr.h"
 #include "Logger/Logger.h"
+#include "CanvasServer/message.pb.h"
 #include <unordered_map>
 #include <iterator>
 
@@ -27,6 +28,9 @@ bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd
         connection_options.port = port;
         connection_options.password = pwd;
         connection_options.keep_alive = true;
+        // 1. Redis 故障必须在有限时间内返回，生命周期请求保留重试状态。
+        connection_options.connect_timeout = std::chrono::milliseconds(1000);
+        connection_options.socket_timeout = std::chrono::milliseconds(2000);
 
         ConnectionPoolOptions pool_options;
         pool_options.size = 5; // 默认池大小
@@ -37,8 +41,7 @@ bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd
         _redis->ping();
         LOG_INFO_CTX("RedisMgr::Connect", "Redis 连接成功");
         return true;
-    }
-    catch (const Error& e)
+    } catch (const Error& e)
     {
         LOG_ERROR_CTX("RedisMgr::Connect", "Redis 连接失败: " << e.what());
         return false;
@@ -225,47 +228,36 @@ bool RedisMgr::CreateRoom(const std::string& room_id, const RoomInfo& room_info)
 
 bool RedisMgr::GetRoomInfo(const std::string& room_id, RoomInfo& room_info)
 {
-    try
-    {
-        std::string key = ROOM_PREFIX + room_id;
-        std::unordered_map<std::string, std::string> result;    //定义返回结果
+    // 1. 兼容已有读取入口；需要区分错误的生命周期流程使用 ReadRoomInfo。
+    return ReadRoomInfo(room_id, room_info) == message::SUCCESS;
+}
 
-        _redis->hgetall(key, std::inserter(result,result.begin()));
-        if (result.empty())
-        {
-            std::cout << "[RedisMgr] GetRoomInfo Error: room not exists" << std::endl;
-            return false;
-        }
-
-        if (result.count("width"))
-        {
-            room_info.width = std::stoi(result["width"]);
-        }
-        if (result.count("height"))
-        {
-            room_info.height = std::stoi(result["height"]);
-        }
-        if (result.count("owner_uid"))
-        {
-            room_info.owner_uid = std::stoi(result["owner_uid"]);
-        }
-        if (result.count("host"))
-        {
-            room_info.host = result["host"];
-        }
-        if (result.count("port"))
-        {
-            room_info.port = std::stoi(result["port"]);
-        }
-        room_info.name = result["name"];
-        return true;
-    }
-    catch (const Error& e)
-    {
-        std::cerr << "[RedisMgr] GetRoomInfo Error: " << e.what() << std::endl;
-        return false;
-    }
-
+int RedisMgr::ReadRoomInfo(const std::string& room_id, RoomInfo& room_info)
+{
+	// 1. 读取完整元数据，空记录与通信失败分别返回。
+	try
+	{
+		std::unordered_map<std::string, std::string> values;
+		_redis->hgetall(std::string(ROOM_PREFIX) + room_id, std::inserter(values, values.begin()));
+		if (values.empty()) return message::RoomNotExist;
+		// 2. 恢复必须包含归属地址和房主，损坏记录不能被当作合法房间。
+		room_info.id = room_id;
+		room_info.name = values.at("name");
+		room_info.owner_uid = std::stoi(values.at("owner_uid"));
+		room_info.host = values.at("host");
+		room_info.port = std::stoi(values.at("port"));
+		if (values.count("width")) room_info.width = std::stoi(values.at("width"));
+		if (values.count("height")) room_info.height = std::stoi(values.at("height"));
+		return message::SUCCESS;
+	} catch (const Error& error)
+	{
+		LOG_ERROR_CTX("RedisMgr::ReadRoomInfo", "读取失败 room_id=" << room_id << " error=" << error.what());
+		return message::RedisErr;
+	} catch (const std::exception& error)
+	{
+		LOG_ERROR_CTX("RedisMgr::ReadRoomInfo", "房间数据损坏 room_id=" << room_id << " error=" << error.what());
+		return message::ServerInternalErr;
+	}
 }
 
 bool RedisMgr::AddUserToRoom(const std::string& room_id, const std::string& uid)
@@ -306,4 +298,39 @@ bool RedisMgr::RemoveUserFromRoom(const std::string& room_id, const std::string&
 void RedisMgr::Close()
 {
 	_redis.reset();
+}
+int RedisMgr::VerifySessionToken(int uid, const std::string& token)
+{
+	// 1. 退出是低频操作，重新检查凭据，旧登录不能操作新登录创建的房间。
+	try
+	{
+		const auto value = _redis->get(std::string(TOKEN_PREFIX) + token);
+		return value && *value == std::to_string(uid) ? message::SUCCESS : message::TokenInvalid;
+	} catch (const Error& error)
+	{
+		LOG_ERROR_CTX("RedisMgr::VerifySessionToken", "认证查询失败 uid=" << uid << " error=" << error.what());
+		return message::RedisErr;
+	}
+}
+
+int RedisMgr::DeleteRoom(const std::string& room_id, int owner_uid)
+{
+	// 1. 校验共享记录仍属于该房主，再一次删除元数据和成员资格。
+	const std::string script = R"lua(
+local owner = redis.call('HGET', KEYS[1], 'owner_uid')
+if owner and owner ~= ARGV[1] then return -1 end
+redis.call('DEL', KEYS[1], KEYS[2])
+return 1
+)lua";
+	try
+	{
+		const auto result = _redis->eval<long long>(script,
+		{std::string(ROOM_PREFIX) + room_id, std::string(ROOM_USERS_PREFIX) + room_id}, {std::to_string(owner_uid)});
+		return result == 1 ? message::SUCCESS : message::NotOwner;
+	} catch (const Error& error)
+	{
+		// 2. 超时可能已经执行，返回可重试错误，内存房间继续保持关闭中。
+		LOG_ERROR_CTX("RedisMgr::DeleteRoom", "删除失败 room_id=" << room_id << " uid=" << owner_uid << " error=" << error.what());
+		return message::RedisErr;
+	}
 }

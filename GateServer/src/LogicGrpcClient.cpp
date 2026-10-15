@@ -123,3 +123,22 @@ VerifyTokenRsp LogicGrpcClient::VerifyToken(VerifyTokenReq req)
         << status.error_code() << ": " << status.error_message() << std::endl;
     return rsp;
 }
+
+message::LogoutRsp LogicGrpcClient::Logout(const message::LogoutReq& request)
+{
+	// 1. 逻辑服不可用时按截止时间返回，客户端可以重试相同请求。
+	ClientContext context;
+	context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(3));
+	message::LogoutRsp response;
+	const Status status = _stub->Logout(&context, request, &response);
+	// 2. 传输失败不能解释成已注销，错误日志不输出 Token。
+	if (!status.ok())
+	{
+		response.set_error(message::RPCFailed);
+		response.set_uid(request.uid());
+		response.set_request_id(request.request_id());
+		std::cerr << "[GateServer] Logout RPC failed uid=" << request.uid()
+			<< " error=" << status.error_code() << std::endl;
+	}
+	return response;
+}

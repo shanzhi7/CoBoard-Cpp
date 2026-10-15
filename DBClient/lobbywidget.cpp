@@ -20,6 +20,7 @@ LobbyWidget::LobbyWidget(QWidget *parent)
 {
     // 1. 初始化界面，绑定房间入口、账号退出和网络通知。
     ui->setupUi(this);
+    RefreshRoomActions(false);
     connect(ui->return_btn, &QPushButton::clicked, this, &LobbyWidget::OnLogoutTriggered);
     //连接点击，弹出创建房间对话框
     connect(ui->create_widget,&HoverWidget::clicked,this,&LobbyWidget::slot_create_clicked);
@@ -166,6 +167,9 @@ void LobbyWidget::initHandles_map()
 
 void LobbyWidget::slot_create_clicked()
 {
+    // 1. 未完成退出时不允许建立新房间，防止旧请求清理新上下文。
+    if (_exit_busy) return;
+    // 2. 无现有房间时询问画布参数并提交创建请求。
     bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
     if(isInRoom)
     {
@@ -204,6 +208,9 @@ void LobbyWidget::slot_create_clicked()
 
 void LobbyWidget::slot_join_clicked()
 {
+    // 1. 未完成退出时不允许加入其他房间，重试只使用原目标。
+    if (_exit_busy) return;
+    // 2. 校验现有房间身份后提交用户选择的加入目标。
     bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
     if(isInRoom)
     {
@@ -334,6 +341,8 @@ void LobbyWidget::slot_go_lobby(QString tip)
 
 void LobbyWidget::on_retRoom_btn_clicked()
 {
+    // 1. 返回房间只适用于没有退出事务且仍有房间身份的用户。
+    if (_exit_busy) return;
     bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
     if(!isInRoom)
     {
@@ -341,6 +350,33 @@ void LobbyWidget::on_retRoom_btn_clicked()
         return;
     }
     emit sig_returnRoom();
+}
+
+void LobbyWidget::SetExitState(bool busy, bool can_retry)
+{
+    // 1. 等待及重试期间禁用普通入口，注销重试不丢失当前账号。
+    _exit_busy = busy;
+    ui->create_widget->setEnabled(!busy);
+    ui->join_widget->setEnabled(!busy);
+    ui->upload_btn->setEnabled(!busy);
+    ui->retRoom_btn->setEnabled(!busy && _has_room);
+    ui->return_btn->setEnabled(!busy || can_retry);
+    // 2. 失败后的入口明确提示重试，控制器复用原 UUID。
+    ui->return_btn->setText(busy ? (can_retry ? QStringLiteral("重试退出账号") : QStringLiteral("正在退出…"))
+        : QStringLiteral("退出账号"));
+}
+
+void LobbyWidget::RefreshRoomActions(bool has_room)
+{
+    // 1. 暂回大厅保留业务身份，返回画板后可通过返回菜单退出或解散房间。
+    _has_room = has_room;
+    ui->retRoom_btn->setEnabled(has_room && !_exit_busy && UserMgr::getInstance()->IsHaveRoom());
+}
+
+void LobbyWidget::ShowMessage(const QString& message)
+{
+    // 1. 提示保留在大厅，不另开阻塞对话框影响网络及清理完成回调。
+    TipWidget::showTip(ui->draw_label, message);
 }
 
 void LobbyWidget::ClearSession()

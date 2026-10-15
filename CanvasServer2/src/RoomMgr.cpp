@@ -43,12 +43,13 @@ std::shared_ptr<Room> RoomMgr::GetRoom(const std::string& room_id)
 	return nullptr;
 }
 
-void RoomMgr::RemoveRoom(const std::string& room_id)
+void RoomMgr::RemoveRoom(const std::string& room_id, const Room* expected_room)
 {
 	std::lock_guard<std::mutex> lock(_mutex);
 
 	auto it = _rooms.find(room_id);
-	if (it != _rooms.end())
+	// 1. 仅移除调用方已完成清理的房间，延迟事件不能误删新实例。
+	if (it != _rooms.end() && it->second.get() == expected_room)
 	{
 		_rooms.erase(it);
 		LOG_INFO_CTX("RoomMgr::RemoveRoom", "移除房间 room_id=" << room_id << " total=" << _rooms.size());

@@ -10,6 +10,7 @@
 #include "CSession.h" // 包含 LogicNode 和 CSession 定义
 #include "ImageOperationHandler.h"
 #include "TextOperationHandler.h"
+#include "RoomLifecycleHandler.h"
 #include <map>
 #include <thread>
 #include <queue>
@@ -28,6 +29,7 @@ public:
 	~LogicSystem(); // 停止队列并回收业务工作线程。
 
 	// 发送消息到逻辑队列 (由 CSession 调用)
+	void PostSessionClosed(std::shared_ptr<CSession> session); // 将断线清理投递到现有业务队列。
 	void PostMsgToQue(std::shared_ptr<LogicNode> msg); // 将会话消息加入线程安全业务队列。
 
 private:
@@ -57,6 +59,7 @@ private:
 	// 取消用户编辑权限
 	void HandleRevokeEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data); // 由房主收回成员编辑权限。
 
+	RoomLifecycleHandler _room_lifecycle_handler; // 生命周期编排和有界完成记录，不创建额外线程。
 	std::thread _work_thread;							// 工作线程,用于回复客户端
 	std::queue<std::shared_ptr<LogicNode>> _msg_queue;	// 消息队列，存放session与recvNode
 	std::mutex _mutex;								// 保护逻辑消息队列，避免网络线程并发入队

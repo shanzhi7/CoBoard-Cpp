@@ -2,7 +2,6 @@
 #include "CanvasServer/ConfigMgr.h"
 #include "CanvasServer/CSession.h"
 #include "CanvasServer/const.h"
-#include "CanvasServer/RedisMgr.h"
 #include "Logger/Logger.h"
 
 Room::Room(const std::string& room_id)
@@ -20,7 +19,9 @@ Room::~Room()
 // 实现：加入历史记录
 void Room::AppendHistory(const std::string& raw_body, short msg_id)
 {
+    // 1. 关闭后禁止历史写入，活动房间沿用统一裁剪规则。
     std::lock_guard<std::mutex> lock(_mutex);
+    if (_is_closing) return;
     // 公共入口只负责加锁；绘画路径和图片路径共用同一裁剪规则，锁内逻辑统一走 AppendHistoryLocked。
     AppendHistoryLocked(HistoryEntry{ msg_id, raw_body, std::string() });
 }
@@ -113,14 +114,21 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 	// 1. 同一房间锁内校验目标版本及权限，普通请求按服务端接收顺序生效。
 	std::lock_guard<std::mutex> lock(_mutex);
 	response.Clear();
+	if (!IsActiveMemberLocked(operation.uid()))
+	{
+		response.set_error(_is_closing ? message::RoomClosing : message::NotInRoom);
+		*response.mutable_operation() = operation;
+		FillTextStateLocked(response);
+		return false;
+	}
 	*response.mutable_operation() = operation;
 	const std::string item_id = operation.target_item_id();
 	auto iterator = _text_itemMap.find(item_id);
 	const std::uint64_t known_sequence = _text_sequenceMap.count(item_id) ? _text_sequenceMap.at(item_id) : 0;
 	if (operation.operation_type() < message::TEXT_CREATE || operation.operation_type() > message::TEXT_DELETE ||
-		(operation.uid() != _owner_uid && _editable_users.count(operation.uid()) == 0) ||
-		(operation.expected_sequence() != 0 && operation.expected_sequence() != known_sequence) ||
-		(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 : iterator == _text_itemMap.end()))
+	(operation.uid() != _owner_uid && _editable_users.count(operation.uid()) == 0) ||
+	(operation.expected_sequence() != 0 && operation.expected_sequence() != known_sequence) ||
+	(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 : iterator == _text_itemMap.end()))
 	{
 		response.set_error(message::TextStateConflict);
 		response.set_error_message("文字状态已改变、已删除或没有编辑权限");
@@ -186,7 +194,9 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 
 bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* normalized_body)
 {
+    // 1. 房间关闭和成员退出必须与图元提交使用同一接受边界。
     std::lock_guard<std::mutex> lock(_mutex);
+    if (!IsActiveMemberLocked(operation.uid())) return false;
 
     // 序列化失败虽然通常只会在内存分配异常时发生，但仍需保留旧索引和序号，
     // 确保失败操作不会造成“房间状态已变更但没有广播”的隐性分叉。
@@ -201,8 +211,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
         {
             max_image_items = static_cast<std::size_t>(std::stoull(configured));
         }
-    }
-    catch (const std::exception&)
+    } catch (const std::exception&)
     {
         max_image_items = MAX_IMAGE_ITEMS;
     }
@@ -219,8 +228,8 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
     if (operation.operation_type() == message::IMAGE_CREATE)
     {
         if (_image_items.size() >= max_image_items
-            || requested_item_id.empty()
-            || _image_items.find(requested_item_id) != _image_items.end())
+        || requested_item_id.empty()
+        || _image_items.find(requested_item_id) != _image_items.end())
         {
             return false;
         }
@@ -287,51 +296,51 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
         // 记录 item_id 与创建条目下标，后续变换更新据此定位并改写该条目。
         _image_create_index[target_item_id] = _history.size();
         AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP,
-                                          normalized_body ? *normalized_body : std::string(),
-                                          target_item_id });
+            normalized_body ? *normalized_body : std::string(),
+            target_item_id });
         break;
 
     case message::IMAGE_UPDATE_TRANSFORM:
-    {
-        auto index_it = _image_create_index.find(target_item_id);
-        if (index_it != _image_create_index.end())
         {
-            // 解析旧创建正文，只替换变换字段后重新序列化；元数据与创建者信息保持原样，
-            // 回放侧拿到的仍是合法 CREATE 操作，只是几何状态为最新值。
-            message::ImageOperation stored_operation;
-            if (stored_operation.ParseFromString(_history[index_it->second]._body))
+            auto index_it = _image_create_index.find(target_item_id);
+            if (index_it != _image_create_index.end())
             {
-                *stored_operation.mutable_item()->mutable_transform() = operation.item().transform();
-                std::string rewritten_body;
-                if (stored_operation.SerializeToString(&rewritten_body))
+                // 解析旧创建正文，只替换变换字段后重新序列化；元数据与创建者信息保持原样，
+                // 回放侧拿到的仍是合法 CREATE 操作，只是几何状态为最新值。
+                message::ImageOperation stored_operation;
+                if (stored_operation.ParseFromString(_history[index_it->second]._body))
                 {
-                    _history[index_it->second]._body = std::move(rewritten_body);
+                    *stored_operation.mutable_item()->mutable_transform() = operation.item().transform();
+                    std::string rewritten_body;
+                    if (stored_operation.SerializeToString(&rewritten_body))
+                    {
+                        _history[index_it->second]._body = std::move(rewritten_body);
+                    }
+                    // 重新序列化失败时保留旧正文：仅影响回放位置精度，不值得为此回滚已生效的在线广播。
                 }
-                // 重新序列化失败时保留旧正文：仅影响回放位置精度，不值得为此回滚已生效的在线广播。
             }
-        }
-        else
-        {
-            // 创建条目已被历史裁剪淘汰时重新注入一条创建记录，避免图元仍存在但新成员永远收不到它。
-            // operation.item() 在更新分支已复制为完整最新状态，直接改写类型即为合法 CREATE。
-            message::ImageOperation create_operation = operation;
-            create_operation.set_operation_type(message::IMAGE_CREATE);
-            std::string create_body;
-            if (create_operation.SerializeToString(&create_body))
+            else
             {
-                _image_create_index[target_item_id] = _history.size();
-                AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP, create_body, target_item_id });
+                // 创建条目已被历史裁剪淘汰时重新注入一条创建记录，避免图元仍存在但新成员永远收不到它。
+                // operation.item() 在更新分支已复制为完整最新状态，直接改写类型即为合法 CREATE。
+                message::ImageOperation create_operation = operation;
+                create_operation.set_operation_type(message::IMAGE_CREATE);
+                std::string create_body;
+                if (create_operation.SerializeToString(&create_body))
+                {
+                    _image_create_index[target_item_id] = _history.size();
+                    AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP, create_body, target_item_id });
+                }
             }
+            break;
         }
-        break;
-    }
 
     case message::IMAGE_DELETE:
         // 删除必须追加进历史：新成员需要知道图元已被移除；同时清除索引防止后续改写悬空条目。
         _image_create_index.erase(target_item_id);
         AppendHistoryLocked(HistoryEntry{ ID_IMAGE_OPERATION_RSP,
-                                          normalized_body ? *normalized_body : std::string(),
-                                          std::string() });
+            normalized_body ? *normalized_body : std::string(),
+            std::string() });
         break;
 
     default:
@@ -342,105 +351,74 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
 
 void Room::Join(std::shared_ptr<CSession> session)
 {
-
-    if (!session)
-    {
-        LOG_WARN_CTX("Room::Join", "加入房间失败: session 为空");
-        return;
-    }
-    if (session->IsClosed())
-    {
-        LOG_WARN_CTX("Room::Join", "加入房间失败: session 已关闭 uid=" << session->GetUserId());
-        return;
-    }
-
-    int uid = session->GetUserId();
-    if (uid == 0) // 未登录用户不允许加入
-    {
-        return;
-    }
-    bool first_join = false;    // 是否是第一次加入
-    std::vector<HistoryEntry> history_snapshot;
-
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-
-        // 是否第一次加入
-        if (_sessions.find(uid) == _sessions.end())
-            first_join = true;
-
-        // 只给“首次加入”的人回放历史
-        if (first_join && !_history.empty())
-        {
-            history_snapshot = _history;
-        }
-
-        // 历史包必须在房间锁内先进入该会话的发送队列，再把会话加入房间。
-        // 否则历史包通过 executor 异步投递期间，其他用户的新绘画可能先入队，
-        // 接收端会先收到 MOVE/END，再收到 START，表现为加入房间后图形不完整。
-        if (first_join)
-        {
-            for (const auto& entry : history_snapshot)
-                session->Send(entry._body, entry._msg_id);
-        }
-
-        _sessions[uid] = session;
-        session->SetRoom(shared_from_this());   //这样 Session 断开时知道通知哪个房间,session有room的弱指针
-
-        LOG_INFO_CTX("Room::Join", "用户加入 room_id=" << _room_id << " uid=" << uid
-            << " total=" << _sessions.size());
-
-        // 双重保险,加入后再查一次
-        // 如果刚才加入的过程中那边断开了，现在赶紧把他踢出去
-        if (session->IsClosed())
-        {
-            _sessions.erase(uid); // 立即回滚
-            return;
-        }
-    }
-
-        // 只有第一次 join 才广播进入，通知其他用户，更新客户端ui
-    if (first_join)
-        BroadcastUserEnter(session);
-
+    // 1. 兼容旧调用入口，新的业务处理器检查 TryJoin 返回结果。
+    TryJoin(std::move(session));
 }
+
+bool Room::TryJoin(std::shared_ptr<CSession> session)
+{
+	// 1. 房间锁内确认活动状态，同一连接重复加入不重复回放。
+	if (!session || session->IsClosed() || session->GetUserId() == 0) return false;
+	const int uid = session->GetUserId();
+	bool first_join = false;
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		if (_is_closing || _leaving_users.count(uid)) return false;
+		auto iterator = _sessions.find(uid);
+		first_join = iterator == _sessions.end() || iterator->second != session;
+		// 2. 历史先入发送队列再发布成员；这里只入队，网络写入由 executor 执行。
+		if (first_join)
+		{
+			for (const auto& entry : _history) session->Send(entry._body, entry._msg_id);
+		}
+		_sessions[uid] = session;
+		session->SetRoom(shared_from_this());
+		if (session->IsClosed())
+		{
+			_sessions.erase(uid);
+			return false;
+		}
+	}
+	// 3. 新成员通知在房间锁外序列化并发送。
+	if (first_join) BroadcastUserEnter(session);
+	return true;
+}
+
 void Room::Leave(int uid)
 {
-    bool b_removed = false;
+    // 1. 保留旧内存接口，生命周期处理使用带具体会话的重载。
+    Leave(uid, nullptr);
+}
 
-    {
-        std::lock_guard<std::mutex> lock(_mutex);
-
-        //移除用户
-        auto it = _sessions.find(uid);
-        if (it != _sessions.end())
-        {
-            _sessions.erase(it);
-            LOG_INFO_CTX("Room::Leave", "用户离开 room_id=" << _room_id << " uid=" << uid
-                << " total=" << _sessions.size());
-            b_removed = true;
-
-        }
-    }   // 锁自动释放
-
-    if (b_removed)
-    {
-        // Redis 成员集合由网关用于签名授权；先移除已断开的 UID，再广播离开事件，避免短时间内继续获得房间资源权限。
-        RedisMgr::getInstance()->RemoveUserFromRoom(_room_id, std::to_string(uid));
-        // 【重点】广播通知其他人
-        BroadcastUserLeave(uid);
-    }
+bool Room::Leave(int uid, const CSession* expected_session)
+{
+	// 1. 只移除预期成员，旧连接的关闭事件不能清理新连接。
+	std::shared_ptr<CSession> removed;
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		auto iterator = _sessions.find(uid);
+		if (iterator == _sessions.end() || (expected_session && iterator->second.get() != expected_session)) return false;
+		removed = iterator->second;
+		_sessions.erase(iterator);
+		_editable_users.erase(uid);
+		_leaving_users.erase(uid);
+	}
+	// 2. 在房间锁外解除绑定；Redis 与广播由生命周期处理器统一编排。
+	if (removed) removed->ClearRoom(this);
+	return true;
 }
 
 void Room::Broadcast(const std::string& data, int msg_id, int exclude_uid)
-{ 
+{
+    // 1. 关闭中不再产生业务广播，结束通知直接使用清理快照。
+    if (IsClosing()) return;
     auto sessions = GetMemberSessionSnapshot(exclude_uid);     //获取快照(除自己),避免锁外操作
 
     // 遍历发送
     for (auto& session : sessions)
     {
-        if (!session || session->IsClosed()) 
-            continue;
+        if (!session || session->IsClosed())
+        continue;
 
         // 发送
         session->Send(data, msg_id);
@@ -472,8 +450,10 @@ void Room::BroadcastUserEnter(std::shared_ptr<CSession> session)
 // 实现：广播有人离开
 void Room::BroadcastUserLeave(int uid)
 {
+    // 1. 广播携带房间标识，客户端可以丢弃旧房间的迟到通知。
     message::UserLeaveRoomBroadcast msg;
     msg.set_uid(uid);
+    msg.set_room_id(_room_id);
 
     std::string sendData;
     if (msg.SerializeToString(&sendData))
@@ -511,14 +491,17 @@ std::vector<message::UserInfo> Room::GetMemberSnapshot()
 // 实现：获取房间内所有成员的Session快照（复制一份，防止期间有 添加/删除 引起的线程安全）
 std::vector<std::shared_ptr<CSession>> Room::GetMemberSessionSnapshot(int exclude_uid)
 {
+    // 1. 在房间锁内复制会话引用，排除目标 UID 后在锁外发送。
     std::vector<std::shared_ptr<CSession>> session_list;
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
         session_list.reserve(_sessions.size());
 
-        for (const auto& [uid, session] : _sessions)
+        for (const auto& member : _sessions)
         {
+            const int uid = member.first;
+            const auto& session = member.second;
             if (uid == exclude_uid)
             {
                 continue;
@@ -559,27 +542,28 @@ bool Room::IsOwner(int uid) const
 
 bool Room::HasMember(int uid) const
 {
+    // 1. 退出中成员不能继续使用房间业务资格。
     std::lock_guard<std::mutex> lock(_mutex);
-    auto it = _sessions.find(uid);
-    return it != _sessions.end() && it->second && !it->second->IsClosed();
+    return IsActiveMemberLocked(uid);
 }
 
 bool Room::CanEdit(int uid) const
 {
-    // 房主天然可编辑；普通成员需要被房主加入授权集合后才可编辑。
+    // 1. 房主也必须仍是活动成员，旧授权不能跨退出生效。
     std::lock_guard<std::mutex> lock(_mutex);
-    return uid != 0 && (uid == _owner_uid || _editable_users.count(uid) > 0);
+    return IsActiveMemberLocked(uid) && (uid == _owner_uid || _editable_users.count(uid) > 0);
 }
 
 bool Room::GrantEdit(int uid)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (uid == 0 || uid == _owner_uid)
-        return false;
+    // 1. 关闭或退出中的用户不能获得新授权。
+    if (!IsActiveMemberLocked(uid) || uid == _owner_uid)
+    return false;
 
     auto it = _sessions.find(uid);
     if (it == _sessions.end() || !it->second || it->second->IsClosed())
-        return false;
+    return false;
 
     _editable_users.insert(uid);
     return true;
@@ -588,8 +572,105 @@ bool Room::GrantEdit(int uid)
 bool Room::RevokeEdit(int uid)
 {
     std::lock_guard<std::mutex> lock(_mutex);
-    if (uid == 0 || uid == _owner_uid)
-        return false;
+    // 1. 房间关闭后禁止继续修改权限。
+    if (_is_closing || uid == 0 || uid == _owner_uid)
+    return false;
 
     return _editable_users.erase(uid) > 0;
+}
+
+bool Room::IsActiveMemberLocked(int uid) const
+{
+	// 1. 调用者持有房间锁，统一校验生命周期、成员及连接状态。
+	auto iterator = _sessions.find(uid);
+	return !_is_closing && !_leaving_users.count(uid) && iterator != _sessions.end() &&
+	iterator->second && !iterator->second->IsClosed();
+}
+
+bool Room::ContainsSession(int uid, const CSession* expected_session) const
+{
+	// 1. 此比较也允许关闭中的会话，用于精确清理原成员。
+	std::lock_guard<std::mutex> lock(_mutex);
+	auto iterator = _sessions.find(uid);
+	return iterator != _sessions.end() && iterator->second.get() == expected_session;
+}
+
+bool Room::BeginLeave(int uid, const CSession* expected_session)
+{
+	// 1. 封住成员的操作资格，Redis 超时后保持可重试状态。
+	std::lock_guard<std::mutex> lock(_mutex);
+	auto iterator = _sessions.find(uid);
+	if (_is_closing || iterator == _sessions.end() || iterator->second.get() != expected_session) return false;
+	_leaving_users.insert(uid);
+	return true;
+}
+
+bool Room::BeginClose()
+{
+	// 1. 已经关闭的房间不能重新开启，关闭中重复请求允许继续清理。
+	std::lock_guard<std::mutex> lock(_mutex);
+	if (_is_closed) return false;
+	_is_closing = true;
+	return true;
+}
+
+bool Room::IsClosing() const
+{
+	// 1. 使用同一房间锁观察操作接受边界。
+	std::lock_guard<std::mutex> lock(_mutex);
+	return _is_closing;
+}
+
+std::vector<std::shared_ptr<CSession>> Room::FinishClose()
+{
+	// 1. Redis 删除已确认后，在锁内清空成员、权限和全部图元状态。
+	std::vector<std::shared_ptr<CSession>> members;
+	{
+		std::lock_guard<std::mutex> lock(_mutex);
+		_is_closing = true;
+		_is_closed = true;
+		for (const auto& member : _sessions) members.push_back(member.second);
+		_sessions.clear();
+		_editable_users.clear();
+		_leaving_users.clear();
+		_history.clear();
+		_image_items.clear();
+		_image_create_index.clear();
+		_text_itemMap.clear();
+		_text_create_indexMap.clear();
+		_text_sequenceMap.clear();
+	}
+	// 2. 解绑和结束通知使用成员快照，不重新访问已经清空的容器。
+	for (const auto& member : members) if (member) member->ClearRoom(this);
+	return members;
+}
+
+bool Room::AcceptDraw(std::shared_ptr<CSession> session, const message::DrawReq& request, const std::string& body)
+{
+	// 1. 在同一房间锁内验证具体连接及编辑资格，避免校验后被退出或解散。
+	std::lock_guard<std::mutex> lock(_mutex);
+	const int uid = session->GetUserId();
+	auto iterator = _sessions.find(uid);
+	if (!IsActiveMemberLocked(uid) || iterator->second != session || request.uid() != uid ||
+	(uid != _owner_uid && !_editable_users.count(uid))) return false;
+	// 2. 清屏同时清理图片和文字；其他绘画沿用已有历史采样规则。
+	if (request.cmd() == message::CMD_CLEAR)
+	{
+		_history.clear();
+		_image_items.clear();
+		_image_create_index.clear();
+		_text_itemMap.clear();
+		_text_create_indexMap.clear();
+		_text_sequenceMap.clear();
+	}
+	const bool is_pen = request.shape() == message::SHAPE_PEN || request.shape() == message::SHAPE_ERASER;
+	if (request.cmd() == message::CMD_START || request.cmd() == message::CMD_END ||
+	(is_pen && request.cmd() == message::CMD_MOVE))
+	AppendHistoryLocked(HistoryEntry{ID_DRAW_RSP, body, std::string(), std::string()});
+	// 3. 发送队列入队属于接受事务；Send 只入队，实际网络写入在 IO 线程执行。
+	for (const auto& member : _sessions)
+	{
+		if (member.first != uid && member.second && !member.second->IsClosed()) member.second->Send(body, ID_DRAW_RSP);
+	}
+	return true;
 }

@@ -3,6 +3,10 @@
 #include "tcpmgr.h"
 #include "httpmgr.h"
 #include "voicemanager.h"
+#include "sessioncontroller.h"
+#include "usermgr.h"
+#include <QMessageBox>
+#include <QStatusBar>
 #include <QRandomGenerator>
 #include <QTimer>
 #include <QPainter>
@@ -60,7 +64,8 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
 
     // 8. 初始化独立画布窗口。
     canvas = new Canvas(test_options);
-    canvas->setAttribute(Qt::WA_DeleteOnClose);     //关闭自动释放
+    _session_controller = new SessionController(this);
+    BindSessionController();
 
     // 9. 绑定页面导航、房间切换和账号退出通知。
     connect(welcome_widget,&WelcomeWidget::switchLogin,this,&MainWindow::slotSwitchLogin);
@@ -136,6 +141,11 @@ MainWindow::MainWindow(const LatencyTestOptions& test_options, QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    // 1. 独立画布由主窗口统一拥有，关闭时先释放场景和异步任务。
+    delete _session_controller;
+    _session_controller = nullptr;
+    delete canvas;
+    // 2. Qt 继续回收主窗口拥有的页面及控制器。
     delete ui;
 }
 
@@ -306,7 +316,11 @@ void MainWindow::slotSwitchResetFromLogin()
 
 void MainWindow::slotSwitchLobby()
 {
-    // 取出当前中央部件（login_widget）并保存，不销毁
+    // 1. 登录完成后建立独立账号上下文，退出事务不沿用旧账号关联。
+    _session_controller->SetAccount(UserMgr::getInstance()->getUid(), UserMgr::getInstance()->getToken());
+    lobby_widget->SetExitState(false, false);
+    lobby_widget->RefreshRoomActions(false);
+    // 2. 保留登录部件后显示大厅，避免页面切换释放可复用窗口。
     login_widget = qobject_cast<LoginWidget*>(takeCentralWidget());
     if (login_widget)
     {
@@ -328,16 +342,24 @@ void MainWindow::slotSwitchOfflineCanvas()
 
 void MainWindow::slotSwitchCanvas(std::shared_ptr<RoomInfo> room_info)  //切换画布页面
 {
+    // 1. 先记录业务身份，意外断线只清画面，不丢失退出目标。
+    _session_controller->SetRoom(room_info);
+    // 2. 初始化创建成功的场景并显示独立画布。
     canvas->setRoomInfo(room_info);
     canvas->slot_creat_room_finish(room_info);
+    lobby_widget->RefreshRoomActions(true);
     canvas->show();
     this->hide();
 }
 
 void MainWindow::slotSwitchCanvasJoin(std::shared_ptr<RoomInfo> room_info)
 {
+    // 1. 首次加入和普通重连共用业务身份，退出专用连接不会触发此入口。
+    _session_controller->SetRoom(room_info);
+    // 2. 应用服务端成员和历史上下文后显示画布。
     canvas->setRoomInfo(room_info);
     canvas->slot_join_room_finish(room_info);
+    lobby_widget->RefreshRoomActions(true);
     canvas->show();
     this->hide();
 }
@@ -350,14 +372,15 @@ void MainWindow::slotSwitchLobbyFromCanvas()
 
 void MainWindow::slotLobbyReturnRoom()
 {
+    // 1. 未完成退出不能从大厅返回画板或恢复音频。
+    if (_session_controller->IsBusy()) return;
     bool isInRoom = UserMgr::getInstance()->IsHaveRoom();
     if(!isInRoom)
     {
         return;
     }
 
-    // 返回大厅期间 Canvas 主动断开了 LiveKit，重新显示画板时恢复当前房间语音。
-    // Canvas TCP 房间仍由原有流程维护，这里只触发语音 Token 和 LiveKit 重连。
+    // 2. 暂回大厅只暂停音频，返回时恢复同一语音会话。
     canvas->resumeVoice();
     canvas->show();
     this->hide();
@@ -365,10 +388,35 @@ void MainWindow::slotLobbyReturnRoom()
 
 void MainWindow::OnLogoutRequested()
 {
+    // 1. 未确认的入房可能已经在服务器完成，先等待结果，不能跳过房间清理。
+    if (TcpMgr::getInstance()->IsRoomRequestPending())
+    {
+        lobby_widget->ShowMessage(QStringLiteral("正在确认加入或创建结果，请稍后退出账号"));
+        return;
+    }
+    // 2. 房主注销包含解散，首次操作需明确告知；失败重试沿用已确认的目标。
+    if (!_session_controller->IsBusy() && _session_controller->IsRoomOwner() &&
+        QMessageBox::question(this, QStringLiteral("退出账号"),
+            QStringLiteral("退出账号将解散当前房间，所有成员都会退出。是否继续？")) != QMessageBox::Yes) return;
+    _session_controller->RequestLogout();
+}
+
+void MainWindow::OnRoomExitRequested()
+{
+    // 1. 普通成员直接退房，房主首次解散需确认，重试不会生成新请求。
+    if (!_session_controller->IsBusy() && _session_controller->IsRoomOwner() &&
+        QMessageBox::question(canvas->isVisible() ? static_cast<QWidget*>(canvas) : this,
+            QStringLiteral("解散房间"), QStringLiteral("解散后所有成员都会退出房间。是否继续？")) != QMessageBox::Yes) return;
+    // 2. 控制器统一选择普通退出或房主解散，包括暂回大厅后的操作。
+    _session_controller->RequestRoomExit();
+}
+
+void MainWindow::OnLogoutFinished()
+{
     // 1. 停止 TCP 重连并取消未完成的请求，旧回包不能再次建立账号会话。
     TcpMgr::getInstance()->Logout();
     HttpMgr::getInstance()->CancelPendingRequests();
-    VoiceManager::getInstance()->leaveRoom();
+    VoiceManager::getInstance()->LeaveRoomAsync();
     UserMgr::getInstance()->ClearSession();
 
     // 2. 清除房间、画布和账号界面状态，下次登录重新加载资料。
@@ -387,4 +435,48 @@ void MainWindow::OnLogoutRequested()
     setFixedSize(login_widget->size());
     login_widget->show();
     show();
+}
+
+void MainWindow::BindSessionController()
+{
+    // 1. 控制器只编排业务，传输组件负责鉴权、请求发送和结果解析。
+    auto* controller = _session_controller;
+    auto* tcp = TcpMgr::getInstance().get();
+    auto* http = HttpMgr::getInstance().get();
+    auto* voice = VoiceManager::getInstance().get();
+    connect(controller, &SessionController::SigExitPendingChanged, tcp, &TcpMgr::SetExitPending);
+    connect(controller, &SessionController::SigPrepareExitConnection, tcp, &TcpMgr::PrepareExitConnection);
+    connect(controller, &SessionController::SigSendRoomRequest, tcp, &TcpMgr::slot_send_data);
+    connect(controller, &SessionController::SigSendLogoutRequest, http, &HttpMgr::RequestLogout);
+    connect(tcp, &TcpMgr::SigExitConnectionReady, controller, &SessionController::OnExitConnectionReady);
+    connect(tcp, &TcpMgr::SigRoomExitResponse, controller, &SessionController::OnRoomResponse);
+    connect(tcp, &TcpMgr::SigRoomDestroyed, controller, &SessionController::OnRoomDestroyed);
+    connect(tcp, &TcpMgr::SigExitTransportFailed, controller, &SessionController::OnTransportFailure);
+    connect(http, &HttpMgr::SigLogoutFinished, controller, &SessionController::OnLogoutResponse);
+
+    // 2. 确认结束后各模块清理自己拥有的资源，语音回收完成再推进注销。
+    connect(controller, &SessionController::SigRoomCleanupRequested, this, [this, tcp]() {
+        canvas->ClearRoom();
+        tcp->ClearRoomRecovery();
+        UserMgr::getInstance()->setIsHaveRoom(false);
+        lobby_widget->RefreshRoomActions(false);
+    });
+    connect(controller, &SessionController::SigLeaveVoiceRequested, voice, &VoiceManager::LeaveRoomAsync);
+    connect(voice, &VoiceManager::SigRoomLeft, controller, &SessionController::OnVoiceLeft);
+
+    // 3. 页面仅响应已确认状态；等待及失败重试都禁止创建、加入和返回房间。
+    connect(canvas, &Canvas::SigRoomExitRequested, this, &MainWindow::OnRoomExitRequested);
+    connect(controller, &SessionController::SigBusyChanged, this, [this](bool busy, bool can_retry) {
+        canvas->SetExitState(busy, can_retry);
+        lobby_widget->SetExitState(busy, can_retry);
+    });
+    connect(controller, &SessionController::SigFailure, this, [this](QString message) {
+        lobby_widget->ShowMessage(message);
+        if (canvas->isVisible()) canvas->statusBar()->showMessage(message);
+    });
+    connect(controller, &SessionController::SigShowLobby, this, [this](QString message) {
+        slotSwitchLobbyFromCanvas();
+        lobby_widget->ShowMessage(message);
+    });
+    connect(controller, &SessionController::SigLogoutFinished, this, &MainWindow::OnLogoutFinished);
 }

@@ -11,7 +11,14 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
     // 1. 绑定连接和收包通知，主动退出后不再交付旧连接事件。
     QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
         if (_is_logged_out) return;
+        _is_switching_exit_connection = false;
         _socket.setSocketOption(QAbstractSocket::LowDelayOption, 1);
+        // 1. 退出专用重连只鉴权，不进入旧房间自动恢复。
+        if (_exit_pending)
+        {
+            send_canvas_login();
+            return;
+        }
         qDebug()<<"连接到 Server！";
 
         if(!_pending_room_id.isEmpty()) //检查是否有“重定向后的加入房间”任务
@@ -97,6 +104,13 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
                      [&](QAbstractSocket::SocketError socketError){
                          Q_UNUSED(socketError);
                          if (_is_logged_out) return;
+                         if (_exit_pending)
+                         {
+                             _is_switching_exit_connection = false;
+                             _is_authenticated = false;
+                             emit SigExitTransportFailed(QStringLiteral("退出连接失败，请重试"));
+                             return;
+                         }
 
                          qDebug() << "Error:" << _socket.errorString() ;
                          switch (socketError)
@@ -136,6 +150,14 @@ TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_messa
     // disconnected监听
     QObject::connect(&_socket,&QTcpSocket::disconnected,this,[this](){
         qDebug() << "[TcpMgr] disconnected";
+        _is_authenticated = false;
+        _room_request_pending = false;
+        if (_exit_pending)
+        {
+            if (_is_switching_exit_connection) return;
+            emit SigExitTransportFailed(QStringLiteral("连接已断开，退出尚未确认，请重试"));
+            return;
+        }
 
         // 主动退出账号时只清理本地连接，不应再次进入断线重连流程。
         if (_is_logged_out)
@@ -198,12 +220,23 @@ void TcpMgr::initHandlers()
         if(err != ErrorCodes::SUCCESS)
         {
             qDebug()<<"登录失败,error is "<<err;
+            if (_exit_pending)
+            {
+                emit SigExitTransportFailed(QStringLiteral("退出连接鉴权失败，错误码 %1；请重试").arg(err));
+                return;
+            }
             emit sig_login_failed(err);
             return;
         }
 
         qDebug()<<"tcpmgr: recv error is "<<jsonObj["error"].toInt()<<" uid is "<<jsonObj["uid"].toInt();
 
+        _is_authenticated = true;
+        if (_exit_pending)
+        {
+            emit SigExitConnectionReady();
+            return;
+        }
         // 重定向切服后的 join：登录成功后再发 join
         if(!_pending_room_id.isEmpty())
         {
@@ -240,11 +273,37 @@ void TcpMgr::initHandlers()
             qDebug() << "[JOIN SEND] tag=offline_auto room=" << _resume_room_id;
             return; // 等 Join 成功再切页面
         }
+        // 已退房后的普通重连只恢复 TCP，不能再次初始化账号或取走大厅部件。
+        if (_is_offline_reconnect)
+        {
+            _is_offline_reconnect = false;
+            _reconnect_timer->stop();
+            _reconnect_cnt = 0;
+            return;
+        }
         emit sig_switch_canvas();   // 普通首次登录： 切到 Lobby
+    });
+
+    // 2. 退出结果交给控制器，统一处理关联、重试和页面收尾。
+    _handlers.insert(ID_LEAVE_ROOM_RSP, [this](ReqId, int, QByteArray body) {
+        message::LeaveRoomRsp response;
+        if (response.ParseFromArray(body.constData(), body.size()))
+            emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
+    });
+    _handlers.insert(ID_DESTROY_ROOM_RSP, [this](ReqId, int, QByteArray body) {
+        message::DestroyRoomRsp response;
+        if (response.ParseFromArray(body.constData(), body.size()))
+            emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
+    });
+    _handlers.insert(ID_ROOM_DESTROYED_BROADCAST, [this](ReqId, int, QByteArray body) {
+        message::RoomDestroyedBroadcast notification;
+        if (notification.ParseFromArray(body.constData(), body.size()))
+            emit SigRoomDestroyed(QString::fromStdString(notification.room_id()), QString::fromStdString(notification.reason()));
     });
 
     //注册创建房间回包函数
     _handlers.insert(ReqId::ID_CREAT_ROOM_RSP,[this](ReqId id,int len,QByteArray data){
+        _room_request_pending = false;
         qDebug()<<"handle id is "<<id<<" data is "<<data;
 
         //将ByteArray转换成QJsonDocument
@@ -288,6 +347,7 @@ void TcpMgr::initHandlers()
 
     //注册加入房间回包函数
     _handlers.insert(ReqId::ID_JOIN_ROOM_RSP,[this](ReqId id,int len,QByteArray data){
+        _room_request_pending = false;
         qDebug()<<"handle id is "<<id<<" data is "<<data;
 
         message::JoinRoomRsp rsp;
@@ -395,6 +455,7 @@ void TcpMgr::initHandlers()
             return;
         }
 
+        if (!msg.room_id().empty() && QString::fromStdString(msg.room_id()) != _resume_room_id) return;
         int uid = msg.uid();
         qDebug() << "广播: 用户离开 - UID:" << uid;
 
@@ -487,6 +548,9 @@ void TcpMgr::handleMsg(ReqId id, int len, QByteArray data)
         qDebug()<<"not found id ["<<id<<"] to handle";
         return;
     }
+    // 1. 等待退出时保留终态消息，旧房间数据不能再进入画面。
+    if (_exit_pending && id != ID_CANVAS_LOGIN_RSP && id != ID_LEAVE_ROOM_RSP &&
+        id != ID_DESTROY_ROOM_RSP && id != ID_ROOM_DESTROYED_BROADCAST) return;
     it.value()(id,len,data);
 }
 
@@ -495,6 +559,8 @@ void TcpMgr::slot_tcp_connect(ServerInfo si)
     // 1. 新一轮主动登录解除退出状态，不继承上次重连的退避次数。
     qDebug()<<"接收到 tcp connect singal";
 
+    _exit_pending = false;
+    _is_authenticated = false;
     _is_logged_out = false;
     _reconnect_timer->stop();
     _reconnect_cnt = 0;
@@ -512,6 +578,9 @@ void TcpMgr::slot_tcp_connect(ServerInfo si)
 void TcpMgr::Logout()
 {
     // 1. 标记主动退出并停止重连定时器，避免断开旧连接后再次连接服务器。
+    _exit_pending = false;
+    _is_authenticated = false;
+    _room_request_pending = false;
     _is_logged_out = true;
     _reconnect_timer->stop();
     _reconnect_cnt = 0;
@@ -539,6 +608,8 @@ void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
 {
     // 1. 退出账号后忽略旧界面的发送请求。
     if (_is_logged_out) return;
+    if (_exit_pending && reqid != ID_CANVAS_LOGIN_REQ && reqid != ID_LEAVE_ROOM_REQ && reqid != ID_DESTROY_ROOM_REQ) return;
+    if (reqid == ID_CREAT_ROOM_REQ || reqid == ID_JOIN_ROOM_REQ) _room_request_pending = true;
     quint16 id = reqid;
     quint16 len = static_cast<quint16>(data.size());
 
@@ -618,7 +689,7 @@ void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
     }
 
     // 2. 主动退出后丢弃旧重连任务，等待新一次登录重新启用连接。
-    if (_is_logged_out || _reconnect_timer->isActive())
+    if (_is_logged_out || _exit_pending || _reconnect_timer->isActive())
         return;
     int backoff = calc_backoff_ms();
     qDebug() << "[TcpMgr] will reconnect in" << backoff << "ms, cnt=" << _reconnect_cnt;
@@ -635,7 +706,7 @@ void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
     }
 
     // 2. 主动退出后不能重新连接；其他情况优先使用房间服务器地址。
-    if (_is_logged_out) return;
+    if (_is_logged_out || _exit_pending) return;
     QString host = !_room_host.isEmpty() ? _room_host : _host;
     uint16_t port = (_room_port != 0) ? _room_port : _port;
 
@@ -674,4 +745,55 @@ void TcpMgr::send_canvas_login() //复用LoginWidget 的 CanvasLogin 组包
     QByteArray jsonString = jsonDoc.toJson(QJsonDocument::Indented);
 
     this->slot_send_data(ReqId::ID_CANVAS_LOGIN_REQ, jsonString);
+}
+
+void TcpMgr::SetExitPending(bool pending)
+{
+    // 1. 退出只暂停自动恢复及普通提交，不屏蔽完成消息。
+    _exit_pending = pending;
+    if (pending)
+    {
+        _reconnect_timer->stop();
+        _is_offline_reconnect = false;
+        _pending_room_id.clear();
+        _pending_uid = 0;
+    }
+}
+
+void TcpMgr::PrepareExitConnection(const QString& host, int port)
+{
+    // 1. 已认证连接直接发送退出，重试不自动加入旧房间。
+    if (_socket.state() == QAbstractSocket::ConnectedState && _is_authenticated && _host == host && _port == port)
+    {
+        emit SigExitConnectionReady();
+        return;
+    }
+    // 2. 重连前废弃旧帧缓存，connected 回调只发送认证。
+    _buffer.clear();
+    _b_recv_pending = false;
+    _message_id = 0;
+    _message_len = 0;
+    _is_authenticated = false;
+    _is_switching_exit_connection = true;
+    if (_socket.state() != QAbstractSocket::UnconnectedState) _socket.abort();
+    _host = host;
+    _port = static_cast<uint16_t>(port);
+    _socket.connectToHost(host, _port);
+}
+
+void TcpMgr::ClearRoomRecovery()
+{
+    // 1. 确认退出后废弃自动回房目标，账号连接仍然保留。
+    _resume_room_id.clear();
+    _room_host.clear();
+    _room_port = 0;
+    _pending_room_id.clear();
+    _pending_uid = 0;
+    _room_request_pending = false;
+}
+
+bool TcpMgr::IsRoomRequestPending() const
+{
+    // 1. 创建和加入尚未确认时，注销不能跳过未知的房间身份。
+    return _room_request_pending || !_pending_room_id.isEmpty();
 }

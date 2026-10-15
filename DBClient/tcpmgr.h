@@ -43,6 +43,10 @@ private:
     QTimer* _reconnect_timer = nullptr; //重连定时器 (singleShot)，挂到 TcpMgr 保证线程随对象迁移
     int _reconnect_cnt;             //重连失败次数 (用于指数退避)
     bool _is_offline_reconnect = false; //用于是否处于 "掉线重连流程" (区分重定向切服流程)
+    bool _exit_pending = false; // 正在退出时禁止普通重连、自动 Join 和房间提交。
+    bool _is_switching_exit_connection = false; // 主动替换退出连接时忽略本地 abort 的断开通知。
+    bool _is_authenticated = false; // 当前 TCP 连接是否已完成 Canvas 鉴权。
+    bool _room_request_pending = false; // 创建或加入尚未获得结果时不能提前注销。
     bool _is_logged_out = false; // 主动退出后屏蔽旧连接通知和自动重连。
 
     //恢复房间信息 (用于自动join)
@@ -60,6 +64,10 @@ private:
     void send_canvas_login();                           //复用LoginWidget 的 CanvasLogin 组包
 
 signals:
+    void SigExitConnectionReady(); // 退出专用连接已完成认证。
+    void SigExitTransportFailed(QString message); // 退出连接失败，控制器保留原请求。
+    void SigRoomExitResponse(QString room_id, QString request_id, int error); // 普通退出或解散的关联结果。
+    void SigRoomDestroyed(QString room_id, QString reason); // 当前房间被服务端解散。
     void SigTextOperationReceived(QByteArray data); // 转发文字确认、远端状态和房间历史。
     void sig_con_success(bool);                                         //连接成功发送该信号
     void sig_send_data(ReqId reqid,QByteArray data);                    //发送tcp包信号
@@ -95,6 +103,10 @@ public slots:
     void slot_grant_edit(const QString& room_id, int target_uid);        //房主授权成员编辑
     void slot_revoke_edit(const QString& room_id, int target_uid);       //房主取消成员编辑权限
     void slot_switch_server(const QString& host,int port,const QString& room_id, int uid);              //重定向连接服务器
+    void SetExitPending(bool pending); // 暂停自动回房和普通房间请求，不屏蔽退出回包。
+    void PrepareExitConnection(const QString& host, int port); // 恢复连接后鉴权，退出事务不自动 Join。
+    void ClearRoomRecovery(); // 清除已结束房间的重定向与自动恢复目标。
+    bool IsRoomRequestPending() const; // 查询尚未完成的创建或加入。
     void Logout(); // 主动退出账号并停止后续自动重连。
     void slot_start_reconnect();                                        // 启动/继续指数退避重连
     void slot_do_reconnect();                                           // 真正执行一次 connectToHost

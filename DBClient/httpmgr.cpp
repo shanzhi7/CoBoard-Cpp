@@ -161,6 +161,7 @@ void HttpMgr::CancelPendingRequests()
 {
     // 1. 先移除签名上下文，旧账号的完成回调不再对外提交结果。
     _image_signature_replies.clear();
+    _logout_replies.clear();
 
     // 2. 取消登录、头像上传等未完成请求，退出后不能用旧回包重新建立会话。
     const auto replies = mananger.findChildren<QNetworkReply*>();
@@ -170,4 +171,43 @@ void HttpMgr::CancelPendingRequests()
         reply->abort();
         reply->deleteLater();
     }
+}
+
+void HttpMgr::RequestLogout(const QJsonObject& request)
+{
+    // 1. 相同 UUID 重试先取消旧网络请求，旧 finished 回调通过指针关联失效。
+    const QString request_id = request.value(QStringLiteral("request_id")).toString();
+    const int uid = request.value(QStringLiteral("uid")).toInt();
+    if (QNetworkReply* previous = _logout_replies.take(request_id))
+    {
+        disconnect(previous, nullptr, this, nullptr);
+        previous->abort();
+        previous->deleteLater();
+    }
+    QNetworkRequest network_request(QUrl(gate_url_prefix + QStringLiteral("/user_logout")));
+    network_request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    QNetworkReply* reply = mananger.post(network_request, QJsonDocument(request).toJson(QJsonDocument::Compact));
+    _logout_replies.insert(request_id, reply);
+    QTimer::singleShot(10000, reply, [reply]() {
+        if (!reply->isFinished()) reply->abort();
+    });
+    // 2. 解析时仍校验服务端关联，格式失败不能转为注销完成。
+    connect(reply, &QNetworkReply::finished, this, [this, reply, request_id, uid]() {
+        if (_logout_replies.value(request_id) != reply)
+        {
+            reply->deleteLater();
+            return;
+        }
+        _logout_replies.remove(request_id);
+        int error = 1002;
+        if (reply->error() == QNetworkReply::NoError)
+        {
+            const auto response = QJsonDocument::fromJson(reply->readAll()).object();
+            if (response.value(QStringLiteral("request_id")).toString() == request_id && response.value(QStringLiteral("uid")).toInt() == uid)
+                error = response.value(QStringLiteral("error")).toInt(1014);
+            else error = 1014;
+        }
+        reply->deleteLater();
+        emit SigLogoutFinished(request_id, uid, error);
+    });
 }

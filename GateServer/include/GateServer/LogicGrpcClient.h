@@ -1,3 +1,10 @@
+/***********************************************************************************
+* @file         LogicGrpcClient.h
+* @brief        网关账号业务 RPC 转发
+* @author       shanzhi
+* @date         2026/01/22
+* @history
+***********************************************************************************/
 #pragma once
 #include <grpcpp/grpcpp.h>
 #include "GateServer/message.grpc.pb.h"
@@ -33,11 +40,12 @@ public:
     ResetPasswordRsp ResetPassword(ResetPasswordReq req);   //重置密码
     LoginRsp Login(LoginReq req);                           //登录
     UpdateAvatarRsp UpdateAvatar(UpdateAvatarReq req);      //更新头像
+    message::LogoutRsp Logout(const message::LogoutReq& request); // 在有限截止时间内撤销登录。
     VerifyTokenRsp VerifyToken(VerifyTokenReq req);         //验证登录 Token
 
 private:
     LogicGrpcClient();           //私有化构造函数
 
     //Stub
-    std::unique_ptr<LogicService::Stub> _stub;
+    std::unique_ptr<LogicService::Stub> _stub; // 网关独占的账号业务 RPC 客户端。
 };

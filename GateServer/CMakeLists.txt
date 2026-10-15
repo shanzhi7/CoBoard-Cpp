@@ -88,6 +88,7 @@ add_executable (GateServer "src/GateServer.cpp"
 # 5.1 头文件路径
 target_include_directories(GateServer PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/GateServer
     ${PROJECT_SOURCE_DIR}/../Common
 )
 

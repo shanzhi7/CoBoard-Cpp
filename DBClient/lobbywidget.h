@@ -25,6 +25,9 @@ public:
     explicit LobbyWidget(QWidget *parent = nullptr); // 初始化大厅界面和网络回调。
     ~LobbyWidget(); // 释放大厅界面。
     void ClearSession(); // 清除旧账号的头像显示和上传暂存状态。
+    void SetExitState(bool busy, bool can_retry); // 等待时禁用普通入口，失败时只允许退出重试。
+    void RefreshRoomActions(bool has_room); // 按业务房间身份更新返回房间入口。
+    void ShowMessage(const QString& message); // 在大厅显示生命周期完成或失败提示。
 
 protected:
     void paintEvent(QPaintEvent *event) override; // 绘制大厅样式背景。
@@ -39,6 +42,8 @@ private:
     QString _uploadingPath; // 暂存本地路径，用于预览
     QString _pendingPublicUrl; //暂存 GateServer 发回来的公开头像地址
     QString _pendingOssKey; // 暂存 GateServer 发回来的 oss_key
+    bool _exit_busy = false; // 未完成退出时保护创建、加入和返回入口。
+    bool _has_room = false; // 断线期间仍保留的业务房间身份。
 
 signals:
     void sig_switchCanvas(std::shared_ptr<RoomInfo> room_info);             //发送切换画布页面 create

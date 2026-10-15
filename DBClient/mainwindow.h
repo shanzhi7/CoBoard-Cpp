@@ -21,6 +21,8 @@
 #include "lobbywidget.h"
 #include "testmode.h"
 
+class SessionController;
+
 QT_BEGIN_NAMESPACE
 namespace Ui {
 class MainWindow;
@@ -47,6 +49,8 @@ private:
     ResetWidget* reset_widget;                      //重置窗口
     LobbyWidget* lobby_widget;                      //大厅窗口
     Canvas* canvas;                                 //画布窗口
+    SessionController* _session_controller = nullptr; // 主窗口拥有的退房及注销协调器。
+    void BindSessionController(); // 将传输、资源清理和页面导航接入统一生命周期。
 
 
     void initBubbles(int count);                    //初始化气泡
@@ -71,4 +75,6 @@ private slots:
     void slotSwitchLobbyFromCanvas();               //返回大厅页面
     void slotLobbyReturnRoom();                     //大厅返回房间槽函数
     void OnLogoutRequested(); // 退出账号并返回登录页面。
+    void OnRoomExitRequested(); // 房主确认解散后发起退出或重试。
+    void OnLogoutFinished(); // 服务端撤销凭据后清除本地账号并显示登录页。
 };

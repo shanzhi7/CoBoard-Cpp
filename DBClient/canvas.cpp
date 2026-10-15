@@ -61,6 +61,11 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
 {
     // 1. 初始化界面及窗口拥有的资源和文件管理器。
     ui->setupUi(this);
+    ui->return_btn->setMenu(ui->menu_return);
+    ui->return_btn->setToolTip(QStringLiteral("回到大厅或退出当前房间"));
+    connect(ui->return_lobby_action, &QAction::triggered, this, &Canvas::OnReturnLobbyTriggered);
+    connect(ui->exit_room_action, &QAction::triggered, this, &Canvas::SigRoomExitRequested);
+    UpdateReturnActions();
 
     // 图片资源管理器只使用 Qt 异步网络和本地缓存，不连接数据库或 Redis。
     _imageAssetManager = new ImageAssetManager(this);
@@ -205,7 +210,7 @@ Canvas::~Canvas()
     CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
-    VoiceManager::getInstance()->leaveRoom();
+    VoiceManager::getInstance()->LeaveRoomAsync();
     qApp->removeEventFilter(this);  // 移除事件过滤器
     delete ui;
 }
@@ -235,6 +240,8 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 
     // 2. 应用新房间元数据并恢复标准背景及菜单状态。
     this->_room_info = room_info;
+    _exit_busy = false;
+    UpdateReturnActions();
     _paintScene->SetTextUndoEnabled(!_room_info || _room_info->offline);
     _paintScene->setBackgroundBrush(Qt::white);
     // 每个新房间从统一的 100% 视图状态开始，缩放比例不属于房间共享状态。
@@ -259,7 +266,7 @@ void Canvas::enterOfflineMode()
     CancelImageRequests();
     if (_latencyTestController)
         _latencyTestController->stop();
-    VoiceManager::getInstance()->leaveRoom();
+    VoiceManager::getInstance()->LeaveRoomAsync();
 
     // 2. 清理远端队列和原有场景，离线操作只更新本地状态。
     _pendingPointsByUuid.clear();
@@ -303,6 +310,7 @@ void Canvas::enterOfflineMode()
     _room_info->is_owner = true;
     _room_info->can_edit = true;
     _room_info->offline = true;
+    UpdateReturnActions();
     _paintScene->SetTextUndoEnabled(true);
 
     applyRoomCanvasSize();
@@ -327,6 +335,7 @@ void Canvas::resumeVoice()
 void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画布
 {
     // 1. 断线时取消文字草稿并废弃待确认操作，不跨房间重发。
+    UserMgr::getInstance()->CancelAvatarRequests();
     ClearTextOperations();
     // 2. 取消当前文件和图片任务，回大厅后不再接收导入结果。
     CancelCanvasFileOperation();
@@ -380,13 +389,14 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     if (_room_info)
         _room_info->connected = false;
     _room_info.reset();
+    UpdateReturnActions();
     UpdateCanvasFileActions();
 }
 
 void Canvas::ClearSession()
 {
     // 1. 复用场景清理，停止绘画定时器并取消文件和图片任务。
-    resetForReconnect();
+    ClearRoom();
 
     // 2. 清除旧房间聊天和用户资料，下一次登录不显示前一个账号的信息。
     ui->chat_textBrowser->clear();
@@ -394,6 +404,52 @@ void Canvas::ClearSession()
     ui->username_label->clear();
     ui->avator_label->clear();
     ui->title_label->clear();
+}
+
+void Canvas::ClearRoom()
+{
+    // 1. 统一废弃场景、草稿、文件及图片回调，房间身份由控制器清除。
+    resetForReconnect();
+    // 2. 清空属于房间的聊天和标题，保留本机账号资料及头像。
+    ui->chat_textBrowser->clear();
+    ui->input_edit->clear();
+    ui->title_label->clear();
+}
+
+void Canvas::SetExitState(bool busy, bool can_retry)
+{
+    // 1. 退出请求可能已在服务端生效，失败期间也不能继续修改原房间。
+    _exit_busy = busy;
+    if (busy)
+    {
+        CancelCanvasFileOperation();
+        CancelImageRequests();
+        _paintScene->FinishTextEditing(true);
+        _paintScene->setEditable(false);
+    }
+    ui->graphicsView->setEnabled(!busy);
+    ui->file_btn->setEnabled(!busy);
+    ui->edit_btn->setEnabled(!busy);
+    ui->send_btn->setEnabled(!busy);
+    ui->input_edit->setEnabled(!busy);
+    // 2. 失败后仅开放菜单中的原请求重试，回到大厅仍需等待退出完成。
+    UpdateReturnActions(can_retry);
+}
+
+void Canvas::UpdateReturnActions(bool can_retry)
+{
+    // 1. 在线菜单按当前账号与房主身份显示操作，离线画板仅保留回到大厅。
+    const bool has_online_room = _room_info && !_room_info->offline;
+    const bool is_owner = has_online_room && UserMgr::getInstance()->getMyInfo() &&
+        _room_info->owner_uid == UserMgr::getInstance()->getUid();
+    const QString exit_text = is_owner ? QStringLiteral("解散房间") : QStringLiteral("退出房间");
+    ui->exit_room_action->setVisible(has_online_room);
+    ui->exit_room_action->setText(_exit_busy && can_retry ? QStringLiteral("重试%1").arg(exit_text) : exit_text);
+
+    // 2. 退出等待期间锁定导航；失败时返回按钮只用于重试，不能恢复画板业务。
+    ui->return_lobby_action->setEnabled(!_exit_busy);
+    ui->exit_room_action->setEnabled(has_online_room && (!_exit_busy || can_retry));
+    ui->return_btn->setEnabled(!_exit_busy || (has_online_room && can_retry));
 }
 
 bool Canvas::eventFilter(QObject *watched, QEvent *event)
@@ -597,7 +653,7 @@ void Canvas::UpdateCanvasFileActions()
 {
     // 1. 导入仅限离线；导出读取当前客户端，任何编辑权限均可使用。
     const bool has_canvas = _room_info && _paintScene;
-    const bool is_available = has_canvas && !_is_file_operation_running;
+    const bool is_available = has_canvas && !_is_file_operation_running && !_exit_busy;
     ui->import_canvas_action->setEnabled(is_available && _room_info->offline);
     ui->import_canvas_action->setToolTip(has_canvas && !_room_info->offline
         ? QStringLiteral("当前仅支持离线导入画布") : QStringLiteral("导入 .synccanvas 并替换当前画布"));
@@ -2856,20 +2912,23 @@ void Canvas::flushStrokePoints(const QString& uuid, bool force)
 
 
 
-void Canvas::on_return_btn_clicked()    //返回大厅
+void Canvas::OnReturnLobbyTriggered()
 {
+    // 1. 退出事务未完成时不能暂回大厅，重试仅由另一个菜单动作发起。
+    if (_exit_busy) return;
+
+    // 2. 暂回大厅只暂停在线音频，保留房间身份以便返回。
     if (_room_info && !_room_info->offline)
     {
         // 在线房间保留 LiveKit Room，只暂停音频，返回房间时可以立即恢复通话。
         VoiceManager::getInstance()->suspendAudio();
-    }
-    else
+    } else
     {
         // 离线画板没有语音连接，沿用完整释放流程清理可能残留的语音资源。
-        VoiceManager::getInstance()->leaveRoom();
+        VoiceManager::getInstance()->LeaveRoomAsync();
     }
 
-    // 离线画板没有大厅房间状态，返回时直接清空本地画布和离线房间信息。
+    // 3. 离线画板返回时清空本地状态，再通知主窗口显示大厅或欢迎页。
     if (_room_info && _room_info->offline)
         resetForReconnect();
 

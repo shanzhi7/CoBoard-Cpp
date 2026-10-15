@@ -32,6 +32,12 @@ extern std::function<QPixmap(const QPixmap& src, const QColor& color)> applyColo
 
 
 enum ReqId{
+    ID_LEAVE_ROOM_REQ = 1033, // 普通成员退出房间请求。
+    ID_LEAVE_ROOM_RSP = 1034, // 普通成员退出完成。
+    ID_DESTROY_ROOM_REQ = 1035, // 房主解散房间请求。
+    ID_DESTROY_ROOM_RSP = 1036, // 房主解散完成。
+    ID_ROOM_DESTROYED_BROADCAST = 1037, // 房间解散通知。
+    ID_USER_LOGOUT = 1038, // HTTP 账号注销请求。
     ID_GET_VERIFY_CODE = 1001,                  //获取验证码
     ID_REGISTER = 1002,                         //注册账号
     ID_RESET_PWD = 1003,                        //重置密码

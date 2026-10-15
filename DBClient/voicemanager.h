@@ -1,14 +1,10 @@
-/*
-***********************************************************************************
-*
+/***********************************************************************************
 * @file         voicemanager.h
 * @brief        LiveKit 房间语音管理类
-*
-* @details      负责获取短期语音 Token、连接 LiveKit 房间、发布麦克风音轨，
-*               并为后续语音 UI 提供状态和开关信号。
-*
-***********************************************************************************
-*/
+* @author       shanzhi
+* @date         2026/09/13
+* @history
+***********************************************************************************/
 #pragma once
 
 #include "singleton.h"
@@ -37,24 +33,25 @@ public:
     // 音频设备的显示名称和稳定 ID，UI 应保存 id，不要保存设备序号。
     struct AudioDevice
     {
-        QString name;
-        QString id;
+        QString name; // 设备显示名称。
+        QString id; // SDK 提供的稳定设备标识。
     };
 
     // 语音房间当前连接状态，UI 可根据该状态更新提示文字或图标。
     enum class State
     {
-        Disconnected,
-        RequestingToken,
-        Connecting,
-        Connected,
-        Reconnecting,
-        Error
+        Disconnected, // 未连接语音。
+        RequestingToken, // 等待服务端签发短期凭据。
+        Connecting, // 独立线程正在连接。
+        Connected, // 已连接并初始化音频。
+        Reconnecting, // SDK 正在恢复连接。
+        Error // 连接或音频初始化失败。
     };
     Q_ENUM(State)
 
     void joinRoom(const QString& room_id);       // 请求 Token 并加入语音房间
     void leaveRoom();                            // 断开语音房间并释放音频资源
+    void LeaveRoomAsync(); // 正常退出立即废弃回调，独立线程回收连接及音频。
     void suspendAudio();                         // 暂停大厅期间的麦克风和远端音频
     void resumeAudio();                          // 恢复大厅前保存的音频状态
 
@@ -73,6 +70,7 @@ public:
     ~VoiceManager() override;                     // 释放房间和平台音频资源
 
 signals:
+    void SigRoomLeft(); // 全部旧语音资源已释放，可安全继续注销或加入新房间。
     void sig_state_changed(VoiceManager::State state); // 状态变化通知
     void sig_error(const QString& message);             // 连接或音频初始化失败
     void sig_microphone_changed(bool enabled);          // 麦克风状态变化通知
@@ -81,7 +79,7 @@ signals:
     void sig_audio_device_changed(bool recording, const QString& device_id); // 设备切换成功通知
 
 private:
-    VoiceManager();
+    VoiceManager(); // 创建主线程拥有的语音管理器。
 
     void requestVoiceToken(const QString& room_id);     // 向 GateServer 请求短期 Token
     void connectLiveKit(const QString& url, const QString& token); // 在工作线程连接房间
@@ -93,30 +91,33 @@ private:
 
     void onConnectionStateChanged(
         livekit::Room& room,
-        const livekit::ConnectionStateChangedEvent& event) override;
+        const livekit::ConnectionStateChangedEvent& event) override; // 排队交付当前连接状态。
     void onDisconnected(
         livekit::Room& room,
-        const livekit::DisconnectedEvent& event) override;
+        const livekit::DisconnectedEvent& event) override; // 排队更新当前连接断开状态。
     void onReconnecting(
         livekit::Room& room,
-        const livekit::ReconnectingEvent& event) override;
+        const livekit::ReconnectingEvent& event) override; // 排队更新当前连接恢复状态。
     void onReconnected(
         livekit::Room& room,
-        const livekit::ReconnectedEvent& event) override;
+        const livekit::ReconnectedEvent& event) override; // 恢复当前连接音频状态。
     void onTrackPublished(
         livekit::Room& room,
-        const livekit::TrackPublishedEvent& event) override;
+        const livekit::TrackPublishedEvent& event) override; // 听筒关闭时取消新音轨订阅。
     void onTrackSubscribed(
         livekit::Room& room,
-        const livekit::TrackSubscribedEvent& event) override;
+        const livekit::TrackSubscribedEvent& event) override; // 听筒关闭时取消已订阅音轨。
     void onActiveSpeakersChanged(
         livekit::Room& room,
-        const livekit::ActiveSpeakersChangedEvent& event) override;
+        const livekit::ActiveSpeakersChangedEvent& event) override; // 将当前发言成员交付界面。
 
 private:
     QNetworkAccessManager* _network_manager = nullptr; // 语音 Token HTTP 请求管理器
     QNetworkReply* _token_reply = nullptr;              // 当前 Token 请求，用于离开时取消
     QThread* _connect_thread = nullptr;                // 避免 Room::connect 阻塞 UI 线程
+    QList<QThread*> _cleanup_threads; // 析构时回收全部后台清理线程，正常退出不等待。
+    std::atomic<quint64> _voice_generation{0}; // 每次离开使旧网络和 SDK 回调失效。
+    QString _pending_join_room_id; // 旧设备资源释放后再开始的新房间连接。
 
     std::unique_ptr<livekit::Room> _room;               // LiveKit 房间对象
     std::unique_ptr<livekit::PlatformAudio> _platform_audio; // 系统麦克风和扬声器设备

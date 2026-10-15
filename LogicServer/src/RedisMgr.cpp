@@ -1,6 +1,8 @@
 #include "LogicServer/RedisMgr.h"
 #include "LogicServer/ConfigMgr.h"
 #include "Logger/Logger.h"
+#include "Auth/TokenRevocation.h"
+#include "LogicServer/message.pb.h"
 
 RedisMgr::RedisMgr()
 {
@@ -25,6 +27,9 @@ bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd
         connection_options.port = port;
         connection_options.password = pwd;
         connection_options.keep_alive = true;
+        // 1. 为缓存操作设置有限超时，失败时业务能够返回明确结果。
+        connection_options.connect_timeout = std::chrono::milliseconds(1000);
+        connection_options.socket_timeout = std::chrono::milliseconds(2000);
 
         ConnectionPoolOptions pool_options;
         pool_options.size = 5; // 默认池大小
@@ -35,8 +40,7 @@ bool RedisMgr::Connect(const std::string& host, int port, const std::string& pwd
         _redis->ping();
         LOG_INFO_CTX("RedisMgr::Connect", "Redis 连接成功");
         return true;
-    }
-    catch (const Error& e)
+    } catch (const Error& e)
     {
         LOG_ERROR_CTX("RedisMgr::Connect", "Redis 连接失败: " << e.what());
         return false;
@@ -192,4 +196,20 @@ bool RedisMgr::HGet(const std::string& key, const std::string& hkey, std::string
 void RedisMgr::Close()
 {
 	_redis.reset();
+}
+int RedisMgr::RevokeToken(int uid, const std::string& token)
+{
+	// 1. 脚本同时校验所属账号并条件删除 UID 索引，避免旧会话误删新登录。
+	try
+	{
+		const auto result = _redis->eval<long long>(TokenRevocationScript(),
+		{std::string(TOKEN_PREFIX) + token, std::string(UID_PREFIX) + std::to_string(uid)},
+		{std::to_string(uid), token});
+		return result == 1 ? message::SUCCESS : message::TokenInvalid;
+	} catch (const Error& error)
+	{
+		// 2. 通信失败不能当作注销成功，日志只记录账号及错误上下文。
+		LOG_ERROR_CTX("RedisMgr::RevokeToken", "注销失败 uid=" << uid << " error=" << error.what());
+		return message::RedisErr;
+	}
 }

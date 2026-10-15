@@ -37,6 +37,7 @@ qt_standard_project_setup()
 qt_add_executable(DBClient
     WIN32 MACOSX_BUNDLE
     main.cpp
+    sessioncontroller.h sessioncontroller.cpp
     mainwindow.cpp
     mainwindow.h
     mainwindow.ui

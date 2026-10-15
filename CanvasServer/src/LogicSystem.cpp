@@ -35,7 +35,11 @@ LogicSystem::LogicSystem() : _b_stop(false)
 
 LogicSystem::~LogicSystem()
 {
+    // 1. 队列锁内发布停止条件，处理完已入队事件后回收线程。
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
     _b_stop = true;
+    }
     _cond.notify_one();
     if (_work_thread.joinable())
     {
@@ -62,7 +66,7 @@ void LogicSystem::DealMsg()
         std::unique_lock<std::mutex> lock(_mutex);
         _cond.wait(lock, [this](){
             return _b_stop || !_msg_queue.empty();
-            });
+        });
 
         if (_b_stop && _msg_queue.empty())
         {
@@ -74,6 +78,14 @@ void LogicSystem::DealMsg()
         _msg_queue.pop();
         lock.unlock();  // 处理消息时释放锁，允许新消息入队
 
+        // 1. 内部断线事件没有协议节点，生命周期与普通请求按队列顺序执行。
+        if (!msg_node->_recvnode)
+        {
+            _room_lifecycle_handler.HandleDisconnected(msg_node->_session);
+            continue;
+        }
+        if (msg_node->_session->IsClosed()) continue;
+        // 2. 查找客户端业务回调，处理时不持有队列锁。
         //查找回调函数
         auto it = _fun_callbacks.find(msg_node->_recvnode->_msg_id);
         if (it != _fun_callbacks.end())
@@ -81,8 +93,8 @@ void LogicSystem::DealMsg()
             // 执行业务逻辑
             // RecvNode 里的 _data 是 char*，转 string 传给业务层方便解析 Json
             it->second(msg_node->_session,
-                        msg_node->_recvnode->_msg_id,
-                        std::string(msg_node->_recvnode->_data,msg_node->_recvnode->_cur_len));
+            msg_node->_recvnode->_msg_id,
+            std::string(msg_node->_recvnode->_data,msg_node->_recvnode->_cur_len));
         }
         else
         {
@@ -95,35 +107,41 @@ void LogicSystem::RegisterCallBacks()
 {
     // 1. 注册账号、房间、聊天和权限回调，业务队列保持统一处理顺序。
     _fun_callbacks[ID_CANVAS_LOGIN_REQ] = std::bind(&LogicSystem::HandleLogin, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     // 注册进房
     _fun_callbacks[ID_JOIN_ROOM_REQ] = std::bind(&LogicSystem::HandleJoinRoom, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //注册创建房间
     _fun_callbacks[ID_CREAT_ROOM_REQ] = std::bind(&LogicSystem::HandleCreatRoom, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //注册加入房间
     _fun_callbacks[ID_JOIN_ROOM_REQ] = std::bind(&LogicSystem::HandleJoinRoom, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //注册群聊消息
     _fun_callbacks[ID_CHAT_REQ] = std::bind(&LogicSystem::HandleChat, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //注册授权编辑消息
     _fun_callbacks[ID_GRANT_EDIT_REQ] = std::bind(&LogicSystem::HandleGrantEdit, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     //注册取消编辑权限消息
     _fun_callbacks[ID_REVOKE_EDIT_REQ] = std::bind(&LogicSystem::HandleRevokeEdit, this,
-        std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
+    std::placeholders::_1, std::placeholders::_2, std::placeholders::_3);
 
     // 2. 图片和文字属于低频结构化业务，统一校验权限并更新房间状态。
     _fun_callbacks[ID_IMAGE_OPERATION_REQ] = &ImageOperationHandler::Handle;
     _fun_callbacks[ID_TEXT_OPERATION_REQ] = &TextOperationHandler::Handle;
+
+    // 3. 退出及解散交给独立处理器，LogicSystem 只负责消息顺序。
+    _fun_callbacks[ID_LEAVE_ROOM_REQ] = [this](std::shared_ptr<CSession> session, const short& id, const std::string& body) {
+        _room_lifecycle_handler.Handle(session, id, body);
+    };
+    _fun_callbacks[ID_DESTROY_ROOM_REQ] = _fun_callbacks[ID_LEAVE_ROOM_REQ];
 
     //不需要注册 ID_DRAW_REQ (画画请求)
     // 画画请求在 CSession 层直接被拦截转发了，不会进这个队列
@@ -131,6 +149,7 @@ void LogicSystem::RegisterCallBacks()
 
 void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
+    // 1. 解析认证资料并保留统一响应，失败不发布账号会话。
     Json::Reader reader;
     Json::Value root;
     Json::Value rsp;
@@ -144,68 +163,71 @@ void LogicSystem::HandleLogin(std::shared_ptr<CSession> session, const short& ms
 
         // 如果是严重错误（如认证失败），发完包后可以考虑打印日志
         int err = rsp["error"].asInt();
-        if (err != message::ErrorCodes::SUCCESS) {
+        if (err != message::ErrorCodes::SUCCESS)
+        {
             std::cout << "[CanvasServer] Login Error Response sent. Code: " << err << std::endl;
         }
-        });
+    });
 
 
-        if (!reader.parse(msg_data, root))
-        {
-            // 解析失败，直接 return
-            // 此时会触发 Defer，发送 Error_Json 给客户端
-            std::cout << "[CanvasServer] Login parse json failed." << std::endl;
-            return;
-        }
-        if (!root.isMember("uid") || !root.isMember("token"))   //检测字段是否存在
-        {
-            rsp["error"] = message::ErrorCodes::Error_Json;
-            std::cout << "[CanvasServer] Login Error: Missing field." << std::endl;
-            return;
-        }
+    if (!reader.parse(msg_data, root))
+    {
+        // 解析失败，直接 return
+        // 此时会触发 Defer，发送 Error_Json 给客户端
+        std::cout << "[CanvasServer] Login parse json failed." << std::endl;
+        return;
+    }
+    if (!root.isMember("uid") || !root.isMember("token"))   //检测字段是否存在
+    {
+        rsp["error"] = message::ErrorCodes::Error_Json;
+        std::cout << "[CanvasServer] Login Error: Missing field." << std::endl;
+        return;
+    }
 
-        int client_uid = root["uid"].asInt();
-        std::string client_token = root["token"].asString();
-        std::string client_name = root["name"].asString();
-        std::string client_avatar = root["avatar"].asString();
+    int client_uid = root["uid"].asInt();
+    std::string client_token = root["token"].asString();
+    std::string client_name = root["name"].asString();
+    std::string client_avatar = root["avatar"].asString();
 
-        //构造redis key
-        std::string token_key = TOKEN_PREFIX + client_token;
+    //构造redis key
+    std::string token_key = TOKEN_PREFIX + client_token;
 
-        //查找redis，有没有该token对应的uid
-        std::string valid_uid_str;
-        bool b_exist = RedisMgr::getInstance()->Get(token_key, valid_uid_str);
+    // 2. 通过共享登录索引校验 Token 所属账号，禁止伪造 UID。
+    std::string valid_uid_str;
+    bool b_exist = RedisMgr::getInstance()->Get(token_key, valid_uid_str);
 
-        //token过期或者错误
-        if (!b_exist)
-        {
-            rsp["error"] = message::ErrorCodes::TokenInvalid;
-            LOG_WARN_CTX("LogicSystem::HandleLogin", "Token 不存在 uid=" << client_uid);
-            return; //触发Defer发送 TokenInvalid
-        }
+    //token过期或者错误
+    if (!b_exist)
+    {
+        rsp["error"] = message::ErrorCodes::TokenInvalid;
+        LOG_WARN_CTX("LogicSystem::HandleLogin", "Token 不存在 uid=" << client_uid);
+        return; //触发Defer发送 TokenInvalid
+    }
 
-        //token存在，但是uid是别人的
-        if (std::stoi(valid_uid_str) != client_uid)
-        {
-            rsp["error"] = message::ErrorCodes::TokenInvalid;
-            LOG_WARN_CTX("LogicSystem::HandleLogin", "Token 对应用户不匹配 uid=" << client_uid);
-            return; // 触发 Defer 发送 TokenInvalid
-        }
+    //token存在，但是uid是别人的
+    if (std::stoi(valid_uid_str) != client_uid)
+    {
+        rsp["error"] = message::ErrorCodes::TokenInvalid;
+        LOG_WARN_CTX("LogicSystem::HandleLogin", "Token 对应用户不匹配 uid=" << client_uid);
+        return; // 触发 Defer 发送 TokenInvalid
+    }
 
-        // 校验成功！
-        session->SetUserId(client_uid);     //绑定UID到Session
-        session->SetName(client_name);
-        session->SetAvatarUrl(client_avatar);
+    // 校验成功！
+    // 3. 认证成功后保存本次凭据，低频退出请求重新确认凭据有效性。
+    session->SetToken(client_token);
+    session->SetUserId(client_uid);     //绑定UID到Session
+    session->SetName(client_name);
+    session->SetAvatarUrl(client_avatar);
 
-        SessionMgr::getInstance()->AddSession(client_uid, session);  //注册到全局管理器(SessionMgr)
+    SessionMgr::getInstance()->AddSession(client_uid, session);  //注册到全局管理器(SessionMgr)
 
-        // 构造成功回包
-        rsp["error"] = message::ErrorCodes::SUCCESS;
-        rsp["uid"] = client_uid;
+    // 构造成功回包
+    rsp["error"] = message::ErrorCodes::SUCCESS;
+    rsp["uid"] = client_uid;
 
-        std::cout << "[CanvasServer] User Login Success: " << client_uid << std::endl;
+    std::cout << "[CanvasServer] User Login Success: " << client_uid << std::endl;
 
-        // 函数结束，Defer 自动析构，发送 SUCCESS 包
+    // 函数结束，Defer 自动析构，发送 SUCCESS 包
 }
 
 void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -218,7 +240,7 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     Defer defer([this, session, &rsp]() {
         std::string return_str = rsp.toStyledString();
         session->Send(return_str, ID_CREAT_ROOM_RSP);
-        });
+    });
 
     if (!reader.parse(msg_data, root))  //解析失败
     {
@@ -236,6 +258,18 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     std::string room_name = root["room_name"].asString();
     int owner_uid = root["owner_uid"].asInt();
 
+    // 1. 创建者必须是当前认证会话，不允许另一个账号或已有房间的会话创建。
+    if (owner_uid != session->GetUserId() || owner_uid <= 0)
+    {
+        rsp["error"] = message::UidInvalid;
+        return;
+    }
+    if (session->GetRoomLocked())
+    {
+        rsp["error"] = message::RoomAlreadyExist;
+        return;
+    }
+    // 2. 生成唯一房间号，再登记共享元数据。
     //生成唯一的RoomId (防碰撞逻辑)
     std::string room_id;
     int retry_count = 0;    // 重试次数
@@ -301,7 +335,12 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     //redis：将房主加入到房间的成员列表
     RedisMgr::getInstance()->AddUserToRoom(room_id, std::to_string(owner_uid));
 
-    room->Join(session);    //加入内存
+    // 3. 成员资格和内存成员均成功后才向客户端确认创建。
+    if (!room->TryJoin(session))
+    {
+        rsp["error"] = message::RoomClosing;
+        return;
+    }
 
     //成功返回
     rsp["error"] = message::ErrorCodes::SUCCESS;
@@ -314,8 +353,8 @@ void LogicSystem::HandleCreatRoom(std::shared_ptr<CSession> session, const short
     rsp["height"] = room_info.height;
 
     std::cout << "[CanvasServer] Create Room Success! ID: " << room_id
-        << " Name: " << room_name
-        << " Owner: " << owner_uid << std::endl;
+    << " Name: " << room_name
+    << " Owner: " << owner_uid << std::endl;
 }
 
 void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
@@ -346,14 +385,27 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     std::string room_id = req.room_id();
     std::cout << "Recv JoinRoomReq: User[" << uid << "] -> Room[" << room_id << "]" << std::endl;
 
+    // 1. 身份以当前 Session 为准，不通过 UID 查询其他连接来加入房间。
+    if (req.uid() != session->GetUserId() || req.uid() <= 0)
+    {
+        rsp.set_error(message::UidInvalid);
+        return;
+    }
+    auto bound_room = session->GetRoomLocked();
+    if (bound_room && bound_room->GetRoomId() != room_id)
+    {
+        rsp.set_error(message::RoomAlreadyExist);
+        return;
+    }
+    // 2. 读取共享归属，Redis 故障不能当作房间不存在。
     //查redis
     RoomInfo room_info;
-    bool b_redis = RedisMgr::getInstance()->GetRoomInfo(room_id, room_info);
+    const int read_result = RedisMgr::getInstance()->ReadRoomInfo(room_id, room_info);
 
     //房间不存在
-    if (!b_redis)
+    if (read_result != message::SUCCESS)
     {
-        rsp.set_error(message::ErrorCodes::RoomNotExist);
+        rsp.set_error(read_result);
         return;
     }
 
@@ -367,7 +419,7 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
     if (room_info.host != self_host || std::to_string(room_info.port) != self_port)
     {
         std::cout << "[HandleJoinRoom]:Redirect: Target is [" << room_info.host << ":" << room_info.port
-            << "] Self is [" << self_host << ":" << self_port << "]" << std::endl;
+        << "] Self is [" << self_host << ":" << self_port << "]" << std::endl;
 
         rsp.set_error(message::ErrorCodes::NeedRedirect);   //设置重定向错误
 
@@ -396,23 +448,21 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
         // 用 Redis 的元信息初始化（你 Room 目前只有 name/owner_uid）
         room->SetRoomInfo(room_info.name, room_info.owner_uid);
     }
-    auto user_session = SessionMgr::getInstance()->GetSession(std::stoi(uid));
-    if (user_session)
+    // 3. 先确认共享成员资格，再加入并回放；失败时撤销本次资格。
+    if (room->IsClosing())
     {
-        room->Join(user_session);       //内存中加入房间
-    }
-    else
-    {
-        // 极端情况：处理请求时 Session 断了
-        std::cerr << "[HandleJoinRoom] User session not found" << std::endl;
-        rsp.set_error(message::ErrorCodes::LoginErr);
+        rsp.set_error(message::RoomClosing);
         return;
     }
-    //正常加入，房主跟加入者在本机
-    bool addSuccess = RedisMgr::getInstance()->AddUserToRoom(room_id, uid);
-    if (!addSuccess)
+    if (!RedisMgr::getInstance()->AddUserToRoom(room_id, uid))
     {
-        rsp.set_error(message::ErrorCodes::RoomJoinFailed);
+        rsp.set_error(message::RedisErr);
+        return;
+    }
+    if (!room->TryJoin(session))
+    {
+        RedisMgr::getInstance()->RemoveUserFromRoom(room_id, uid);
+        rsp.set_error(message::RoomClosing);
         return;
     }
 
@@ -445,6 +495,7 @@ void LogicSystem::HandleJoinRoom(std::shared_ptr<CSession> session, const short&
 
 void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
+    // 1. 解析并校验消息身份，客户端 UID 必须与当前 Session 一致。
     message::ChatReq req;
     if (!req.ParseFromString(msg_data))
     {
@@ -463,7 +514,7 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
     if ((int)req.uid() != sess_uid)
     {
         std::cout << "[HandleChat] uid mismatch, Close. sess=" << sess_uid
-            << " req=" << req.uid() << "\n";
+        << " req=" << req.uid() << "\n";
         session->Close();
         return;
     }
@@ -475,11 +526,14 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
+    // 2. 退出或关闭中的成员不能继续聊天，随后核对房间及内容限制。
+    if (!room->HasMember(sess_uid)) return;
+
     // 串房间校验
     if (!req.room_id().empty() && req.room_id() != room->GetRoomId())
     {
         std::cout << "[HandleChat] room_id mismatch, Close. sess_room=" << room->GetRoomId()
-            << " req_room=" << req.room_id() << "\n";
+        << " req_room=" << req.room_id() << "\n";
         session->Close();
         return;
     }
@@ -507,12 +561,13 @@ void LogicSystem::HandleChat(std::shared_ptr<CSession> session, const short& msg
         return;
     }
 
-    // 回显给自己（客户端只写一个显示逻辑）
+    // 3. 广播携带服务端身份和时间，并回显给发送者。
     room->Broadcast(out, ID_CHAT_RSP, /*exclude_uid=*/0);
 }
 
 void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
+    // 1. 解析请求并核对认证身份及房间绑定，错误只回复申请者。
     message::GrantEditReq req;
     message::GrantEditRsp rsp;
     rsp.set_error(message::ErrorCodes::Error_Json);
@@ -541,7 +596,7 @@ void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short
     if (req.operator_uid() != sess_uid)
     {
         std::cout << "[HandleGrantEdit] uid mismatch, close. sess=" << sess_uid
-            << " req=" << req.operator_uid() << std::endl;
+        << " req=" << req.operator_uid() << std::endl;
         session->Close();
         return;
     }
@@ -559,6 +614,12 @@ void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short
         return;
     }
 
+    // 2. 房间关闭或操作者退出时禁止权限更新，只有房主可修改授权。
+    if (room->IsClosing() || !room->HasMember(sess_uid))
+    {
+        rsp.set_error(message::RoomClosing);
+        return;
+    }
     if (!room->IsOwner(sess_uid))
     {
         rsp.set_error(message::ErrorCodes::NotOwner);
@@ -594,6 +655,7 @@ void LogicSystem::HandleGrantEdit(std::shared_ptr<CSession> session, const short
 
 void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
+    // 1. 解析请求并核对认证身份及房间绑定，错误只回复申请者。
     message::RevokeEditReq req;
     message::RevokeEditRsp rsp;
     rsp.set_error(message::ErrorCodes::Error_Json);
@@ -622,7 +684,7 @@ void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const shor
     if (req.operator_uid() != sess_uid)
     {
         std::cout << "[HandleRevokeEdit] uid mismatch, close. sess=" << sess_uid
-            << " req=" << req.operator_uid() << std::endl;
+        << " req=" << req.operator_uid() << std::endl;
         session->Close();
         return;
     }
@@ -640,6 +702,12 @@ void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const shor
         return;
     }
 
+    // 2. 房间关闭或操作者退出时禁止权限更新，只有房主可修改授权。
+    if (room->IsClosing() || !room->HasMember(sess_uid))
+    {
+        rsp.set_error(message::RoomClosing);
+        return;
+    }
     if (!room->IsOwner(sess_uid))
     {
         rsp.set_error(message::ErrorCodes::NotOwner);
@@ -666,4 +734,10 @@ void LogicSystem::HandleRevokeEdit(std::shared_ptr<CSession> session, const shor
     {
         room->Broadcast(out, ID_PERMISSION_CHANGED_BROADCAST, 0);
     }
+}
+
+void LogicSystem::PostSessionClosed(std::shared_ptr<CSession> session)
+{
+	// 1. 内部断线事件复用业务队列，不伪造客户端请求或占用消息 ID。
+	PostMsgToQue(std::make_shared<LogicNode>(std::move(session), nullptr));
 }

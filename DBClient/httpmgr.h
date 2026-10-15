@@ -33,14 +33,17 @@ public:
     void uploadFile(QUrl url, QString filePath, ReqId reqid, Modules mod); // 异步上传本地文件到 OSS。
     QString PostImageSignature(const QUrl& url, const QJsonObject& json, ReqId reqid); // 图片签名独立关联，不与房间切换后的请求混淆。
     void CancelImageSignature(const QString& request_id); // 撤销旧房间签名请求。
+    void RequestLogout(const QJsonObject& request); // 独立发送及关联注销，不进入大厅通用回调。
     void CancelPendingRequests(); // 退出账号时取消未完成的请求并丢弃旧回包。
 
 private:
     explicit HttpMgr();    //私有构造函数
+    QHash<QString, QNetworkReply*> _logout_replies; // 注销重试只保留每个 UUID 的最新网络请求。
     QNetworkAccessManager mananger;         //管理对象
     QHash<QString, QNetworkReply*> _image_signature_replies; // 每个签名请求独立上下文。
 
 signals:
+    void SigLogoutFinished(QString request_id, int uid, int error); // 返回注销原请求的关联和结果。
     void sig_http_finished(ReqId reqid, QString res, ErrorCodes err, Modules mod);               //http请求完成信号
 
     void sig_reg_mod_finish(ReqId,QString,ErrorCodes);          //通知注册模块

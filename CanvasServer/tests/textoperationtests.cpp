@@ -43,7 +43,12 @@ message::TextOperation MakeOperation(const std::string& item_id, message::TextOp
 void TestTextStateAndHistory()
 {
 	// 1. 创建顺序穿插笔画，内容和位置操作不能互相覆盖。
-	Room room("123456");
+	boost::asio::io_context io_context;
+	auto room_owner = std::make_shared<Room>("123456");
+	Room& room = *room_owner;
+	auto owner_session = std::make_shared<CSession>(io_context);
+	owner_session->SetUserId(7);
+	room.Join(owner_session);
 	room.SetRoomInfo("text test", 7);
 	room.AppendHistory("first-pen");
 	auto operation = MakeOperation("first-text", message::TEXT_CREATE);
@@ -105,7 +110,12 @@ void TestTextStateAndHistory()
 void TestHistoryTrimming()
 {
 	// 1. 最早创建条目被裁剪后仍能更新，后段文字索引必须指向正确的新下标。
-	Room room("123456");
+	boost::asio::io_context io_context;
+	auto room_owner = std::make_shared<Room>("123456");
+	Room& room = *room_owner;
+	auto owner_session = std::make_shared<CSession>(io_context);
+	owner_session->SetUserId(7);
+	room.Join(owner_session);
 	room.SetRoomInfo("trim test", 7);
 	message::TextOperationRsp response;
 	auto early = MakeOperation("early-text", message::TEXT_CREATE);

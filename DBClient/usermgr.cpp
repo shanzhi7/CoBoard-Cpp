@@ -3,6 +3,9 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QDir>
+#include <QPersistentModelIndex>
+#include <QPointer>
+#include <QTreeWidget>
 
 UserMgr::UserMgr()
     :token(""),_my_info(nullptr),isHaveRoom(false)
@@ -59,6 +62,19 @@ void UserMgr::setIsHaveRoom(bool f)
 void UserMgr::ClearSession()
 {
     // 1. 取消尚未完成的头像下载，旧回调不能访问已清空的成员列表和账号标签。
+    CancelAvatarRequests();
+
+    // 2. 清除认证令牌和房间状态，后续网络请求不能继续使用旧会话。
+    token.clear();
+    isHaveRoom = false;
+
+    // 3. 释放当前用户资料，避免退出后界面或请求继续读取旧账号。
+    _my_info.reset();
+}
+
+void UserMgr::CancelAvatarRequests()
+{
+    // 1. 删除成员图元前取消所有非拥有头像回调，账号资料与 Token 继续保留。
     const auto replies = _netMgr->findChildren<QNetworkReply*>();
     for (QNetworkReply* reply : replies)
     {
@@ -67,12 +83,6 @@ void UserMgr::ClearSession()
         reply->deleteLater();
     }
 
-    // 2. 清除认证令牌和房间状态，后续网络请求不能继续使用旧会话。
-    token.clear();
-    isHaveRoom = false;
-
-    // 3. 释放当前用户资料，避免退出后界面或请求继续读取旧账号。
-    _my_info.reset();
 }
 
 void UserMgr::loadAvatar(const QString &url, QLabel *label)
@@ -151,6 +161,7 @@ void UserMgr::loadAvatar(const QString &url, QLabel *label)
 
 void UserMgr::loadAvatar(const QString &url, QTreeWidgetItem *item)
 {
+    // 1. 图元仍有效时应用本地缓存，网络回调不保存非拥有的成员指针。
     if(url.isEmpty() || item == nullptr) return;
 
     QString fileName = url.section('/', -1);
@@ -168,18 +179,25 @@ void UserMgr::loadAvatar(const QString &url, QTreeWidgetItem *item)
     }
 
     // 没缓存，下载
+    // 2. 保存可失效的模型索引，成员退出或清空列表后忽略旧头像结果。
+    const QPointer<QTreeWidget> tree_widget = item->treeWidget();
+    const QPersistentModelIndex member_index = tree_widget ? tree_widget->indexFromItem(item) : QModelIndex();
     QNetworkRequest request(url);
     QNetworkReply* reply = _netMgr->get(request);
 
-    connect(reply, &QNetworkReply::finished, [=]() {
+    connect(reply, &QNetworkReply::finished, this, [reply, tree_widget, member_index, localPath]() {
+        if (!tree_widget || !member_index.isValid())
+        {
+            reply->deleteLater();
+            return;
+        }
         if (reply->error() == QNetworkReply::NoError)
         {
             QByteArray data = reply->readAll();
             QPixmap pix;
             if (pix.loadFromData(data))
             {
-                // 设置 Icon
-                item->setIcon(0, QIcon(pix));
+                tree_widget->model()->setData(member_index, QIcon(pix), Qt::DecorationRole);
 
                 // 存缓存
                 QFile file(localPath);

@@ -94,6 +94,7 @@ add_executable (LogicServer "src/LogicServer.cpp"
 # 5.1 头文件路径
 target_include_directories(LogicServer PRIVATE
     ${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/include/LogicServer
     ${PROJECT_SOURCE_DIR}/../Common
 )
 

@@ -34,6 +34,7 @@ public:
     void setAvatar(QString avatar); // 更新当前用户头像地址。
     void setIsHaveRoom(bool f); // 更新用户房间标志。
     void ClearSession(); // 清除当前登录会话、房间标志和用户资料。
+    void CancelAvatarRequests(); // 清空成员列表前废弃头像回调，保留账号资料。
 
     void loadAvatar(const QString& url,QLabel* label);              //从OSS或本地加载头像
     void loadAvatar(const QString& url,QTreeWidgetItem* item);      //加载头像
