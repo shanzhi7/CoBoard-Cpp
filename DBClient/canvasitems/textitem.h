@@ -54,11 +54,15 @@ public:
     void SetTextData(const TextItemData& data); // 恢复纯文本和统一样式，不改图元公共变换。
     void SetTextStyle(const TextStyle& style); // 修改全文样式并保留编辑光标和撤销记录。
     static bool IsValidData(const TextItemData& data, bool allow_empty = false); // 校验内容长度、字号、颜色和位置。
+    void SetLayoutSize(const QSizeF& size); // 修改排版宽度和最小高度，保持字号并自动换行。
+    QSizeF LayoutSize() const; // 返回手工设置的排版框，未设置时宽度为零。
+    qreal ContentHeight() const; // 返回当前文档排版所需高度。
 
 signals:
     void SigFinishRequested(bool is_cancel); // 编辑器通过 Ctrl+Enter 或 Esc 请求场景结束编辑。
     void SigEditRequested(QString item_id); // 双击文字后请求场景开始编辑。
     void SigTextError(QString message); // 草稿超限时提供明确提示。
+    void SigLayoutChanged(); // 内容或排版变化后通知封闭父图元调整高度。
 
 protected:
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override; // 由场景统一管理单个活动编辑器。
@@ -71,5 +75,6 @@ private:
     TextItemData _text_before_edit; // Esc 恢复的编辑前数据。
     QRectF _text_rect; // 场景索引使用的最新文字边界。
     bool _is_editing = false; // 当前是否接受文本编辑事件。
+    QSizeF _layout_size{0.0, 0.0}; // 宽度为零表示自然宽度，高度保存用户留白。
 };
 Q_DECLARE_METATYPE(TextItemData)

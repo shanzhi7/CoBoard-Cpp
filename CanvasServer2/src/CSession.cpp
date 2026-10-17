@@ -4,6 +4,7 @@
 #include <iostream>
 #include "CanvasServer/Room.h"
 #include "CanvasServer/LogicSystem.h"
+#include "CanvasServer/ItemEditOperationHandler.h"
 #include "CanvasServer/SessionMgr.h"
 #include "CanvasServer/const.h"
 #include "CanvasServer/message.pb.h"
@@ -49,7 +50,15 @@ CSession::~CSession()
 
 void CSession::Start()
 {
-	// 启动读取循环
+	// 1. 高频小包立即写出，避免 Nagle 合并拖动预览并引入额外显示抖动。
+	boost::system::error_code error;
+	_socket.set_option(boost::asio::ip::tcp::no_delay(true), error);
+	if (error)
+	{
+		std::cout << "[CanvasServer] CSession::Start TCP_NODELAY failed uid=" << GetUserId()
+			<< " error=" << error.message() << std::endl;
+	}
+	// 2. 选项失败仍沿用原连接接收流程，由正常网络错误路径负责关闭。
 	ReadHead();
 }
 
@@ -185,7 +194,7 @@ void CSession::ReadBody(short msg_id, short msg_len)
 	if (_b_close) return;
 	auto self = shared_from_this();
 
-	//申请内存
+	// 1. 每个包持有独立节点，异步读取完成后再按消息职责选择快慢通道。
 	auto recv_node = std::make_shared<RecvNode>(msg_len, msg_id);
 
 	//直接写入节点内存
@@ -202,7 +211,7 @@ void CSession::ReadBody(short msg_id, short msg_len)
 			// 设置实际长度
 			recv_node->_cur_len = bytes_transferred;
 			recv_node->_data[recv_node->_cur_len] = '\0';	// 结束符
-			if (msg_id != ID_DRAW_REQ)
+			if (msg_id != ID_DRAW_REQ && msg_id != ID_ITEM_EDIT_REQ)
 				std::cout << "revc msgid is :" << msg_id << std::endl;
 
 			// 核心分流逻辑：快慢分离
@@ -260,7 +269,12 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				ReadHead();	//读取下一个消息头
 				return;
 			}
-			// 慢通道：登录、房间、聊天、权限和图片等低频业务统一扔进 LogicSystem 队列。
+			// 2. 图元预览和最终提交同走快通道，不能因业务队列排队降低拖动帧率。
+			else if (msg_id == ID_ITEM_EDIT_REQ)
+			{
+				ItemEditOperationHandler::Handle(self, msg_id, std::string(recv_node->_data, recv_node->_cur_len));
+			}
+			// 3. 登录、房间、聊天、权限和旧图片等低频业务继续进入 LogicSystem 队列。
 			// 图片包不能在 Asio 读取线程直接修改 Room，否则会绕过队列顺序并与其他房间操作竞争。
 			else
 			{

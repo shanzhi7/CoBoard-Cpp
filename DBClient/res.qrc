@@ -22,5 +22,11 @@
         <file>res/hand_pan.svg</file>
         <file>res/shape_arrow.svg</file>
         <file>res/shape_diamond.svg</file>
+        <file>res/tool_rect.svg</file>
+        <file>res/tool_oval.svg</file>
+        <file>res/tool_line.svg</file>
+        <file>res/tool_pen.svg</file>
+        <file>res/tool_text.svg</file>
+        <file>res/tool_eraser.svg</file>
     </qresource>
 </RCC>

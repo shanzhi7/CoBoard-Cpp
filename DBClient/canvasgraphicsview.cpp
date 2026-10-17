@@ -1,5 +1,7 @@
 #include "canvasgraphicsview.h"
 #include "ui_canvasgraphicsview.h"
+#include "canvastoolregistry.h"
+#include "paintscene.h"
 
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
@@ -146,7 +148,33 @@ void CanvasGraphicsView::wheelEvent(QWheelEvent* event)
 
 void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
 {
-    // 1. 原生文字编辑器优先接收纯文本粘贴，其余状态才触发图片插入。
+    // 1. 独立和绑定文字共用场景编辑状态，字符、输入法及文字快捷键优先交给编辑器。
+    const auto* paint_scene = qobject_cast<PaintScene*>(scene());
+    const bool is_text_editing = (paint_scene && paint_scene->IsTextEditing()) ||
+        (scene() && dynamic_cast<QGraphicsTextItem*>(scene()->focusItem()));
+    if (is_text_editing)
+    {
+        QGraphicsView::keyPressEvent(event);
+        return;
+    }
+
+    // 2. 字母键只在当前画布获得焦点时切工具，不能抢占聊天或字号输入框。
+    const Qt::KeyboardModifiers command_modifiers = Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier;
+    if (event && (hasFocus() || viewport()->hasFocus()) &&
+        !(event->modifiers() & command_modifiers))
+    {
+        if (const CanvasToolDescriptor* descriptor = CanvasToolRegistry::FindByKey(event->key()))
+        {
+            if (!event->isAutoRepeat())
+            {
+                emit SigToolShortcutRequested(descriptor->_tool_id);
+            }
+            event->accept();
+            return;
+        }
+    }
+
+    // 3. 普通画布状态的粘贴仍交给图片入口，其他组合键继续由场景处理。
     if (event && event->matches(QKeySequence::Paste) &&
         (!scene() || !dynamic_cast<QGraphicsTextItem*>(scene()->focusItem())))
     {
@@ -156,7 +184,7 @@ void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    // 2. 其余按键进入场景，按编辑状态处理文字撤销或画布操作。
+    // 4. 保留画布撤销、图片缩放和旋转等已有组合键。
     QGraphicsView::keyPressEvent(event);
 }
 

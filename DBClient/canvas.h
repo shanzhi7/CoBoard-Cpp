@@ -28,6 +28,7 @@
 
 class ImageAssetManager;
 class CanvasFileManager;
+class CanvasItemEditSync;
 class QImage;
 
 namespace Ui {
@@ -67,6 +68,7 @@ private slots:
     void OnUndoTriggered(); // 按离线或在线规则执行统一撤销。
     void OnTextOperationReceived(QByteArray data); // 接收确认、远端修改及历史文字状态。
     void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
+    void CompleteLocalCreation(QString item_id); // 本地图元创建完成后回到鼠标模式并选中刚创建的图元。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
     void slot_user_leaved(int uid);                                             //用户离开槽函数    (广播)
     void slot_permission_changed(int target_uid, bool can_edit);                //房间编辑权限变更
@@ -110,6 +112,8 @@ private slots:
     void OnReturnLobbyTriggered(); // 从返回菜单暂回大厅，在线时保留房间身份。
 
 private:
+    void ConfigureItemEditSync(); // 按当前房间、身份和权限更新图元同步上下文。
+    void OnItemEditReceived(QByteArray data); // 将通用编辑按接收顺序加入远端队列。
     void UpdateReturnActions(bool can_retry = false); // 按房主身份及退出状态更新返回菜单。
     void UpdateTextControls(); // 按工具和选中文字同步字号及加粗控件。
     void SubmitTextOperation(message::TextOperationType type, const TextItemData& before,
@@ -132,6 +136,8 @@ private:
     QQueue<message::TextOperationRsp> _remote_text_operations; // 房间初始化前暂存的文字历史。
     Ui::Canvas* ui; // 界面对象
     QLabel* statusDot; // 状态栏标签
+    CanvasItemEditSync* _item_edit_sync = nullptr; // 当前场景对应的合并发送和确认管理器。
+    QQueue<message::ItemEditOperationRsp> _remote_item_edits; // 与绘画创建保持同一到达顺序的编辑回包。
     PaintScene* _paintScene; // 画布场景
     WidthPopup* _widthPopup; // 画笔粗细预览窗口
     std::shared_ptr<RoomInfo> _room_info; // 当前房间信息
@@ -139,6 +145,9 @@ private:
     QMap<int, QTreeWidgetItem*> _userItemMap; // 用户列表
 
     QButtonGroup* _toolGroup; // 工具按钮组
+    int _active_tool_id = -1; // 最近成功应用的工具 ID，独立于按钮提前更新的选中状态。
+    quint64 _tool_generation = 0; // 工具实际切换次数，用于过滤迟到图片导入的自动切换。
+    bool _is_switching_tool = false; // 显式切换收尾时抑制自动返回，保持用户指定工具。
 
     QLabel* _zoomLabel = nullptr; // 状态栏中的缩放比例标签
 
@@ -188,6 +197,7 @@ private:
     {
         QString _source_file_path; // 拖放或文件选择的原始路径，剪贴板图片没有原始路径。
         QPointF _anchor_scene_pos; // 用户触发导入时记录的场景锚点。
+        quint64 _tool_generation = 0; // 导入开始时的工具代次，迟到结果不能抢走新工具。
         bool _has_anchor_scene_pos = false; // 是否使用已记录的锚点而不是异步完成时的画布中心。
     };
     QHash<QString, PendingImageImport> _pending_image_imports; // 后台本地读取请求上下文，房间切换时清空以丢弃过期结果。

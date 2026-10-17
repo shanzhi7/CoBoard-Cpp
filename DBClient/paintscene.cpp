@@ -12,7 +12,283 @@
 #include <QTransform>
 
 #include "canvasitemserializer.h"
+#include "canvasselectioncontroller.h"
 #include "canvasitems/imageitem.h"
+
+PaintScene::~PaintScene()
+{
+    // 1. 在 QGraphicsScene 基类释放图元前回收辅助覆盖层，避免 QObject 析构顺序造成悬空。
+    delete _selection_controller;
+    _selection_controller = nullptr;
+}
+
+CanvasItem* PaintScene::FindCanvasItem(const QString& item_id) const
+{
+    // 1. 弱引用索引覆盖本地、远端和文件图元，删除后不会返回悬空对象。
+    const QPointer<CanvasItem> cached = _canvas_itemMap.value(item_id);
+    if (cached && cached->scene() == this)
+    {
+        return cached;
+    }
+    _canvas_itemMap.remove(item_id);
+    for (QGraphicsItem* graphics_item : items())
+    {
+        auto* item = dynamic_cast<CanvasItem*>(graphics_item);
+        if (item && !item->parentItem() && item->itemId() == item_id)
+        {
+            _canvas_itemMap.insert(item_id, item);
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+CanvasItemEditState PaintScene::CaptureItemEditState(const QString& item_id) const
+{
+    // 1. 快照只包含内容，选中框和当前工具不参与网络或撤销。
+    return CanvasItemEdit::Capture(FindCanvasItem(item_id));
+}
+
+bool PaintScene::ApplyItemEditState(const CanvasItemEditState& state)
+{
+    // 1. 应用入口不发起本地提交，网络回放不会形成反馈循环。
+    const bool applied = CanvasItemEdit::Apply(FindCanvasItem(state._item_id), state);
+    if (_selection_controller)
+    {
+        _selection_controller->Refresh();
+    }
+    return applied;
+}
+
+void PaintScene::CancelItemInteraction(const QString& item_id)
+{
+    // 1. 远端覆盖时先停止本地手势和草稿，再由调用者应用权威状态。
+    if (_selection_controller)
+    {
+        _selection_controller->Cancel(item_id);
+    }
+    if (_editing_text_item)
+    {
+        CanvasItem* owner = dynamic_cast<CanvasItem*>(_editing_text_item->parentItem());
+        if (item_id.isEmpty() || _editing_text_item->itemId() == item_id || (owner && owner->itemId() == item_id))
+        {
+            FinishTextEditing(true);
+        }
+    }
+}
+
+void PaintScene::SetItemEditPending(const QString& item_id, bool pending)
+{
+    // 1. 确认锁定不清除选择，待确认对象仍可查看但不能开始新手势。
+    if (CanvasItem* item = FindCanvasItem(item_id))
+    {
+        item->setProperty("canvas_edit_pending", pending);
+    }
+}
+
+void PaintScene::SetItemEditUndoEnabled(bool enabled)
+{
+    // 1. 在线确认入口负责登记，离线直接记录完成的交互。
+    _is_item_edit_undo_enabled = enabled;
+}
+
+void PaintScene::RecordItemEditOperation(const CanvasItemEditState& before, const CanvasItemEditState& after,
+                                        const QString& gesture_id, quint64 revision)
+{
+    // 1. 无变化和已删除对象不登记，混合拖动按手势标识合并为一条记录。
+    if (before == after || !FindCanvasItem(after._item_id))
+    {
+        return;
+    }
+    DrawItemRecord* record = nullptr;
+    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    {
+        if (_localUndoStack[index].is_item_edit && _localUndoStack[index].item_edit._gesture_id == gesture_id)
+        {
+            record = &_localUndoStack[index];
+            break;
+        }
+    }
+    if (!record)
+    {
+        DrawItemRecord value;
+        value.item_id = after._item_id;
+        value.is_item_edit = true;
+        value.item_edit._gesture_id = gesture_id;
+        _localUndoStack.push(value);
+        record = &_localUndoStack.top();
+    }
+
+    // 2. 同一对象重复确认只替换最终状态，保留手势最初的快照。
+    int target = -1;
+    for (int index = 0; index < record->item_edit._after.size(); ++index)
+    {
+        if (record->item_edit._after[index]._item_id == after._item_id)
+        {
+            target = index;
+        }
+    }
+    if (target < 0)
+    {
+        record->item_edit._before.append(before);
+        record->item_edit._after.append(after);
+    } else
+    {
+        record->item_edit._after[target] = after;
+    }
+    record->item_edit._revisions.insert(after._item_id, revision);
+}
+
+bool PaintScene::TakeItemEditUndo(CanvasItemEditUndoOperation* operation)
+{
+    // 1. 仅消费栈顶，不能越过更晚的创建或文字操作。
+    if (!operation || _localUndoStack.isEmpty() || !_localUndoStack.top().is_item_edit)
+    {
+        return false;
+    }
+    const auto& value = _localUndoStack.top().item_edit;
+    for (const CanvasItemEditState& state : value._before)
+    {
+        CanvasItem* item = FindCanvasItem(state._item_id);
+        if (item && item->property("canvas_edit_pending").toBool())
+        {
+            return false;
+        }
+    }
+    *operation = _localUndoStack.pop().item_edit;
+    return true;
+}
+
+void PaintScene::InvalidateItemEditUndo(const QString& item_id)
+{
+    // 1. 删除或冲突只废弃目标自身，混合手势中的其他对象仍可独立条件撤销。
+    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    {
+        if (!_localUndoStack[index].is_item_edit)
+        {
+            continue;
+        }
+        auto& operation = _localUndoStack[index].item_edit;
+        for (int state_index = operation._before.size() - 1; state_index >= 0; --state_index)
+        {
+            if (operation._before[state_index]._item_id == item_id)
+            {
+                operation._before.removeAt(state_index);
+                operation._after.removeAt(state_index);
+                operation._revisions.remove(item_id);
+            }
+        }
+        if (operation._before.isEmpty())
+        {
+            _localUndoStack.removeAt(index);
+        }
+    }
+}
+
+void PaintScene::RebaseItemEditUndo(const QString& item_id, const CanvasItemEditState& confirmed, quint64 revision)
+{
+    // 1. 只推进最近一次仍可撤销操作，状态不匹配说明中间存在新的内容变化。
+    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    {
+        if (!_localUndoStack[index].is_item_edit)
+        {
+            continue;
+        }
+        auto& operation = _localUndoStack[index].item_edit;
+        for (const CanvasItemEditState& after : operation._after)
+        {
+            if (after._item_id != item_id)
+            {
+                continue;
+            }
+            if (after == confirmed)
+            {
+                operation._revisions.insert(item_id, revision);
+            }
+            return;
+        }
+    }
+}
+
+bool PaintScene::RemoveCanvasItem(const QString& item_id)
+{
+    // 1. 删除前终止所有本地交互，避免手势继续持有失效的绘图操作。
+    CancelItemInteraction(item_id);
+    CanvasItem* item = FindCanvasItem(item_id);
+    if (!item)
+    {
+        return false;
+    }
+    if (dynamic_cast<ImageItem*>(item))
+    {
+        return removeImageItem(item_id);
+    }
+    if (dynamic_cast<TextItem*>(item))
+    {
+        return RemoveTextItem(item_id);
+    }
+
+    // 2. 清理工具和本地创建记录，剩余多选撤销保留其他对象。
+    InvalidateItemEditUndo(item_id);
+    _canvas_itemMap.remove(item_id);
+    _localItems.remove(item_id);
+    _remoteItems.remove(item_id);
+    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    {
+        if (!_localUndoStack[index].is_item_edit && _localUndoStack[index].item_id == item_id)
+        {
+            _localUndoStack.removeAt(index);
+        }
+    }
+    if (_currUuid == item_id)
+    {
+        clearCurrentOperation();
+    }
+    removeItem(item);
+    item->setParent(this);
+    item->deleteLater();
+    _selection_controller->Refresh();
+    return true;
+}
+
+PaintScene::UndoKind PaintScene::NextUndoKind() const
+{
+    // 1. 统一时间顺序由同一栈维护，在线与离线只区分提交方式。
+    if (_localUndoStack.isEmpty())
+    {
+        return UndoKind::None;
+    }
+    if (_localUndoStack.top().is_item_edit)
+    {
+        return UndoKind::ItemEdit;
+    }
+    return _localUndoStack.top().is_text ? UndoKind::Text : UndoKind::Creation;
+}
+
+void PaintScene::SubmitItemEditChange(const CanvasItemEditState& before, const CanvasItemEditState& after,
+                                     const QString& gesture_id, bool finished)
+{
+    // 1. 一次完整操作只登记一次，中间预览由网络层节流。
+    if (finished && _is_item_edit_undo_enabled)
+    {
+        RecordItemEditOperation(before, after, gesture_id, 0);
+    }
+    emit SigItemEditChanged(before, after, gesture_id, finished);
+}
+
+void PaintScene::ConfigureCanvasItem(CanvasItem* item)
+{
+    // 1. 只登记顶层内容，橡皮擦保留白色覆盖语义且不可选择。
+    if (!item || item->parentItem())
+    {
+        return;
+    }
+    _canvas_itemMap.insert(item->itemId(), item);
+    const bool selectable = CanvasItemEdit::Kind(item) != 5;
+    item->setFlag(QGraphicsItem::ItemIsSelectable, selectable);
+    item->setFlag(QGraphicsItem::ItemIsMovable, false);
+    item->setAcceptedMouseButtons(selectable ? Qt::LeftButton : Qt::NoButton);
+}
 
 bool PaintScene::BuildCanvasDocument(CanvasDocument* document, QString* error_message) const
 {
@@ -30,9 +306,15 @@ bool PaintScene::BuildCanvasDocument(CanvasDocument* document, QString* error_me
     for (QGraphicsItem* graphics_item : items(Qt::AscendingOrder))
     {
         auto* item = dynamic_cast<CanvasItem*>(graphics_item);
-        if (!item) continue;
+        if (!item || item->parentItem())
+        {
+            continue;
+        }
         CanvasItemData item_data;
-        if (!CanvasItemSerializer::SerializeItem(item, &item_data, &snapshot, error_message)) return false;
+        if (!CanvasItemSerializer::SerializeItem(item, &item_data, &snapshot, error_message))
+        {
+            return false;
+        }
         snapshot._items.append(item_data);
         snapshot._item_order.append(item->itemId());
         if (snapshot._items.size() > CanvasDocumentLimits::MAX_ITEMS)
@@ -48,7 +330,7 @@ bool PaintScene::BuildCanvasDocument(CanvasDocument* document, QString* error_me
 bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* error_message)
 {
     // 1. 此入口只构建临时场景，失败后由调用者整体销毁，不清空当前画布。
-    if (!views().isEmpty() || items().size() != 1 || document._items.size() != document._item_order.size())
+    if (!views().isEmpty() || !_canvas_itemMap.isEmpty() || document._items.size() != document._item_order.size())
     {
         *error_message = QStringLiteral("请在新的临时场景恢复画布");
         return false;
@@ -75,8 +357,12 @@ bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* err
             return false;
         }
         CanvasItem* item = CanvasItemSerializer::DeserializeItem(item_dataMap.value(item_id), document._asset_dataMap, error_message);
-        if (!item) return false;
+        if (!item)
+        {
+            return false;
+        }
         addItem(item);
+        ConfigureCanvasItem(item);
         loaded_ids.insert(item_id);
         if (auto* image_item = dynamic_cast<ImageItem*>(item))
         {
@@ -86,7 +372,10 @@ bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* err
             connect(image_item, &ImageItem::sigRetryRequested, this, &PaintScene::sigImageRetryRequested);
             connect(image_item, &ImageItem::sigPreviewRequested, this, &PaintScene::sigImagePreviewRequested);
         }
-        if (auto* text_item = dynamic_cast<TextItem*>(item)) ConnectTextItem(text_item);
+        if (auto* text_item = dynamic_cast<TextItem*>(item))
+        {
+            ConnectTextItem(text_item);
+        }
     }
 
     // 3. 导入图元是初始内容，不加入撤销栈；后续本地操作继续沿用原有记录。
@@ -130,6 +419,7 @@ QImage PaintScene::RenderCanvasImage(QString* error_message)
 
     // 2. 隐藏选中框和橡皮擦光标，渲染完成后立即恢复原状态。
     const QSignalBlocker signal_blocker(this);
+    _selection_controller->SetOverlayVisible(false);
     const QList<QGraphicsItem*> selected_items = selectedItems();
     const bool is_cursor_visible = _eraserCursorItem->isVisible();
     clearSelection();
@@ -138,15 +428,20 @@ QImage PaintScene::RenderCanvasImage(QString* error_message)
     painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
     render(&painter, QRectF(QPointF(), size), sceneRect(), Qt::IgnoreAspectRatio);
     painter.end();
-    for (QGraphicsItem* item : selected_items) item->setSelected(true);
+    for (QGraphicsItem* item : selected_items)
+    {
+        item->setSelected(true);
+    }
     _eraserCursorItem->setVisible(is_cursor_visible);
+    _selection_controller->Refresh();
+    _selection_controller->SetOverlayVisible(true);
     return image;
 }
 
 PaintScene::PaintScene(QObject* parent)
     : QGraphicsScene(parent)
 {
-    // 光标只是交互辅助层，禁止它接收鼠标，确保事件继续落到场景。
+    // 1. 光标只是交互辅助层，禁止它接收鼠标，确保事件继续落到场景。
     _eraserCursorItem = new QGraphicsEllipseItem();
     _eraserCursorItem->setPen(QPen(Qt::black, 1));
     _eraserCursorItem->setBrush(QBrush(QColor(200, 200, 200, 50)));
@@ -156,8 +451,9 @@ PaintScene::PaintScene(QObject* parent)
     _eraserCursorItem->hide();
     addItem(_eraserCursorItem);
 
-    // 默认工具必须从工厂创建，避免 PaintScene 内部再维护一套类型分支。
+    // 2. 工厂负责绘制策略，独立控制器负责完成后的选择及几何手势。
     _currentTool = DrawToolFactory::create(_currShapeType);
+    _selection_controller = new CanvasSelectionController(this);
 }
 
 void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
@@ -171,37 +467,54 @@ void PaintScene::mousePressEvent(QGraphicsSceneMouseEvent* event)
 
     // 2. 命中子编辑器时回溯父图元；空白点击先提交原草稿，再按文字工具新建。
     QGraphicsItem* hit_item = itemAt(event->scenePos(), QTransform());
-    while (hit_item && !dynamic_cast<TextItem*>(hit_item)) hit_item = hit_item->parentItem();
+    while (hit_item && !dynamic_cast<TextItem*>(hit_item))
+    {
+        hit_item = hit_item->parentItem();
+    }
     auto* text_item = dynamic_cast<TextItem*>(hit_item);
-    if (_editing_text_item && text_item != _editing_text_item && !FinishTextEditing()) return;
+    if (_editing_text_item && text_item != _editing_text_item && !FinishTextEditing())
+    {
+        return;
+    }
+    if (_editing_text_item && text_item == _editing_text_item)
+    {
+        // 活动编辑器保留原生选字和输入法事件，不进入图元手势。
+        QGraphicsScene::mousePressEvent(event);
+        return;
+    }
     if (_interaction_mode == CanvasInteractionMode::Text && event->button() == Qt::LeftButton)
     {
-        if (!_editable) return;
+        if (!_editable)
+        {
+            return;
+        }
+        if (text_item && text_item->parentItem())
+        {
+            text_item = nullptr;
+        }
         if (!text_item)
         {
             TextItemData data{QUuid::createUuid().toString(QUuid::WithoutBraces), QString(), _text_style, event->scenePos()};
             text_item = AddTextItem(data);
         }
-        if (text_item && !_editing_text_item) BeginTextEditing(text_item);
-        if (text_item && text_item->IsEditing()) QGraphicsScene::mousePressEvent(event);
+        if (text_item && !_editing_text_item)
+        {
+            BeginTextEditing(text_item);
+        }
+        if (text_item && text_item->IsEditing())
+        {
+            QGraphicsScene::mousePressEvent(event);
+        }
         event->accept();
         return;
     }
 
-    // 3. 选择和 Ctrl 多选交给 Qt；不可移动的只读图片仍能正常选择。
+    // 3. 选择和 Ctrl 多选交给控制器；只读用户仍能正常查看选择。
     if (_interaction_mode == CanvasInteractionMode::Select)
     {
-        QGraphicsScene::mousePressEvent(event);
-        _text_drag_positionMap.clear();
-        for (QGraphicsItem* item : selectedItems())
+        if (!_selection_controller->Press(event))
         {
-            auto* selected_text = dynamic_cast<TextItem*>(item);
-            if (selected_text && selected_text->flags().testFlag(QGraphicsItem::ItemIsMovable))
-                _text_drag_positionMap.insert(selected_text->itemId(), selected_text->pos());
-        }
-        if (event->button() == Qt::LeftButton)
-        {
-            PrepareImageDrag();
+            QGraphicsScene::mousePressEvent(event);
         }
         return;
     }
@@ -247,10 +560,13 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
     // 1. 坐标显示与编辑权限无关；手形模式由视图另行转发坐标。
     emit sigCursorPosChanged(event->scenePos());
 
-    // 2. 图片移动完全沿用 Qt 默认多选拖动，实时几何信号继续进入同步层。
+    // 2. 控制器按起始快照移动图元，文本选字仍由 Qt 原生编辑器处理。
     if (_interaction_mode == CanvasInteractionMode::Select || _interaction_mode == CanvasInteractionMode::Text)
     {
-        QGraphicsScene::mouseMoveEvent(event);
+        if (!_selection_controller->Move(event))
+        {
+            QGraphicsScene::mouseMoveEvent(event);
+        }
         return;
     }
 
@@ -284,20 +600,12 @@ void PaintScene::mouseMoveEvent(QGraphicsSceneMouseEvent* event)
 
 void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 {
-    // 1. Qt 先结束图片鼠标抓取，再为实际移动的图片补发最终状态。
+    // 1. 控制器提交最终图元状态，文字选字的释放事件仍交给 Qt。
     if (_interaction_mode == CanvasInteractionMode::Select || _interaction_mode == CanvasInteractionMode::Text)
     {
-        QGraphicsScene::mouseReleaseEvent(event);
-        if (event->button() == Qt::LeftButton)
+        if (!_selection_controller->Release(event))
         {
-            FinishImageDrag(_editable);
-            const auto positionMap = _text_drag_positionMap;
-            _text_drag_positionMap.clear();
-            for (auto iterator = positionMap.cbegin(); iterator != positionMap.cend(); ++iterator)
-            {
-                TextItem* item = FindTextItem(iterator.key());
-                if (_editable && item && item->pos() != iterator.value()) emit SigTextMoved(iterator.key());
-            }
+            QGraphicsScene::mouseReleaseEvent(event);
         }
         return;
     }
@@ -323,19 +631,28 @@ void PaintScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 void PaintScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-    // 1. 成功图片的预览和失败图片的重试仅在鼠标模式向图元分发。
+    // 1. 双击独立检测封闭内部，不能依赖仅包含边框的首次选择形状。
     if (_interaction_mode == CanvasInteractionMode::Select)
     {
-        QGraphicsItem* hit_item = itemAt(event->scenePos(), QTransform());
-        while (hit_item && !dynamic_cast<TextItem*>(hit_item)) hit_item = hit_item->parentItem();
-        if (auto* text_item = dynamic_cast<TextItem*>(hit_item))
+        _selection_controller->Cancel();
+        CanvasItem* hit_item = _selection_controller->HitItem(event->scenePos(), true, event->widget());
+        if (hit_item && CanvasItemEdit::IsClosed(hit_item))
+        {
+            BeginBoundTextEditing(hit_item);
+        } else if (auto* text_item = dynamic_cast<TextItem*>(hit_item))
         {
             BeginTextEditing(text_item);
-            event->accept();
-            return;
+        } else if (auto* image_item = dynamic_cast<ImageItem*>(hit_item))
+        {
+            if (image_item->loadState() == ImageItem::ImageLoadState::Ready)
+            {
+                emit sigImagePreviewRequested(image_item->itemId());
+            } else if (image_item->loadState() == ImageItem::ImageLoadState::Failed)
+            {
+                emit sigImageRetryRequested(image_item->itemId());
+            }
         }
-        QGraphicsScene::mouseDoubleClickEvent(event);
-        PrepareImageDrag();
+        event->accept();
         return;
     }
 
@@ -356,6 +673,13 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         QGraphicsScene::keyPressEvent(event);
         return;
     }
+    if (event->key() == Qt::Key_Escape)
+    {
+        // Esc 恢复手势起点，同时结束已向网络发送的临时预览。
+        _selection_controller->Cancel(QString(), true);
+        event->accept();
+        return;
+    }
     if (event->matches(QKeySequence::Undo))
     {
         emit SigUndoRequested();
@@ -369,7 +693,10 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         for (QGraphicsItem* item : selected_items)
         {
             auto* text_item = dynamic_cast<TextItem*>(item);
-            if (text_item && !_pending_text_ids.contains(text_item->itemId())) emit SigTextDeleteRequested(text_item->itemId());
+            if (text_item && !_pending_text_ids.contains(text_item->itemId()))
+            {
+                emit SigTextDeleteRequested(text_item->itemId());
+            }
         }
     }
 
@@ -380,7 +707,7 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    // 3. 保留已有图片快捷键；图片批量缩放和旋转不属于本轮范围。
+    // 3. 保留图片已有键盘缩放和旋转，使用统一状态提交与撤销。
     ImageItem* selected_image = nullptr;
     for (QGraphicsItem* graphics_item : selectedItems())
     {
@@ -393,6 +720,11 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
     if (!selected_image)
     {
         QGraphicsScene::keyPressEvent(event);
+        return;
+    }
+    if (selectedItems().size() != 1 || selected_image->property("canvas_edit_pending").toBool())
+    {
+        event->accept();
         return;
     }
 
@@ -414,7 +746,11 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         const qreal factor = event->key() == Qt::Key_Minus ? 1.0 / 1.1 : 1.1;
         const qreal next_scale_x = qBound(0.1, current_scale_x * factor, 8.0);
         const qreal next_scale_y = qBound(0.1, current_scale_y * factor, 8.0);
+        const CanvasItemEditState before = CanvasItemEdit::Capture(selected_image);
+        const QSignalBlocker blocker(selected_image);
         selected_image->setTransform(QTransform::fromScale(next_scale_x, next_scale_y), false);
+        SubmitItemEditChange(before, CanvasItemEdit::Capture(selected_image), QUuid::createUuid().toString(), true);
+        _selection_controller->Refresh();
         event->accept();
         return;
     }
@@ -423,7 +759,11 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
     {
         // 方括号以五度步长旋转图片，几何信号会把变换同步给房间。
         const qreal delta = event->key() == Qt::Key_BracketLeft ? -5.0 : 5.0;
+        const CanvasItemEditState before = CanvasItemEdit::Capture(selected_image);
+        const QSignalBlocker blocker(selected_image);
         selected_image->setRotation(selected_image->rotation() + delta);
+        SubmitItemEditChange(before, CanvasItemEdit::Capture(selected_image), QUuid::createUuid().toString(), true);
+        _selection_controller->Refresh();
         event->accept();
         return;
     }
@@ -433,7 +773,7 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
 
 void PaintScene::finishCurrentOperation(const QPointF& end_pos)
 {
-    // 先让策略写入最后一点，再记录图元，确保撤销拿到最终几何状态。
+    // 1. 先让策略写入最后一点，再记录图元，确保撤销拿到最终几何状态。
     const QString item_id = _currUuid;
     const ShapeType shape = _currShapeType;
     const std::shared_ptr<IDrawTool> operation = _currentOperation;
@@ -442,6 +782,9 @@ void PaintScene::finishCurrentOperation(const QPointF& end_pos)
     recordFinishedLocalItem(item_id, operation);
     emit sigStrokeEnd(item_id, static_cast<int>(shape), end_pos);
     clearCurrentOperation();
+    // 2. 完成信号在 END 和状态清理之后发送，窗口可安全切换回鼠标模式。
+    ConfigureCanvasItem(dynamic_cast<CanvasItem*>(operation->item()));
+    emit SigLocalCreationFinished(item_id);
 }
 
 void PaintScene::clearCurrentOperation()
@@ -491,7 +834,11 @@ void PaintScene::SetInteractionMode(CanvasInteractionMode mode)
     // 1. 切换模式前结束当前笔画和图片拖动，不能遗留跨工具的鼠标抓取。
     if (_interaction_mode != mode)
     {
-        if (!FinishTextEditing()) return;
+        _selection_controller->Cancel(QString(), true);
+        if (!FinishTextEditing())
+        {
+            return;
+        }
         if (_currentOperation && _currentOperation->isStarted())
         {
             finishCurrentOperation(_currentOperation->currentPosition());
@@ -505,12 +852,20 @@ void PaintScene::SetInteractionMode(CanvasInteractionMode mode)
 
     // 2. 只改变移动和焦点能力，不能用关闭选择标记的接口清掉现有选择。
     _interaction_mode = mode;
-    for (TextItem* item : _text_itemMap) UpdateTextInteraction(item);
+    for (QGraphicsItem* graphics_item : items())
+    {
+        ConfigureCanvasItem(dynamic_cast<CanvasItem*>(graphics_item));
+    }
+    for (TextItem* item : _text_itemMap)
+    {
+        UpdateTextInteraction(item);
+    }
     hideEraserCursor();
     for (ImageItem* image_item : _imageItems)
     {
         UpdateImageInteraction(image_item);
     }
+    _selection_controller->Refresh();
 }
 
 CanvasInteractionMode PaintScene::InteractionMode() const
@@ -567,7 +922,7 @@ void PaintScene::UpdateImageInteraction(ImageItem* image_item)
 {
     // 1. 选择标记始终保留，模式通过场景和视图的事件分发控制实际选择操作。
     const bool can_move = _interaction_mode == CanvasInteractionMode::Select && _editable;
-    image_item->setFlag(QGraphicsItem::ItemIsMovable, can_move);
+    image_item->setFlag(QGraphicsItem::ItemIsMovable, false);
     image_item->setFlag(QGraphicsItem::ItemIsFocusable, can_move);
     if (!can_move)
     {
@@ -582,6 +937,7 @@ void PaintScene::setEditable(bool editable)
     _editable = editable;
     if (!_editable)
     {
+        _selection_controller->Cancel();
         FinishTextEditing(true);
         FinishImageDrag(false);
         if (QGraphicsItem* grabber = mouseGrabberItem())
@@ -601,7 +957,10 @@ void PaintScene::setEditable(bool editable)
     {
         UpdateImageInteraction(image_item);
     }
-    for (TextItem* item : _text_itemMap) UpdateTextInteraction(item);
+    for (TextItem* item : _text_itemMap)
+    {
+        UpdateTextInteraction(item);
+    }
 }
 
 bool PaintScene::isEditable() const
@@ -658,12 +1017,27 @@ void PaintScene::undoLastLocalItem()
     {
         const DrawItemRecord record = _localUndoStack.pop();
 
+        if (record.is_item_edit)
+        {
+            // 2. 混合移动和文字增高按同一完整操作恢复，不逐帧撤销。
+            for (const CanvasItemEditState& state : record.item_edit._before)
+            {
+                ApplyItemEditState(state);
+            }
+            return;
+        }
+
         if (record.is_text)
         {
             TextItem* text_item = FindTextItem(record.item_id);
-            if (!text_item) continue;
-            if (record.before_text._text.isEmpty()) RemoveTextItem(record.item_id);
-            else
+            if (!text_item)
+            {
+                continue;
+            }
+            if (record.before_text._text.isEmpty())
+            {
+                RemoveTextItem(record.item_id);
+            } else
             {
                 TextItemData restored = record.before_text;
                 restored._position = text_item->pos();
@@ -708,7 +1082,7 @@ void PaintScene::undoLastLocalItem()
 void PaintScene::recordFinishedLocalItem(const QString& item_id,
                                          const std::shared_ptr<IDrawTool>& operation)
 {
-    // 没有 ID 或图元的操作不能参与撤销，否则会污染撤销栈。
+    // 1. 没有 ID 或图元的操作不能参与撤销，否则会污染撤销栈。
     if (item_id.isEmpty() ||
         !operation ||
         !operation->item())
@@ -717,6 +1091,7 @@ void PaintScene::recordFinishedLocalItem(const QString& item_id,
     }
 
     _localItems.insert(item_id, operation->item());
+    ConfigureCanvasItem(dynamic_cast<CanvasItem*>(operation->item()));
     _localUndoStack.push(DrawItemRecord{item_id,
                                         operation->shapeType(),
                                         operation,
@@ -727,7 +1102,11 @@ void PaintScene::recordFinishedLocalItem(const QString& item_id,
 void PaintScene::ConnectTextItem(TextItem* item)
 {
     // 1. 文字索引由场景拥有，导入、远端回放和本地创建统一走同一连接入口。
-    if (!item) return;
+    if (!item)
+    {
+        return;
+    }
+    ConfigureCanvasItem(item);
     _text_itemMap.insert(item->itemId(), item);
     UpdateTextInteraction(item);
     connect(item, &TextItem::SigEditRequested, this, [this](const QString& item_id) {
@@ -742,10 +1121,13 @@ void PaintScene::ConnectTextItem(TextItem* item)
 void PaintScene::UpdateTextInteraction(TextItem* item)
 {
     // 1. 编辑器期间禁止移动；选择模式才允许拖动，待确认图元保持只读。
-    if (!item) return;
+    if (!item)
+    {
+        return;
+    }
     const bool can_move = _editable && !_pending_text_ids.contains(item->itemId()) &&
                           _interaction_mode == CanvasInteractionMode::Select && !item->IsEditing();
-    item->setFlag(QGraphicsItem::ItemIsMovable, can_move);
+    item->setFlag(QGraphicsItem::ItemIsMovable, false);
     item->setFlag(QGraphicsItem::ItemIsFocusable, can_move || item->IsEditing());
 }
 
@@ -780,16 +1162,23 @@ bool PaintScene::RemoveTextItem(const QString& item_id)
 {
     // 1. 删除先结束活动编辑，再移除索引和场景对象。
     TextItem* item = FindTextItem(item_id);
-    if (!item) return false;
+    _selection_controller->Cancel(item_id);
+    InvalidateItemEditUndo(item_id);
+    if (!item)
+    {
+        return false;
+    }
     if (_editing_text_item == item)
     {
         item->CancelEditing();
         _editing_text_item.clear();
     }
     _text_itemMap.remove(item_id);
+    _canvas_itemMap.remove(item_id);
     _pending_text_ids.remove(item_id);
     InvalidateTextUndo(item_id);
     removeItem(item);
+    _selection_controller->Refresh();
     // 2. Esc 和空内容完成可能来自子编辑器的事件回调，事件返回后再销毁。
     item->setParent(this);
     item->deleteLater();
@@ -799,12 +1188,26 @@ bool PaintScene::RemoveTextItem(const QString& item_id)
 bool PaintScene::BeginTextEditing(TextItem* item)
 {
     // 1. 同时只允许一个编辑器，并保存位置独立的内容样式快照。
-    if (!_editable || !item || _pending_text_ids.contains(item->itemId())) return false;
-    if (_editing_text_item && _editing_text_item != item && !FinishTextEditing()) return false;
+    if (!_editable || !item || _pending_text_ids.contains(item->itemId()) || item->property("canvas_edit_pending").toBool())
+    {
+        return false;
+    }
+    auto* parent_item = dynamic_cast<CanvasItem*>(item->parentItem());
+    if (parent_item && parent_item->property("canvas_edit_pending").toBool())
+    {
+        return false;
+    }
+    if (_editing_text_item && _editing_text_item != item && !FinishTextEditing())
+    {
+        return false;
+    }
     if (!_editing_text_item)
     {
         _editing_text_item = item;
         _text_before_edit = item->GetTextData();
+        CanvasItem* owner = dynamic_cast<CanvasItem*>(item->parentItem());
+        _text_before_item_state = CanvasItemEdit::Capture(owner ? owner : item);
+        _text_edit_gesture_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
         item->BeginEditing();
         UpdateTextInteraction(item);
         emit SigTextEditingChanged();
@@ -812,36 +1215,125 @@ bool PaintScene::BeginTextEditing(TextItem* item)
     return item->IsEditing();
 }
 
+bool PaintScene::BeginBoundTextEditing(CanvasItem* item)
+{
+    // 1. 编辑权限和最终确认锁同时生效，切换目标前先提交已有草稿。
+    if (!_editable || !item || !CanvasItemEdit::IsClosed(item) || item->property("canvas_edit_pending").toBool())
+    {
+        return false;
+    }
+    if (_editing_text_item && _editing_text_item != item->BoundTextItem() && !FinishTextEditing())
+    {
+        return false;
+    }
+    const CanvasItemEditState before = CanvasItemEdit::Capture(item);
+    if (!item->BoundTextItem())
+    {
+        item->SetBoundTextData(QString(), _text_style);
+    }
+    TextItem* text_item = item->BoundTextItem();
+    if (!text_item)
+    {
+        return false;
+    }
+
+    // 2. 子组件只连接草稿信号，不独立登记网络 ID、撤销记录或导出顺序。
+    if (!text_item->property("canvas_bound_connected").toBool())
+    {
+        text_item->setProperty("canvas_bound_connected", true);
+        connect(text_item, &TextItem::SigFinishRequested, this, [this](bool cancel) { FinishTextEditing(cancel); });
+        connect(text_item, &TextItem::SigTextError, this, &PaintScene::SigTextError);
+    }
+    clearSelection();
+    item->setSelected(true);
+    text_item->setVisible(true);
+    if (!BeginTextEditing(text_item))
+    {
+        return false;
+    }
+    _text_before_item_state = before;
+    item->UpdateBoundTextLayout();
+    _selection_controller->Refresh();
+    return true;
+}
+
 bool PaintScene::FinishTextEditing(bool is_cancel)
 {
-    // 1. 取消恢复原快照；完成则校验、删除空新建或发出一次完整提交。
+    // 1. 附属文字恢复父图元完整快照，取消时连同自动增加的高度一起回滚。
     TextItem* item = _editing_text_item;
-    if (!item) return true;
+    if (!item)
+    {
+        return true;
+    }
     const TextItemData before = _text_before_edit;
+    CanvasItem* owner = dynamic_cast<CanvasItem*>(item->parentItem());
     if (is_cancel)
     {
         item->CancelEditing();
         _editing_text_item.clear();
-        if (before._text.isEmpty()) RemoveTextItem(before._item_id);
-        else UpdateTextInteraction(item);
+        if (owner)
+        {
+            CanvasItemEdit::Apply(owner, _text_before_item_state);
+        } else if (before._text.isEmpty())
+        {
+            RemoveTextItem(before._item_id);
+        } else
+        {
+            ApplyItemEditState(_text_before_item_state);
+        }
+        _selection_controller->Refresh();
         emit SigTextEditingChanged();
         return true;
     }
-    if (!item->CommitEditing()) return false;
+
+    // 2. 提交先完成输入法，再按父图元状态作为一次原子编辑发送。
+    if (!item->CommitEditing())
+    {
+        return false;
+    }
     const TextItemData after = item->GetTextData();
     _editing_text_item.clear();
     UpdateTextInteraction(item);
+    if (owner)
+    {
+        owner->UpdateBoundTextLayout();
+        const CanvasItemEditState state = CanvasItemEdit::Capture(owner);
+        if (state != _text_before_item_state)
+        {
+            SubmitItemEditChange(_text_before_item_state, state, _text_edit_gesture_id, true);
+        }
+        _selection_controller->Refresh();
+        emit SigTextEditingChanged();
+        return true;
+    }
+
+    // 3. 独立文字创建和清空沿用原有协议；已有内容编辑使用完整状态操作。
     if (after._text.trimmed().isEmpty())
     {
         const QString item_id = after._item_id;
         RemoveTextItem(item_id);
-        if (!before._text.isEmpty()) emit SigTextDeleteRequested(item_id);
+        if (!before._text.isEmpty())
+        {
+            emit SigTextDeleteRequested(item_id);
+        }
         emit SigTextEditingChanged();
         return true;
     }
-    if (_is_text_undo_enabled && (before._text != after._text || !(before._style == after._style)))
-        RecordTextOperation(before, after);
-    if (before._text != after._text || !(before._style == after._style)) emit SigTextCommitted(before, after);
+    const CanvasItemEditState state = CanvasItemEdit::Capture(item);
+    if (before._text.isEmpty())
+    {
+        if (_is_text_undo_enabled)
+        {
+            RecordTextOperation(before, after);
+        }
+        emit SigTextCommitted(before, after);
+        emit SigLocalCreationFinished(item->itemId());
+    } else if (state != _text_before_item_state)
+    {
+        SubmitItemEditChange(_text_before_item_state, state, _text_edit_gesture_id, true);
+        emit SigTextCommitted(before, after);
+    }
+    _selection_controller->Refresh();
     emit SigTextEditingChanged();
     return true;
 }
@@ -855,9 +1347,25 @@ bool PaintScene::IsTextEditing() const
 TextItem* PaintScene::ActiveTextItem() const
 {
     // 1. 编辑优先，否则返回当前唯一选中文字。
-    if (_editing_text_item) return _editing_text_item;
+    if (_editing_text_item)
+    {
+        return _editing_text_item;
+    }
     const QList<QGraphicsItem*> selected_items = selectedItems();
-    return selected_items.size() == 1 ? dynamic_cast<TextItem*>(selected_items.first()) : nullptr;
+    if (selected_items.size() != 1)
+    {
+        return nullptr;
+    }
+    auto* item = dynamic_cast<CanvasItem*>(selected_items.first());
+    if (!item)
+    {
+        return nullptr;
+    }
+    if (auto* text_item = dynamic_cast<TextItem*>(item))
+    {
+        return text_item;
+    }
+    return item->BoundTextItem();
 }
 
 void PaintScene::SetTextStyle(const TextStyle& style)
@@ -866,7 +1374,12 @@ void PaintScene::SetTextStyle(const TextStyle& style)
     _text_style = style;
     if (TextItem* item = ActiveTextItem())
     {
-        if (!_pending_text_ids.contains(item->itemId())) item->SetTextStyle(style);
+        auto* parent_item = dynamic_cast<CanvasItem*>(item->parentItem());
+        if (!_pending_text_ids.contains(item->itemId()) && !item->property("canvas_edit_pending").toBool() &&
+            (!parent_item || !parent_item->property("canvas_edit_pending").toBool()))
+        {
+            item->SetTextStyle(style);
+        }
     }
 }
 
@@ -879,8 +1392,14 @@ void PaintScene::SetTextUndoEnabled(bool enabled)
 void PaintScene::SetTextPending(const QString& item_id, bool is_pending)
 {
     // 1. 每个文字独立等待确认，不阻塞其他图元。
-    if (is_pending) _pending_text_ids.insert(item_id);
-    else _pending_text_ids.remove(item_id);
+    if (is_pending)
+    {
+        _pending_text_ids.insert(item_id);
+    } else
+    {
+        _pending_text_ids.remove(item_id);
+    }
+    SetItemEditPending(item_id, is_pending);
     UpdateTextInteraction(FindTextItem(item_id));
 }
 
@@ -909,18 +1428,20 @@ void PaintScene::InvalidateTextUndo(const QString& item_id)
 
 bool PaintScene::TakeTextUndoOperation(TextItemData* before, bool* is_create)
 {
-    // 1. 从顶部寻找文字记录，保留其他图元顺序以兼容现有撤销入口。
-    if (!before || !is_create) return false;
-    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    // 1. 只消费真正的栈顶，不能跨过较新的移动或文字排版操作。
+    if (!before || !is_create || _localUndoStack.isEmpty())
     {
-        const DrawItemRecord record = _localUndoStack.at(index);
-        if (!record.is_text || !FindTextItem(record.item_id) || _pending_text_ids.contains(record.item_id)) continue;
-        _localUndoStack.removeAt(index);
-        *before = record.before_text;
-        *is_create = record.before_text._text.isEmpty();
-        return true;
+        return false;
     }
-    return false;
+    const DrawItemRecord record = _localUndoStack.top();
+    if (!record.is_text || !FindTextItem(record.item_id) || _pending_text_ids.contains(record.item_id))
+    {
+        return false;
+    }
+    _localUndoStack.pop();
+    *before = record.before_text;
+    *is_create = record.before_text._text.isEmpty();
+    return true;
 }
 
 bool PaintScene::CanUndoLocalOperation() const
@@ -972,6 +1493,7 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
     }
     image_item->setPos(scene_pos);
     addItem(image_item);
+    ConfigureCanvasItem(image_item);
     _imageItems.insert(item_id, image_item);
     // 2. 新图片按当前模式配置交互，不改变工具或已有选择。
     UpdateImageInteraction(image_item);
@@ -1045,7 +1567,10 @@ bool PaintScene::updateImageTransform(const QString& item_id,
 
 bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_undo_record)
 {
-    // 1. 按 ID 删除拖动记录，远端删除和本地删除都不会遗留活动图片指针。
+    // 1. 删除先解除本地手势，确认回包不会再命中已释放的图元。
+    CancelItemInteraction(item_id);
+    InvalidateItemEditUndo(item_id);
+    // 2. 按 ID 删除拖动记录，远端删除和本地删除都不会遗留活动图片指针。
     auto iterator = _imageItems.find(item_id);
     if (iterator == _imageItems.end() || !iterator.value())
     {
@@ -1055,7 +1580,7 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
     ImageItem* image_item = iterator.value();
     _imageItems.erase(iterator);
     _image_drag_start_positions.remove(item_id);
-    // 2. 仅清理对应撤销条目，保留其他图元的创建顺序。
+    // 3. 仅清理对应撤销条目，保留其他图元的创建顺序。
     if (remove_undo_record)
     {
         // 只删除对应记录，保留其他图片和传统图元的撤销顺序。
@@ -1070,7 +1595,7 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
         }
     }
 
-    // 3. 场景不再拥有图片时由本入口显式销毁，Qt 自动解除该图元的鼠标抓取。
+    // 4. 场景不再拥有图片时由本入口显式销毁，Qt 自动解除该图元的鼠标抓取。
     if (image_item->scene() == this)
     {
         removeItem(image_item);
@@ -1081,7 +1606,7 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
 
 void PaintScene::applyRemoteDraw(const message::DrawReq& request)
 {
-    // 远端协议中的 item_id 是同一笔画 START/MOVE/END 的关联键。
+    // 1. 远端协议中的 item_id 是同一笔画 START/MOVE/END 的关联键。
     const QString item_id = QString::fromStdString(request.item_id());
     const ShapeType shape = static_cast<ShapeType>(request.shape());
 
@@ -1114,11 +1639,16 @@ void PaintScene::applyRemoteDraw(const message::DrawReq& request)
         }
 
         operation->beginRemote(this, request);
+        ConfigureCanvasItem(dynamic_cast<CanvasItem*>(operation->item()));
+        if (auto* item = dynamic_cast<CanvasItem*>(operation->item()))
+        {
+            item->setProperty("canvas_drawing", true);
+        }
         _remoteItems.insert(item_id, RemoteItem{shape, operation});
         return;
     }
 
-    // MOVE/END 没有对应 START 时无法恢复完整图形，沿用原逻辑直接忽略。
+    // 2. MOVE/END 没有对应 START 时无法恢复完整图形，沿用原逻辑直接忽略。
     auto iterator = _remoteItems.find(item_id);
     if (iterator == _remoteItems.end() ||
         !iterator->operation ||
@@ -1128,11 +1658,22 @@ void PaintScene::applyRemoteDraw(const message::DrawReq& request)
     }
 
     iterator->operation->updateRemote(request);
+    if (request.cmd() == message::CMD_END)
+    {
+        if (auto* item = dynamic_cast<CanvasItem*>(iterator->operation->item()))
+        {
+            item->setProperty("canvas_drawing", false);
+        }
+    }
+    _selection_controller->Refresh();
 }
 
 void PaintScene::resetScene()
 {
     // 1. 先清理操作、文字编辑引用和撤销记录，再让场景删除图元。
+    _selection_controller->Cancel();
+    _selection_controller->BeforeSceneClear();
+    _canvas_itemMap.clear();
     _currentOperation.reset();
     _remoteItems.clear();
     _localUndoStack.clear();
@@ -1165,4 +1706,5 @@ void PaintScene::resetScene()
         _eraserCursorItem->setAcceptHoverEvents(false);
         _eraserCursorItem->hide();
     }
+    _selection_controller->AfterSceneClear();
 }

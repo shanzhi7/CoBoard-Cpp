@@ -20,6 +20,7 @@
 
 #include "canvasinteractionmode.h"
 #include "canvasdocument.h"
+#include "canvasitemeditstate.h"
 #include "drawtool.h"
 #include "canvasitems/textitem.h"
 
@@ -27,6 +28,7 @@ class QGraphicsEllipseItem;
 class QGraphicsSceneMouseEvent;
 class QKeyEvent;
 class ImageItem;
+class CanvasSelectionController;
 
 class PaintScene : public QGraphicsScene
 {
@@ -34,6 +36,28 @@ class PaintScene : public QGraphicsScene
 
 public:
     explicit PaintScene(QObject* parent = nullptr); // 初始化绘图工厂和橡皮擦辅助光标。
+    ~PaintScene() override; // 在场景删除内容前回收交互覆盖层和控制器。
+
+    enum class UndoKind
+    {
+        None, // 撤销栈为空。
+        Creation, // 普通笔迹或图片创建。
+        Text, // 兼容原有文字创建及编辑记录。
+        ItemEdit // 图元变换或附属文字的完整状态操作。
+    };
+    CanvasItem* FindCanvasItem(const QString& item_id) const; // 按稳定 ID 查找本地、远端或导入的顶层图元。
+    CanvasItemEditState CaptureItemEditState(const QString& item_id) const; // 读取图元完整编辑快照。
+    bool ApplyItemEditState(const CanvasItemEditState& state); // 恢复完整状态并刷新本地选择框。
+    void CancelItemInteraction(const QString& item_id); // 远端覆盖或删除前取消目标正在进行的编辑。
+    void SetItemEditPending(const QString& item_id, bool pending); // 最终状态确认前锁定目标，保持只读选择。
+    void SetItemEditUndoEnabled(bool enabled); // 离线立即登记，在线等待确认才登记撤销。
+    void RecordItemEditOperation(const CanvasItemEditState& before, const CanvasItemEditState& after, const QString& gesture_id, quint64 revision); // 合并同一手势并记录确认版本。
+    bool TakeItemEditUndo(CanvasItemEditUndoOperation* operation); // 仅取出栈顶完整图元操作，保持统一时间顺序。
+    void InvalidateItemEditUndo(const QString& item_id); // 删除或冲突后只废弃目标在各条手势中的记录。
+    void RebaseItemEditUndo(const QString& item_id, const CanvasItemEditState& confirmed, quint64 revision); // 条件撤销成功后推进前一操作的确认版本。
+    bool RemoveCanvasItem(const QString& item_id); // 安全删除任意顶层图元并清理所有操作引用。
+    UndoKind NextUndoKind() const; // 返回栈顶操作类型供在线撤销分派。
+    void SubmitItemEditChange(const CanvasItemEditState& before, const CanvasItemEditState& after, const QString& gesture_id, bool finished); // 控制器提交状态，场景统一通知与登记离线撤销。
 
     void setPenColor(const QColor& color); // 设置之后创建的笔画颜色。
     void setPenWidth(int width); // 设置之后创建的笔画宽度。
@@ -89,6 +113,8 @@ public:
                               qreal rotation); // 应用调用方已经校验过的远端图片变换。
 
 signals:
+    void SigItemEditChanged(CanvasItemEditState before, CanvasItemEditState after, QString gesture_id, bool finished); // 通知实时预览或完整编辑结束。
+    void SigLocalCreationFinished(QString item_id); // 图元创建完成后请求上层切换鼠标工具。
     void SigTextEditingChanged(); // 活动文字编辑器切换后同步样式控件。
     void SigTextCommitted(TextItemData before, TextItemData after); // 完整编辑结束后提交创建或修改。
     void SigTextDeleteRequested(QString item_id); // 转交删除操作，不建立删除撤销。
@@ -121,6 +147,8 @@ protected:
 
 private:
     void ConnectTextItem(TextItem* item); // 重建文字索引和编辑信号。
+    void ConfigureCanvasItem(CanvasItem* item); // 统一配置内容的选择权限，拖动交给控制器。
+    bool BeginBoundTextEditing(CanvasItem* item); // 在封闭图元内部创建或继续编辑附属文字。
     void UpdateTextInteraction(TextItem* item); // 按工具、权限和待确认状态更新移动能力。
     void finishCurrentOperation(const QPointF& end_pos); // 补齐笔画并记录撤销和 END。
     void clearCurrentOperation(); // 释放当前操作引用，不删除图元。
@@ -148,6 +176,8 @@ private:
         bool is_text = false; // 当前记录是否为文字操作。
         TextItemData before_text; // 创建前为空，修改前保存内容及样式。
         TextItemData after_text; // 完整操作完成后的文字值。
+        bool is_item_edit = false; // 标记变换或附属文字的完整快照记录。
+        CanvasItemEditUndoOperation item_edit; // 同一手势中的一个或多个图元快照。
     };
 
     ShapeType _currShapeType = Shape_Pen; // 当前绘图类型，不包含交互模式。
@@ -171,4 +201,9 @@ private:
     TextItemData _text_before_edit; // 完整编辑操作的开始快照。
     TextStyle _text_style; // 没有目标文字时使用的新建默认样式。
     bool _is_text_undo_enabled = true; // 在线仅由确认回包登记撤销。
+    CanvasSelectionController* _selection_controller = nullptr; // 场景拥有的独立选择和几何手势控制器。
+    CanvasItemEditState _text_before_item_state; // 文本编辑前的父图元或独立文字完整快照。
+    QString _text_edit_gesture_id; // 一次文本编辑及自动增高共用的操作标识。
+    bool _is_item_edit_undo_enabled = true; // 在线等待确认后才记录完整图元操作。
+    mutable QHash<QString, QPointer<CanvasItem>> _canvas_itemMap; // 所有来源顶层图元的统一弱引用索引。
 };

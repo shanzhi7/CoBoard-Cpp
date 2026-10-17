@@ -53,6 +53,7 @@ void OvalItem::setRect(const QRectF& rect)
     // 1. 椭圆外接矩形变化会影响场景索引，先通知 Qt 再提交新值。
     prepareGeometryChange();
     _rect = rect;
+    UpdateBoundTextLayout();
     update();
 }
 

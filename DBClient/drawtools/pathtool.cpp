@@ -7,7 +7,7 @@
 
 namespace
 {
-constexpr qreal MIN_DIST_SQ = 4.0;
+constexpr qreal MIN_DIST_SQ = 4.0; // 原始采样点间距的平方，保留现有绘制与网络负载限制。
 }
 
 PathTool::PathTool(ShapeType shape_type)
@@ -63,10 +63,11 @@ void PathTool::beginLocal(QGraphicsScene* scene,
                           const QPointF& start_pos,
                           const DrawStyle& style)
 {
-    // 1. 保存起点和路径状态，后续 MOVE 只追加增量点。
+    // 1. 起笔保留原始坐标，后续平滑段以相邻采样点的中点连接。
     _start_pos = start_pos;
     _last_pos = start_pos;
     _current_pos = start_pos;
+    _is_finished = false;
     _path = QPainterPath();
     _path.moveTo(start_pos);
 
@@ -85,8 +86,8 @@ void PathTool::beginLocal(QGraphicsScene* scene,
 
 bool PathTool::moveLocal(const QPointF& current_pos)
 {
-    // 1. 没有图元时无法更新本地路径。
-    if (!_item)
+    // 1. 缺少图元或已经收笔时不能继续修改路径。
+    if (!_item || _is_finished)
     {
         return false;
     }
@@ -99,33 +100,34 @@ bool PathTool::moveLocal(const QPointF& current_pos)
         return false;
     }
 
-    // 3. 提交路径点并更新位置状态。
+    // 3. 只追加一个新曲线段，临时尾段跟随当前采样坐标，不重新拟合已有笔迹。
     appendPoint(current_pos);
-    _last_pos = current_pos;
-    _current_pos = current_pos;
+    UpdateItemPath();
     return true;
 }
 
 void PathTool::endLocal(const QPointF& end_pos)
 {
-    // 1. END 必须补上最后坐标，即使它距离上一采样点很近也不能丢失。
-    if (!_item)
+    // 1. 收笔必须保留最后坐标，即使它距离上一采样点很近也不能丢失。
+    if (!_item || _is_finished)
     {
         return;
     }
-
     appendPoint(end_pos);
-    _last_pos = end_pos;
-    _current_pos = end_pos;
+
+    // 2. 最后半段曲线延伸至松手位置并固化，后续缩放和保存使用完整笔迹。
+    _is_finished = true;
+    UpdateItemPath();
 }
 
 void PathTool::beginRemote(QGraphicsScene* scene,
                            const message::DrawReq& request)
 {
-    // 1. 远端 START 使用协议中的起点和图元 ID，不能复用本地画笔配置。
+    // 1. 远端和历史回放从同一起点初始化平滑状态，不受网络分包边界影响。
     _start_pos = QPointF(request.start_x(), request.start_y());
     _last_pos = _start_pos;
     _current_pos = _start_pos;
+    _is_finished = false;
     _path = QPainterPath();
     _path.moveTo(_start_pos);
 
@@ -146,13 +148,13 @@ void PathTool::beginRemote(QGraphicsScene* scene,
 
 void PathTool::updateRemote(const message::DrawReq& request)
 {
-    // 1. 没有 START 对应图元时无法恢复完整路径，直接忽略异常包。
-    if (!_item)
+    // 1. 没有 START 或已经完成的笔画不再接收增量点，避免重复收笔覆盖后续变换。
+    if (!_item || _is_finished)
     {
         return;
     }
 
-    // 2. 优先消费批量路径点，兼容没有 path_points 的旧 MOVE 包。
+    // 2. 每个原始点都推进控制点，批量包与逐点到达使用同一平滑顺序。
     if (request.path_points_size() > 0)
     {
         for (int index = 0; index < request.path_points_size(); ++index)
@@ -160,27 +162,58 @@ void PathTool::updateRemote(const message::DrawReq& request)
             const auto& point = request.path_points(index);
             appendPoint(QPointF(point.x(), point.y()));
         }
-        const auto& last_point = request.path_points(request.path_points_size() - 1);
-        _current_pos = QPointF(last_point.x(), last_point.y());
-        _last_pos = _current_pos;
-    }
-    else
+    } else
     {
-        const QPointF current_pos(request.current_x(), request.current_y());
-        appendPoint(current_pos);
-        _current_pos = current_pos;
-        _last_pos = current_pos;
+        appendPoint(QPointF(request.current_x(), request.current_y()));
     }
+
+    // 3. 每包只刷新一次图元，END 与本地收笔共同固化准确终点。
+    _is_finished = request.cmd() == message::CMD_END;
+    UpdateItemPath();
 }
 
 void PathTool::appendPoint(const QPointF& point)
 {
-    // 1. QPainterPath 是操作状态的唯一来源，自定义图元只接收更新后的路径。
-    _path.lineTo(point);
-    if (_item)
+    // 1. END 前的 MOVE 可能已携带相同终点，忽略重复点以保持本地与回放曲线一致。
+    if (point == _last_pos)
     {
-        _item->setPath(_path);
+        return;
     }
+
+    // 2. 画笔以旧采样点为控制点、新旧点中点为终点；橡皮擦保持直线覆盖规则。
+    if (_shape_type == Shape_Pen)
+    {
+        const QPointF midpoint = (_last_pos + point) / 2.0;
+        _path.quadTo(_last_pos, midpoint);
+    } else
+    {
+        _path.lineTo(point);
+    }
+
+    // 3. 保存真实采样位置，距离过滤和网络坐标不能使用平滑后的中点。
+    _last_pos = point;
+    _current_pos = point;
+}
+
+void PathTool::UpdateItemPath()
+{
+    // 1. 显示路径可临时延伸到最新坐标，已确定曲线始终保留到前一个中点。
+    if (!_item)
+    {
+        return;
+    }
+    QPainterPath display_path = _path;
+    if (_shape_type == Shape_Pen && display_path.currentPosition() != _last_pos)
+    {
+        display_path.quadTo(_last_pos, _last_pos);
+    }
+
+    // 2. 仅收笔时固化尾段，下一采样点到来时不会重复追加上一帧的临时曲线。
+    if (_is_finished)
+    {
+        _path = display_path;
+    }
+    _item->setPath(display_path);
 }
 
 void PathTool::configurePen(const QColor& color,

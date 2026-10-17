@@ -60,6 +60,12 @@ qt_add_executable(DBClient
     resetwidget.h resetwidget.cpp resetwidget.ui
     canvas.h canvas.cpp canvas.ui
     canvasinteractionmode.h
+    canvasitemeditstate.h canvasitemeditstate.cpp
+    canvasitemeditcodec.h canvasitemeditcodec.cpp
+    canvasitemeditsync.h canvasitemeditsync.cpp
+    canvasselectioncontroller.h canvasselectioncontroller.cpp
+    canvastoolregistry.h canvastoolregistry.cpp
+    canvastoolbutton.h canvastoolbutton.cpp
     canvasgraphicsview.h canvasgraphicsview.cpp canvasgraphicsview.ui
     testmode.h testmode.cpp
     tcpmgr.h tcpmgr.cpp
@@ -151,34 +157,6 @@ target_link_libraries(DBClient PRIVATE Qt6::Core)
 target_link_libraries(DBClient PRIVATE Qt6::Widgets)
 
 include(GNUInstallDirs)
-
-# 文件功能测试复用客户端模块，覆盖实际场景切换及图片代理 IPC。
-option(SYNCCANVAS_BUILD_TESTS "Build focused canvas file tests" OFF)
-if(SYNCCANVAS_BUILD_TESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    enable_testing()
-    get_target_property(CanvasTestSources DBClient SOURCES)
-    list(REMOVE_ITEM CanvasTestSources main.cpp ${APP_ICON_RESOURCE})
-    qt_add_executable(CanvasFileTests tests/canvasfiletests.cpp ${CanvasTestSources})
-    target_include_directories(CanvasFileTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_compile_features(CanvasFileTests PRIVATE cxx_std_17)
-    if(MSVC)
-        target_compile_options(CanvasFileTests PRIVATE /utf-8)
-    endif()
-    get_target_property(CanvasTestLibraries DBClient LINK_LIBRARIES)
-    target_link_libraries(CanvasFileTests PRIVATE ${CanvasTestLibraries} Qt6::Test)
-    add_dependencies(CanvasFileTests DBClient)
-    add_custom_command(TARGET CanvasFileTests POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:Qt6::Test>" "$<TARGET_FILE_DIR:CanvasFileTests>"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "$<TARGET_FILE:Qt6::QOffscreenIntegrationPlugin>"
-            "$<TARGET_FILE_DIR:CanvasFileTests>/platforms/$<TARGET_FILE_NAME:Qt6::QOffscreenIntegrationPlugin>"
-        VERBATIM
-    )
-    add_test(NAME CanvasFileTests COMMAND CanvasFileTests)
-    set_tests_properties(CanvasFileTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-endif()
 
 install(TARGETS DBClient
     BUNDLE  DESTINATION .

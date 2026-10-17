@@ -36,13 +36,15 @@ protected:
     virtual PathItem* createItem(const QString& item_id) const = 0; // 创建具体的 PenItem 或 EraserItem。
 
 private:
-    void appendPoint(const QPointF& point); // 向当前路径追加一个点并刷新图元。
+    void appendPoint(const QPointF& point); // 按原始采样顺序追加画笔平滑段或橡皮擦直线段。
+    void UpdateItemPath(); // 添加临时收笔段显示到最新坐标，结束时固化完整路径。
     void configurePen(const QColor& color, int width, Qt::PenStyle pen_style); // 设置路径画笔和线帽。
 
     ShapeType _shape_type = Shape_Unknown; // 当前路径工具对应的协议图元类型。
     PathItem* _item = nullptr; // 当前操作关联的自定义路径图元。
-    QPainterPath _path; // 当前操作的完整路径数据。
+    QPainterPath _path; // 已确定的路径段，画笔绘制期间不包含末尾临时收笔段。
     QPointF _start_pos; // 当前路径起点。
     QPointF _last_pos; // 上一次提交给路径的点。
     QPointF _current_pos; // 当前鼠标或远端点位置。
+    bool _is_finished = false; // 收笔后忽略重复 MOVE/END，避免平滑尾段重复写入。
 };

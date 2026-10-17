@@ -472,6 +472,11 @@ void TcpMgr::initHandlers()
     _handlers.insert(ReqId::ID_IMAGE_OPERATION_RSP,[this](ReqId,int,QByteArray data){
         emit sig_image_operation_broadcast(data);
     });
+    // 通用编辑有独立消息类型，必须保持与其他绘画回包的到达顺序。
+    _handlers.insert(ReqId::ID_ITEM_EDIT_RSP, [this](ReqId, int, QByteArray data) {
+        // 1. 原样转交当前载荷，画布统一排队并保持创建与编辑的先后顺序。
+        emit SigItemEditReceived(data);
+    });
     _handlers.insert(ReqId::ID_TEXT_OPERATION_RSP, [this](ReqId, int, QByteArray data) {
         emit SigTextOperationReceived(data);
     });

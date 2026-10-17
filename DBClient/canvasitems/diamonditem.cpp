@@ -57,6 +57,7 @@ void DiamondItem::SetRect(const QRectF& rect)
 
     // 2. 外接矩形变化后重建顶点及笔迹范围。
     RebuildGeometry();
+    UpdateBoundTextLayout();
     update();
 }
 

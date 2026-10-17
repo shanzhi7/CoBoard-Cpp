@@ -36,7 +36,8 @@ bool IsSupportedImageMime(const QString& mime_type)
 bool ValidateDocument(const CanvasDocument& document, QString* error_message)
 {
     // 1. 文件级画布与数量限制先挡住异常的大尺寸和容器数量。
-    if (document._schema_version != 1 || !document._canvas_size.isValid() || document._canvas_size.isEmpty() ||
+    if ((document._schema_version != 1 && document._schema_version != 2) ||
+        !document._canvas_size.isValid() || document._canvas_size.isEmpty() ||
         !document._background.isValid() || document._items.size() > CanvasDocumentLimits::MAX_ITEMS ||
         document._item_order.size() != document._items.size())
     {
@@ -109,7 +110,7 @@ bool ValidateDocument(const CanvasDocument& document, QString* error_message)
 
 QJsonObject DocumentToJson(const CanvasDocument& document)
 {
-    // 1. 图元顺序独立保存，资源通过摘要去重并内嵌原始编码数据。
+    // 1. 新文件统一写版本 2；图元顺序独立保存，资源通过摘要去重并内嵌原始编码数据。
     QJsonArray items;
     for (const QJsonObject& item : document._items) items.append(item);
     QJsonArray item_order;
@@ -127,7 +128,7 @@ QJsonObject DocumentToJson(const CanvasDocument& document)
             {QStringLiteral("data"), QStringLiteral("data:%1;base64,%2").arg(asset._mime_type, QString::fromLatin1(asset._data.toBase64()))}});
     }
     return {{QStringLiteral("format"), QStringLiteral("SyncCanvas")},
-            {QStringLiteral("schema_version"), document._schema_version},
+            {QStringLiteral("schema_version"), 2},
             {QStringLiteral("canvas"), QJsonObject{
                  {QStringLiteral("width"), document._canvas_size.width()},
                  {QStringLiteral("height"), document._canvas_size.height()},
@@ -372,8 +373,11 @@ bool CanvasFileManager::ReadDocument(const QString& file_path,
         return false;
     }
     const QJsonObject root = json_document.object();
+    const QJsonValue schema_value = root.value(QStringLiteral("schema_version"));
+    const int schema_version = schema_value.toInt(-1);
     if (root.value(QStringLiteral("format")).toString() != QStringLiteral("SyncCanvas") ||
-        root.value(QStringLiteral("schema_version")).toInt() != 1)
+        !schema_value.isDouble() || schema_value.toDouble() != schema_version ||
+        (schema_version != 1 && schema_version != 2))
     {
         if (error_message) *error_message = QStringLiteral("画布文件格式或版本不受支持");
         return false;
@@ -399,7 +403,7 @@ bool CanvasFileManager::ReadDocument(const QString& file_path,
         if (error_message) *error_message = QStringLiteral("此版本暂不支持恢复图元连接关系");
         return false;
     }
-    document->_schema_version = 1;
+    document->_schema_version = schema_version;
     document->_canvas_size = QSize(width, height);
     document->_background = QColor(background.at(0).toInt(-1), background.at(1).toInt(-1),
                                    background.at(2).toInt(-1), background.at(3).toInt(-1));

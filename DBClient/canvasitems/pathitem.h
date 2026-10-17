@@ -11,6 +11,7 @@
 
 #include <QPainterPath>
 #include <QPen>
+#include <QTransform>
 
 class QPainter;
 class QStyleOptionGraphicsItem;
@@ -30,8 +31,13 @@ public:
     QPainterPath path() const; // 返回当前路径副本。
     void setPen(const QPen& pen); // 设置路径画笔并更新包围盒。
     QPen pen() const; // 返回当前路径画笔副本。
+    QPainterPath OriginalPath() const; // 返回缩放前不可变的完整路径，供状态和文件恢复。
+    QTransform PathTransform() const; // 返回相对于原始路径的累计几何映射。
+    void SetPathTransform(const QTransform& transform); // 从原始路径重新计算显示路径，避免累计误差。
 
 private:
     QPainterPath _path; // 路径图元保存的全部绘制点。
     QPen _pen; // 路径绘制使用的画笔。
+    QPainterPath _original_path; // 绘制结束时的原始路径，编辑缩放不覆盖它。
+    QTransform _path_transform; // 原始路径到当前路径的绝对仿射映射。
 };

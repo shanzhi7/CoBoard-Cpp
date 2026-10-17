@@ -30,7 +30,7 @@ using CanvasItemData = QJsonObject; // 每种图元按类型保存 JSON 属性�
 
 struct CanvasDocument
 {
-    int _schema_version = 1; // 当前支持的画布文件版本。
+    int _schema_version = 2; // 新文件写版本 2，导入兼容缺少编辑扩展字段的版本 1。
     QSize _canvas_size; // 画布场景宽高。
     QColor _background; // 画布背景颜色及透明度。
     QVector<CanvasItemData> _items; // 按实际堆叠顺序排列的图元描述。

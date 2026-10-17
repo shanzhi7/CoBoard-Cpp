@@ -24,7 +24,7 @@ public:
 
     std::shared_ptr<const UserInfo> getMyInfo(); // 返回当前用户资料。
     QString getToken(); // 返回当前登录令牌。
-    int getUid(); // 返回已登录用户 ID。
+    int getUid(); // 返回当前用户 ID，未登录时返回零。
     QString getAvatar(); // 返回已登录用户头像地址。
     QString getName(); // 返回已登录用户昵称。
     bool IsHaveRoom(); // 返回当前用户是否已加入房间。

@@ -12,6 +12,8 @@
 #include <QString>
 
 class QKeyEvent;
+class TextItem;
+struct TextStyle;
 
 // CanvasItem 是所有自定义画布图元的共同基类，统一保存可同步的图元标识。
 class CanvasItem : public QGraphicsObject
@@ -26,6 +28,11 @@ public:
     void setItemId(const QString& item_id); // 更新图元标识，调用方必须保证新标识在场景内唯一。
     void setInteractionEnabled(bool enabled); // 按当前房间编辑权限启用或禁用选择、移动、键盘变换和删除。
     bool isInteractionEnabled() const; // 返回图元是否允许当前用户修改。
+    QPainterPath shape() const override; // 返回实际图元轮廓，封闭图形内部不参与首次选择。
+    TextItem* BoundTextItem() const; // 返回父图元拥有的附属编辑组件，未创建时为空。
+    void SetBoundTextData(const QString& text, const TextStyle& style); // 设置附属纯文本及样式，不创建独立画布图元。
+    void UpdateBoundTextLayout(); // 更新附属文字安全区域并按需要自动增高。
+    void SetBoundTextLayoutEnabled(bool enabled); // 完整快照恢复期间暂缓自动布局，防止中间状态增高。
 
 signals:
     void sigGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 图元位置或变换变化时通知同步层。
@@ -38,4 +45,7 @@ protected:
 private:
     QString _item_id; // 图元在当前房间内的稳定标识，生命周期覆盖图元历史记录。
     bool _interaction_enabled = true; // 当前房间编辑权限，权限撤销时由 PaintScene 关闭交互。
+    TextItem* _bound_text_item = nullptr; // 父图元拥有的文字组件，不独立保存或同步。
+    bool _is_bound_text_layout_active = false; // 防止文档尺寸与父尺寸反馈递归。
+    bool _is_bound_text_layout_enabled = true; // 批量恢复状态期间暂停自动增高。
 };

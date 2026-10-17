@@ -9,6 +9,9 @@
 #include "canvasitems/imageitem.h"
 #include "imagepreviewdialog.h"
 #include "canvasfilemanager.h"
+#include "canvasitemeditsync.h"
+#include "canvastoolregistry.h"
+#include "canvastoolbutton.h"
 #include <QMouseEvent>
 #include <QApplication>
 #include <QClipboard>
@@ -24,6 +27,7 @@
 #include <QDateTime>
 #include <QElapsedTimer>
 #include <QSignalBlocker>
+#include <QScopedValueRollback>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMimeData>
@@ -171,6 +175,7 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
             this, &Canvas::slot_onImageOperationBroadcast);
 
     connect(TcpMgr::getInstance().get(), &TcpMgr::SigTextOperationReceived, this, &Canvas::OnTextOperationReceived);
+    connect(TcpMgr::getInstance().get(), &TcpMgr::SigItemEditReceived, this, &Canvas::OnItemEditReceived);
 
     // 图片签名接口复用 HttpMgr 的大厅模块回调；请求严格串行，回包才能对应到当前资源上下文。
     connect(HttpMgr::getInstance().get(), &HttpMgr::sigImageSignatureFinished,
@@ -234,6 +239,7 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
         _activeImageDownload = PendingImageDownload();
         _remoteDrawQueue.clear();
         _remote_operation_order.clear();
+        _remote_item_edits.clear();
         _remoteImageOperationQueue.clear();
         _pending_image_imports.clear();
     }
@@ -243,6 +249,7 @@ void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
     _exit_busy = false;
     UpdateReturnActions();
     _paintScene->SetTextUndoEnabled(!_room_info || _room_info->offline);
+    ConfigureItemEditSync();
     _paintScene->setBackgroundBrush(Qt::white);
     // 每个新房间从统一的 100% 视图状态开始，缩放比例不属于房间共享状态。
     if (ui->graphicsView)
@@ -272,6 +279,7 @@ void Canvas::enterOfflineMode()
     _pendingPointsByUuid.clear();
     _remoteDrawQueue.clear();
     _remote_operation_order.clear();
+    _remote_item_edits.clear();
     _remoteImageOperationQueue.clear();
     _imageDownloadQueue.clear();
     _imageDownloadRequestActive = false;
@@ -312,6 +320,7 @@ void Canvas::enterOfflineMode()
     _room_info->offline = true;
     UpdateReturnActions();
     _paintScene->SetTextUndoEnabled(true);
+    ConfigureItemEditSync();
 
     applyRoomCanvasSize();
     UpdateCanvasFileActions();
@@ -353,6 +362,7 @@ void Canvas::resetForReconnect()    //断线回大厅时调用，清空canvas画
     _pendingPointsByUuid.clear();
     _remoteDrawQueue.clear();
     _remote_operation_order.clear();
+    _remote_item_edits.clear();
     _remoteImageOperationQueue.clear();
     _imageDownloadQueue.clear();
     _imageDownloadRequestActive = false;
@@ -426,6 +436,11 @@ void Canvas::SetExitState(bool busy, bool can_retry)
         CancelImageRequests();
         _paintScene->FinishTextEditing(true);
         _paintScene->setEditable(false);
+        if (_item_edit_sync)
+        {
+            _item_edit_sync->Configure(_room_info ? _room_info->id : QString(),
+                UserMgr::getInstance()->getUid(), !_room_info || _room_info->offline, false);
+        }
     }
     ui->graphicsView->setEnabled(!busy);
     ui->file_btn->setEnabled(!busy);
@@ -611,31 +626,59 @@ void Canvas::initCanvasUi()
 
 void Canvas::ConnectPaintSceneSignals()
 {
-    // 1. 重用原有业务槽，旧场景销毁后 Qt 自动移除其连接。
+    // 1. 每个场景使用独立确认队列，替换场景时旧状态不进入新画布。
+    delete _item_edit_sync;
+    _item_edit_sync = new CanvasItemEditSync(_paintScene, this);
+    connect(_item_edit_sync, &CanvasItemEditSync::SigSendOperation, this, [](const QByteArray& body) {
+        // 1. 同步队列已完成序列化和包长检查，此处只交付现有 TCP 发送入口。
+        TcpMgr::getInstance()->slot_send_data(ReqId::ID_ITEM_EDIT_REQ, body);
+    });
+    connect(_item_edit_sync, &CanvasItemEditSync::SigError, this, [this](const QString& message) {
+        // 1. 在当前画布显示冲突反馈，不在同步组件中创建窗口。
+        TipWidget::showTip(ui->graphicsView, message);
+    });
+    connect(_item_edit_sync, &CanvasItemEditSync::SigStateConfirmed, this, [this](const QString& item_id, quint64 revision) {
+        // 1. 已确认文字与旧协议共用版本缓存，后续删除和撤销不会携带过期状态。
+        if (TextItem* item = _paintScene->FindTextItem(item_id))
+        {
+            _text_sequenceMap.insert(item_id, revision);
+            _confirmed_textMap.insert(item_id, item->GetTextData());
+        }
+        UpdateTextControls();
+    });
+    connect(_paintScene, &PaintScene::SigLocalCreationFinished, this, &Canvas::CompleteLocalCreation);
     _paintScene->SetTextUndoEnabled(!_room_info || _room_info->offline);
+    ConfigureItemEditSync();
     connect(_paintScene, &PaintScene::SigUndoRequested, this, &Canvas::OnUndoTriggered);
     connect(_paintScene, &PaintScene::SigTextEditingChanged, this, &Canvas::UpdateTextControls);
     connect(_paintScene, &PaintScene::SigTextError, this, [this](const QString& message) {
+        // 1. 场景负责校验草稿，窗口负责向用户展示失败原因。
         TipWidget::showTip(ui->graphicsView, message);
     });
     connect(_paintScene, &QGraphicsScene::selectionChanged, this, &Canvas::UpdateTextControls);
     connect(_paintScene, &PaintScene::SigTextCommitted, this, [this](TextItemData before, TextItemData after) {
-        SubmitTextOperation(before._text.isEmpty() ? message::TEXT_CREATE : message::TEXT_UPDATE, before, after);
+        // 1. 已有文字的修改由通用编辑提交，创建仍沿用原文字协议。
+        if (before._text.isEmpty())
+        {
+            SubmitTextOperation(message::TEXT_CREATE, before, after);
+        }
     });
     connect(_paintScene, &PaintScene::SigTextDeleteRequested, this, [this](const QString& item_id) {
+        // 1. 优先使用当前图元内容，删除后仍保留稳定 ID 供服务端关联。
         TextItemData before = _confirmed_textMap.value(item_id);
-        if (TextItem* item = _paintScene->FindTextItem(item_id)) before = item->GetTextData();
-        if (before._item_id.isEmpty()) before._item_id = item_id;
-        SubmitTextOperation(message::TEXT_DELETE, before, before);
-    });
-    connect(_paintScene, &PaintScene::SigTextMoved, this, [this](const QString& item_id) {
         if (TextItem* item = _paintScene->FindTextItem(item_id))
-            SubmitTextOperation(message::TEXT_MOVE, _confirmed_textMap.value(item_id, item->GetTextData()), item->GetTextData());
+        {
+            before = item->GetTextData();
+        }
+        if (before._item_id.isEmpty())
+        {
+            before._item_id = item_id;
+        }
+        SubmitTextOperation(message::TEXT_DELETE, before, before);
     });
     connect(_paintScene, &PaintScene::sigStrokeStart, this, &Canvas::slot_onStrokeStart);
     connect(_paintScene, &PaintScene::sigStrokeMove, this, &Canvas::slot_onStrokeMove);
     connect(_paintScene, &PaintScene::sigStrokeEnd, this, &Canvas::slot_onStrokeEnd);
-    connect(_paintScene, &PaintScene::sigImageGeometryChanged, this, &Canvas::slot_onImageGeometryChanged);
     connect(_paintScene, &PaintScene::sigImageDeleteRequested, this, &Canvas::slot_onImageDeleteRequested);
     connect(_paintScene, &PaintScene::sigImageRetryRequested, this, &Canvas::slot_onImageRetryRequested);
     connect(_paintScene, &PaintScene::sigImagePreviewRequested, this, &Canvas::slot_onImagePreviewRequested);
@@ -644,6 +687,7 @@ void Canvas::ConnectPaintSceneSignals()
     connect(ui->graphicsView, &CanvasGraphicsView::SigCursorScenePositionChanged,
             _paintScene, &PaintScene::sigCursorPosChanged);
     connect(_paintScene, &PaintScene::sigCursorPosChanged, this, [this](QPointF pos) {
+        // 1. 统一显示场景坐标，视口平移不影响坐标含义。
         _cursor_position_label->setText(QStringLiteral("X: %1, Y: %2")
             .arg(static_cast<int>(pos.x())).arg(static_cast<int>(pos.y())));
     });
@@ -805,15 +849,19 @@ void Canvas::SetCanvasTool(int tool_id)
 {
     // 1. 只接受已注册按钮，按钮 ID 不直接作为绘图协议类型使用。
     QAbstractButton* tool_button = _toolGroup ? _toolGroup->button(tool_id) : nullptr;
-    if (!tool_button || !_paintScene || !ui->graphicsView)
+    if (!tool_button || !CanvasToolRegistry::FindById(tool_id) || !_paintScene || !ui->graphicsView)
     {
         return;
     }
 
+    const QScopedValueRollback<bool> switching_guard(_is_switching_tool, true);
     // 2. 场景先完成旧操作；视图随后切换交互能力，全程保留缩放和滚动位置。
     if (!_paintScene->FinishTextEditing())
     {
-        ui->text_tool->setChecked(true);
+        if (QAbstractButton* previous_button = _toolGroup->button(_active_tool_id))
+        {
+            previous_button->setChecked(true);
+        }
         return;
     }
     const CanvasInteractionMode mode = tool_id == TEXT_TOOL_ID ? CanvasInteractionMode::Text : tool_id == SELECT_TOOL_ID
@@ -828,7 +876,14 @@ void Canvas::SetCanvasTool(int tool_id)
     }
     ui->graphicsView->SetInteractionMode(mode);
 
-    // 3. 初始化与用户点击走同一入口，保证按钮高亮和实际模式始终一致。
+    // 3. 工具代数只记录实际切换，迟到的图片导入不能覆盖用户后续主动选择。
+    if (_active_tool_id != tool_id)
+    {
+        _active_tool_id = tool_id;
+        ++_tool_generation;
+    }
+
+    // 4. 初始化与用户点击走同一入口，保证按钮高亮和实际模式始终一致。
     tool_button->setChecked(true);
     UpdateTextControls();
 }
@@ -837,55 +892,36 @@ void Canvas::initToolBtn()
 {
     // 1. 本地交互工具与绘图工具加入同一互斥组，颜色和线宽按钮保持独立。
     _toolGroup = new QButtonGroup(this);
-
-    //开启所有工具按钮的 Checkable 属性
-    ui->pen_tool->setCheckable(true);
-    ui->eraser_tool->setCheckable(true);
-    ui->line_tool->setCheckable(true);
-    ui->rect_tool->setCheckable(true);
-    ui->oval_tool->setCheckable(true);
-    ui->arrow_tool->setCheckable(true);
-    ui->diamond_tool->setCheckable(true);
-    ui->select_tool->setCheckable(true);
-    ui->hand_tool->setCheckable(true);
-    ui->text_tool->setCheckable(true);
+    _toolGroup->setExclusive(true);
+    for (const CanvasToolDescriptor& descriptor : CanvasToolRegistry::Descriptors())
+    {
+        CanvasToolButton* tool_button = findChild<CanvasToolButton*>(descriptor._button_name);
+        if (!tool_button)
+        {
+            qWarning() << "[Canvas] initToolBtn missing button:" << descriptor._button_name;
+            continue;
+        }
+        tool_button->setCheckable(true);
+        tool_button->setText(QString());
+        tool_button->setIcon(QIcon(descriptor._icon_resource));
+        tool_button->SetShortcutKey(QChar(static_cast<ushort>(descriptor._shortcut_key)));
+        const QString tool_tip = QStringLiteral("%1（%2）").arg(descriptor._description).arg(tool_button->ShortcutKey());
+        tool_button->setToolTip(tool_tip);
+        tool_button->setAccessibleName(tool_tip);
+        _toolGroup->addButton(tool_button, descriptor._tool_id);
+    }
     ui->text_bold_button->setFocusPolicy(Qt::NoFocus);
     ui->color_tool->setFocusPolicy(Qt::NoFocus);
+    ui->width_tool->setFocusPolicy(Qt::NoFocus);
     connect(ui->text_size_spinbox, &QSpinBox::editingFinished, this, &Canvas::OnTextStyleChanged);
     connect(ui->text_bold_button, &QToolButton::clicked, this, &Canvas::OnTextStyleChanged);
 
-    //设置互斥
-    _toolGroup->setExclusive(true);
-
-    //把按钮加进去，分配ID
-    _toolGroup->addButton(ui->pen_tool,Shape_Pen);
-    _toolGroup->addButton(ui->eraser_tool,Shape_Eraser);
-    _toolGroup->addButton(ui->line_tool,Shape_Line);
-    _toolGroup->addButton(ui->rect_tool,Shape_Rect);
-    _toolGroup->addButton(ui->oval_tool,Shape_Oval);
-    _toolGroup->addButton(ui->arrow_tool, Shape_Arrow);
-    _toolGroup->addButton(ui->diamond_tool, Shape_Diamond);
-    _toolGroup->addButton(ui->select_tool, SELECT_TOOL_ID);
-    _toolGroup->addButton(ui->hand_tool, HAND_TOOL_ID);
-    _toolGroup->addButton(ui->text_tool, TEXT_TOOL_ID);
-
-    // 2. 显式连接统一切换槽，避免将鼠标和手形 ID 强制转换为 ShapeType。
-    connect(_toolGroup, &QButtonGroup::idClicked, this, [this](int tool_id) {
-        if (tool_id == TEXT_TOOL_ID) OnTextToolTriggered();
-        else SetCanvasTool(tool_id);
-    });
+    // 2. 按钮与字母键走统一切换入口，快捷键仅由画布视图产生。
+    connect(_toolGroup, &QButtonGroup::idClicked, this, &Canvas::SetCanvasTool);
+    connect(ui->graphicsView, &CanvasGraphicsView::SigToolShortcutRequested, this, &Canvas::SetCanvasTool);
     SetCanvasTool(Shape_Pen);
 
-    // 3. 新工具图标与 UI 资源路径一致，沿用工具栏现有的 checked 高亮样式。
-    ui->select_tool->setIcon(QIcon(QStringLiteral(":/res/select_cursor.svg")));
-    ui->hand_tool->setIcon(QIcon(QStringLiteral(":/res/hand_pan.svg")));
-    ui->arrow_tool->setIcon(QIcon(QStringLiteral(":/res/shape_arrow.svg")));
-    ui->diamond_tool->setIcon(QIcon(QStringLiteral(":/res/shape_diamond.svg")));
-
-    QPixmap originMap(":/res/pen.png");
-    ui->pen_tool->setIcon(QIcon(originMap));
-
-    // 4. 语音初始化继续保持原有流程，工具切换槽不触碰语音或房间状态。
+    // 3. 语音初始化继续保持原有流程，工具切换槽不触碰语音或房间状态。
     const QPixmap microphone_icon = applyColor(
         QPixmap(":/res/microphoneopen.png"), Qt::white);
     const QPixmap speaker_icon = applyColor(
@@ -1037,57 +1073,152 @@ void Canvas::OnTextToolTriggered()
 void Canvas::UpdateTextControls()
 {
     // 1. 当前编辑文字优先；单个选中文字也可修改统一样式。
-    if (!_paintScene || !_toolGroup) return;
+    if (!_paintScene || !_toolGroup)
+    {
+        return;
+    }
     TextItem* item = _paintScene->ActiveTextItem();
     const bool is_visible = item || _toolGroup->checkedId() == TEXT_TOOL_ID;
     ui->text_size_spinbox->setVisible(is_visible);
     ui->text_bold_button->setVisible(is_visible);
     const TextStyle style = item ? item->GetTextData()._style : _text_style;
-    if (item) _text_style = style;
-    else _paintScene->SetTextStyle(_text_style);
+    if (item)
+    {
+        _text_style = style;
+    } else
+    {
+        _paintScene->SetTextStyle(_text_style);
+    }
+    // 2. 更新控件时阻断反馈信号，避免恢复样式又被识别为一次用户编辑。
     const QSignalBlocker size_blocker(ui->text_size_spinbox);
     const QSignalBlocker bold_blocker(ui->text_bold_button);
     ui->text_size_spinbox->setValue(style._font_size);
     ui->text_bold_button->setChecked(style._is_bold);
-    const bool can_edit = _paintScene->isEditable() && (!item || !_pending_text_operationMap.contains(item->itemId()));
+    // 3. 附属文字按父图元检查权限和确认状态，避免等待期间再次修改。
+    const auto* target = item && item->parentItem() ? dynamic_cast<CanvasItem*>(item->parentItem()) : item;
+    const bool can_edit = _paintScene->isEditable() && (!target ||
+        (!_pending_text_operationMap.contains(target->itemId()) && !target->property("canvas_edit_pending").toBool()));
     ui->text_size_spinbox->setEnabled(can_edit);
     ui->text_bold_button->setEnabled(can_edit);
 }
 
 void Canvas::OnTextStyleChanged()
 {
-    // 1. 编辑中改变样式继续当前草稿；普通状态在控件确认时登记一次操作。
-    if (!_paintScene || !_paintScene->isEditable()) return;
+    // 1. 样式属于顶层图元状态；附属编辑器通过父图元提交文字和自动增高。
+    if (!_paintScene || !_paintScene->isEditable())
+    {
+        return;
+    }
     TextItem* item = _paintScene->ActiveTextItem();
-    if (item && _pending_text_operationMap.contains(item->itemId())) return;
-    const TextItemData before = item ? item->GetTextData() : TextItemData();
-    TextStyle style = item ? before._style : _text_style;
+    CanvasItem* target = item && item->parentItem() ? dynamic_cast<CanvasItem*>(item->parentItem()) : item;
+    if (target && (_pending_text_operationMap.contains(target->itemId()) || target->property("canvas_edit_pending").toBool()))
+    {
+        return;
+    }
+    const CanvasItemEditState before = CanvasItemEdit::Capture(target);
+    TextStyle style = item ? item->GetTextData()._style : _text_style;
     style._font_size = ui->text_size_spinbox->value();
     style._is_bold = ui->text_bold_button->isChecked();
     style._color = _text_style._color;
     _text_style = style;
     _paintScene->SetTextStyle(style);
-    if (item && item->IsEditing()) ui->graphicsView->setFocus(Qt::OtherFocusReason);
-    if (item && !item->IsEditing() && !(before._style == style))
+    // 2. 活动草稿在结束时统一提交；非编辑状态的一次样式修改独立登记撤销。
+    if (item && item->IsEditing())
     {
-        const TextItemData after = item->GetTextData();
-        if (_room_info && _room_info->offline) _paintScene->RecordTextOperation(before, after);
-        SubmitTextOperation(message::TEXT_UPDATE, before, after);
+        ui->graphicsView->setFocus(Qt::OtherFocusReason);
     }
+    if (target && item && !item->IsEditing())
+    {
+        const CanvasItemEditState after = CanvasItemEdit::Capture(target);
+        if (before != after)
+        {
+            _paintScene->SubmitItemEditChange(before, after,
+                QUuid::createUuid().toString(QUuid::WithoutBraces), true);
+        }
+    }
+}
+
+void Canvas::ConfigureItemEditSync()
+{
+    // 1. 画布在登录前创建，缺少同步组件时无需读取用户或房间状态。
+    if (!_item_edit_sync)
+    {
+        return;
+    }
+    const bool is_offline = !_room_info || _room_info->offline;
+    const auto user_info = UserMgr::getInstance()->getMyInfo();
+    const int uid = !is_offline && user_info ? user_info->_id : 0;
+
+    // 2. 在线同步必须同时具备登录身份、有效连接和编辑权限，离线不提交 TCP 操作。
+    const bool can_edit = _room_info && _room_info->can_edit && !_exit_busy &&
+        (is_offline || (_room_info->connected && uid > 0));
+    _item_edit_sync->Configure(_room_info ? _room_info->id : QString(), uid, is_offline, can_edit);
+}
+
+void Canvas::OnItemEditReceived(QByteArray data)
+{
+    // 1. 创建和编辑共用接收顺序，历史图元必须先创建再恢复最终变换。
+    if (_room_info && _room_info->offline)
+    {
+        return;
+    }
+    message::ItemEditOperationRsp response;
+    if (!response.ParseFromArray(data.constData(), data.size()) || !response.has_operation())
+    {
+        return;
+    }
+    // 2. 解析成功后同步登记类型和载荷，保证回放队列始终一一对应。
+    _remote_item_edits.enqueue(response);
+    _remote_operation_order.enqueue(ReqId::ID_ITEM_EDIT_RSP);
+}
+
+void Canvas::CompleteLocalCreation(QString item_id)
+{
+    // 1. 只有本地完成事件调用本入口；按钮、场景和视图通过同一入口切换。
+    if (!_paintScene || !_toolGroup)
+    {
+        return;
+    }
+    CanvasItem* item = _paintScene->FindCanvasItem(item_id);
+    const int item_kind = CanvasItemEdit::Kind(item);
+
+    // 2. 画笔完成后保持当前工具以便连续书写，其余图元继续自动返回鼠标模式。
+    if (!_is_switching_tool && item_kind != Shape_Pen)
+    {
+        SetCanvasTool(SELECT_TOOL_ID);
+    }
+
+    // 3. 画笔完成后保持未选中，切回鼠标点击笔迹才选中；其余图元沿用自动选择。
+    _paintScene->clearSelection();
+    if (item && item_kind != Shape_Pen && item_kind != Shape_Eraser)
+    {
+        item->setSelected(true);
+    }
+    ui->graphicsView->setFocus(Qt::OtherFocusReason);
 }
 
 void Canvas::SubmitTextOperation(message::TextOperationType type, const TextItemData& before,
                                  const TextItemData& after, bool is_undo)
 {
     // 1. 离线直接完成场景操作；在线逐个图元等待确认，不能在同一目标叠加草稿。
-    if (!_room_info || !_paintScene) return;
+    if (!_room_info || !_paintScene)
+    {
+        return;
+    }
     const QString item_id = after._item_id.isEmpty() ? before._item_id : after._item_id;
     if (_room_info->offline)
     {
-        if (type == message::TEXT_DELETE) _paintScene->RemoveTextItem(item_id);
+        if (type == message::TEXT_DELETE)
+        {
+            _paintScene->RemoveTextItem(item_id);
+        }
         return;
     }
-    if (!_room_info->connected || !_room_info->can_edit || _pending_text_operationMap.contains(item_id)) return;
+    if (!_room_info->connected || !_room_info->can_edit || _pending_text_operationMap.contains(item_id))
+    {
+        return;
+    }
+    // 2. 组装稳定目标和完整文字值，条件撤销还要携带最近确认版本。
     message::TextOperation operation;
     operation.set_uid(UserMgr::getInstance()->getUid());
     operation.set_room_id(_room_info->id.toStdString());
@@ -1095,7 +1226,10 @@ void Canvas::SubmitTextOperation(message::TextOperationType type, const TextItem
     operation.set_operation_id(operation_id.toStdString());
     operation.set_operation_type(type);
     operation.set_target_item_id(item_id.toStdString());
-    if (is_undo) operation.set_expected_sequence(_text_sequenceMap.value(item_id));
+    if (is_undo)
+    {
+        operation.set_expected_sequence(_text_sequenceMap.value(item_id));
+    }
     auto* item = operation.mutable_item();
     item->set_item_id(item_id.toStdString());
     item->set_text(after._text.toStdString());
@@ -1106,9 +1240,12 @@ void Canvas::SubmitTextOperation(message::TextOperationType type, const TextItem
     item->set_x(after._position.x());
     item->set_y(after._position.y());
 
-    // 2. 请求成功写入发送队列后锁定目标；断线清理时不会自动重发。
+    // 3. 序列化成功后锁定目标并交付发送队列；断线清理时不会自动重发。
     std::string body;
-    if (!operation.SerializeToString(&body)) return;
+    if (!operation.SerializeToString(&body))
+    {
+        return;
+    }
     _pending_text_operationMap.insert(item_id, {operation_id, before, after, type, is_undo});
     _paintScene->SetTextPending(item_id, true);
     TcpMgr::getInstance()->slot_send_data(ReqId::ID_TEXT_OPERATION_REQ, QByteArray::fromStdString(body));
@@ -1129,7 +1266,10 @@ void Canvas::ApplyTextResponse(const message::TextOperationRsp& response)
 {
     // 1. 图元分别比较序号，历史回放不能被其他文字的较新序号丢弃。
     const auto& operation = response.operation();
-    if (!_room_info || operation.room_id() != _room_info->id.toStdString()) return;
+    if (!_room_info || operation.room_id() != _room_info->id.toStdString())
+    {
+        return;
+    }
     const QString item_id = QString::fromStdString(operation.target_item_id());
     const auto iterator = _pending_text_operationMap.find(item_id);
     const bool is_own_confirmation = iterator != _pending_text_operationMap.end() &&
@@ -1147,8 +1287,13 @@ void Canvas::ApplyTextResponse(const message::TextOperationRsp& response)
     {
         if (is_own_confirmation)
         {
-            if (_confirmed_textMap.contains(item_id)) _paintScene->UpdateTextItem(_confirmed_textMap.value(item_id));
-            else _paintScene->RemoveTextItem(item_id);
+            if (_confirmed_textMap.contains(item_id))
+            {
+                _paintScene->UpdateTextItem(_confirmed_textMap.value(item_id));
+            } else
+            {
+                _paintScene->RemoveTextItem(item_id);
+            }
         }
         UpdateTextControls();
         return;
@@ -1164,26 +1309,45 @@ void Canvas::ApplyTextResponse(const message::TextOperationRsp& response)
         }
         _paintScene->InvalidateTextUndo(item_id);
     }
+    // 3. 恢复确认的完整文字或删除目标，仅成功的本地操作登记撤销。
     if (response.has_current_item())
     {
         const auto& proto_item = response.current_item();
         TextItemData state{QString::fromStdString(proto_item.item_id()), QString::fromStdString(proto_item.text()),
             {QString::fromStdString(proto_item.font_family()), static_cast<int>(proto_item.font_size()),
              QColor::fromRgba(proto_item.color()), proto_item.bold()}, QPointF(proto_item.x(), proto_item.y())};
-        if (!TextItem::IsValidData(state)) return;
-        if (!_paintScene->FindTextItem(item_id)) _paintScene->AddTextItem(state);
-        else _paintScene->UpdateTextItem(state);
+        if (!TextItem::IsValidData(state))
+        {
+            return;
+        }
+        if (!_paintScene->FindTextItem(item_id))
+        {
+            _paintScene->AddTextItem(state);
+        } else
+        {
+            _paintScene->UpdateTextItem(state);
+        }
         _confirmed_textMap.insert(item_id, state);
         if (response.error() == 0 && is_own_confirmation && !pending._is_undo &&
             (pending._type == message::TEXT_CREATE || pending._type == message::TEXT_UPDATE))
+        {
             _paintScene->RecordTextOperation(pending._before, state);
+        }
     } else
     {
         _paintScene->RemoveTextItem(item_id);
         _confirmed_textMap.remove(item_id);
     }
+    // 4. 文字和通用编辑共用确认版本，失败反馈同时使冲突的旧撤销失效。
     if (operation.server_sequence() > _text_sequenceMap.value(item_id))
+    {
         _text_sequenceMap.insert(item_id, operation.server_sequence());
+    }
+    if (_item_edit_sync)
+    {
+        _item_edit_sync->ObserveLegacy(item_id, operation.server_sequence(),
+            !response.has_current_item(), is_own_confirmation && pending._type == message::TEXT_CREATE);
+    }
     if (response.error() != 0)
     {
         _paintScene->InvalidateTextUndo(item_id);
@@ -1195,16 +1359,42 @@ void Canvas::ApplyTextResponse(const message::TextOperationRsp& response)
 void Canvas::OnUndoTriggered()
 {
     // 1. 文本编辑中的 Ctrl+Z 由 Qt 接收；画布菜单先完成本次完整编辑。
-    if (!_paintScene || !_room_info || !_paintScene->isEditable()) return;
-    if (!_paintScene->FinishTextEditing()) return;
+    if (!_paintScene || !_room_info || !_paintScene->isEditable())
+    {
+        return;
+    }
+    if (!_paintScene->FinishTextEditing())
+    {
+        return;
+    }
     if (_room_info->offline)
     {
-        if (_paintScene->CanUndoLocalOperation()) _paintScene->UndoLastLocalOperation();
-        else TipWidget::showTip(ui->graphicsView, QStringLiteral("没有可撤销的操作"));
+        if (_paintScene->CanUndoLocalOperation())
+        {
+            _paintScene->UndoLastLocalOperation();
+        } else
+        {
+            TipWidget::showTip(ui->graphicsView, QStringLiteral("没有可撤销的操作"));
+        }
         UpdateTextControls();
         return;
     }
-    // 2. 在线只撤销已确认文字，内容恢复保留当前坐标并携带已知版本。
+    // 2. 在线撤销保持统一时间顺序，不能跳过尚在等待确认的最后一次操作。
+    if (!_pending_text_operationMap.isEmpty() || (_item_edit_sync && _item_edit_sync->HasPending()))
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("请等待当前图元编辑确认"));
+        return;
+    }
+    if (_paintScene->NextUndoKind() == PaintScene::UndoKind::ItemEdit)
+    {
+        CanvasItemEditUndoOperation operation;
+        if (_paintScene->TakeItemEditUndo(&operation) && _item_edit_sync)
+        {
+            _item_edit_sync->Undo(operation);
+        }
+        return;
+    }
+    // 3. 旧文字创建记录继续沿用原协议，恢复内容时保留当前图元位置。
     TextItemData before;
     bool is_create = false;
     if (!_paintScene->TakeTextUndoOperation(&before, &is_create))
@@ -1213,7 +1403,10 @@ void Canvas::OnUndoTriggered()
         return;
     }
     TextItem* item = _paintScene->FindTextItem(before._item_id);
-    if (!item) return;
+    if (!item)
+    {
+        return;
+    }
     const TextItemData current = item->GetTextData();
     before._position = current._position;
     SubmitTextOperation(is_create ? message::TEXT_DELETE : message::TEXT_UPDATE, current, before, true);
@@ -1228,10 +1421,22 @@ void Canvas::ClearTextOperations()
         for (auto iterator = _pending_text_operationMap.cbegin(); iterator != _pending_text_operationMap.cend(); ++iterator)
         {
             _paintScene->SetTextPending(iterator.key(), false);
-            if (_confirmed_textMap.contains(iterator.key())) _paintScene->UpdateTextItem(_confirmed_textMap.value(iterator.key()));
-            else _paintScene->RemoveTextItem(iterator.key());
+            if (_confirmed_textMap.contains(iterator.key()))
+            {
+                _paintScene->UpdateTextItem(_confirmed_textMap.value(iterator.key()));
+            } else
+            {
+                _paintScene->RemoveTextItem(iterator.key());
+            }
         }
     }
+    // 2. 同时废弃通用编辑和旧文字队列，迟到结果不能进入下一个房间。
+    if (_item_edit_sync)
+    {
+        _item_edit_sync->Clear();
+    }
+    _remote_item_edits.clear();
+    _remote_operation_order.removeAll(ReqId::ID_ITEM_EDIT_RSP);
     _pending_text_operationMap.clear();
     _text_sequenceMap.clear();
     _confirmed_textMap.clear();
@@ -1242,10 +1447,13 @@ void Canvas::ClearTextOperations()
 bool Canvas::PrepareTextExport()
 {
     // 1. 先完成当前草稿，在线提交尚未确认时保留场景并提示下次导出。
-    if (!_paintScene || !_paintScene->FinishTextEditing()) return false;
-    if (!_pending_text_operationMap.isEmpty())
+    if (!_paintScene || !_paintScene->FinishTextEditing())
     {
-        TipWidget::showTip(ui->graphicsView, QStringLiteral("请等待文字操作确认后再导出"));
+        return false;
+    }
+    if (!_pending_text_operationMap.isEmpty() || (_item_edit_sync && _item_edit_sync->HasPending()))
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("请等待图元编辑确认后再导出"));
         return false;
     }
     return true;
@@ -1352,6 +1560,7 @@ void Canvas::leaveUser(int uid) //移除用户
 
 void Canvas::refreshRoomCollaborationState()    // 刷新房间协作状态
 {
+    // 1. 以房间房主身份建立初始编辑权限，未进入房间时不更新协作状态。
     if (!_room_info)
         return;
 
@@ -1359,12 +1568,14 @@ void Canvas::refreshRoomCollaborationState()    // 刷新房间协作状态
     _room_info->connected = true;                               //设置已经连接到房间
     _room_info->is_owner = (currentUid != 0 && currentUid == _room_info->owner_uid);    //是否为房主
 
-    // 第一版默认只有房主可编辑，后续房主授权时只需要扩展这里的判断。
+    // 2. 初始只有房主可编辑，同步队列与场景共用权限，后续授权再统一更新。
     _room_info->can_edit = _room_info->is_owner;
+    ConfigureItemEditSync();
 
     if (_paintScene)
         _paintScene->setEditable(_room_info->can_edit);     //设置画布是否可编辑状态
 
+    // 3. 状态栏显示当前权限，便于区分连接成功与可编辑状态。
     if (statusDot)  //设置状态栏
     {
         const QString stateText = _room_info->can_edit
@@ -1394,6 +1605,7 @@ void Canvas::slot_creat_room_finish(std::shared_ptr<RoomInfo> room_info)
     // 1. 应用房间权限并启用在线文字确认，随后刷新成员及语音状态。
     _room_info = room_info;
     _paintScene->SetTextUndoEnabled(!_room_info || _room_info->offline);
+    ConfigureItemEditSync();
     refreshCurrentUserProfile();
     refreshRoomCollaborationState();
 
@@ -1426,6 +1638,7 @@ void Canvas::slot_join_room_finish(std::shared_ptr<RoomInfo> room_info)
     // 1. 应用房间权限并启用在线文字确认，随后恢复成员与历史回放。
     _room_info = room_info;
     _paintScene->SetTextUndoEnabled(!_room_info || _room_info->offline);
+    ConfigureItemEditSync();
     refreshCurrentUserProfile();
     refreshRoomCollaborationState();
 
@@ -1534,6 +1747,7 @@ void Canvas::slot_permission_changed(int target_uid, bool can_edit)     //权限
 
     if (_paintScene)
         _paintScene->setEditable(_room_info->can_edit);
+    ConfigureItemEditSync();
     UpdateTextControls();
 
     if (statusDot)
@@ -1561,9 +1775,7 @@ void Canvas::on_color_tool_clicked()    //color_tool槽函数
         _text_style._color = color;
         OnTextStyleChanged();
         _paintScene->setPenColor(color);        //设置逻辑层颜色
-        QPixmap originMap(":/res/pen.png");     //加载原图
-        QPixmap tintedMap = applyColor(originMap,color);        //生成染色后的图标
-        ui->pen_tool->setIcon(QIcon(tintedMap));                //设置染色后的图标给按钮
+        // 工具图标保持统一 SVG，所选颜色由颜色按钮和实际笔迹体现。
     }
 }
 
@@ -1685,18 +1897,21 @@ void Canvas::StartFileImageImport(const QString& file_path,
                                   const QPointF& anchor_scene_pos,
                                   bool has_anchor_scene_pos)
 {
+    // 1. 校验文件入口，防止无效请求占用导入上下文。
     if (file_path.isEmpty() || !_imageAssetManager)
     {
         return;
     }
 
-    // 请求上下文保存触发时的锚点，避免用户拖放后切换视图导致图片跳到新的中心位置。
+    // 2. 保存触发时的锚点和工具代次，异步完成后不覆盖用户新的视图或工具选择。
     const QString request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     PendingImageImport pending_import;
     pending_import._source_file_path = file_path;
     pending_import._anchor_scene_pos = anchor_scene_pos;
     pending_import._has_anchor_scene_pos = has_anchor_scene_pos;
+    pending_import._tool_generation = _tool_generation;
     _pending_image_imports.insert(request_id, pending_import);
+    // 3. 文件读取由图片代理异步完成，界面只展示等待状态。
     _imageAssetManager->prepareLocalAssetAsync(file_path, request_id);
     TipWidget::showTip(ui->graphicsView, QStringLiteral("图片正在读取，请稍候"));
 }
@@ -1705,17 +1920,20 @@ void Canvas::StartImageDataImport(const QImage& image,
                                   const QPointF& anchor_scene_pos,
                                   bool has_anchor_scene_pos)
 {
+    // 1. 校验剪贴板像素和代理状态，不登记空图片请求。
     if (image.isNull() || !_imageAssetManager)
     {
         return;
     }
 
-    // 剪贴板没有稳定的文件路径，仍使用同一请求表以复用房间切换时的过期结果保护。
+    // 2. 剪贴板没有稳定路径，使用同一请求表保存锚点、工具代次和换房失效上下文。
     const QString request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     PendingImageImport pending_import;
     pending_import._anchor_scene_pos = anchor_scene_pos;
     pending_import._has_anchor_scene_pos = has_anchor_scene_pos;
+    pending_import._tool_generation = _tool_generation;
     _pending_image_imports.insert(request_id, pending_import);
+    // 3. 像素编码和资源校验交给代理，避免阻塞画布线程。
     _imageAssetManager->PrepareImageDataAsync(image, request_id);
     TipWidget::showTip(ui->graphicsView, QStringLiteral("剪贴板图片正在处理，请稍候"));
 }
@@ -1778,6 +1996,16 @@ void Canvas::slot_onLocalAssetReady(QString request_id,
         return;
     }
 
+    if (pending_import._tool_generation == _tool_generation)
+    {
+        CompleteLocalCreation(item_id);
+    }
+    if (_item_edit_sync && !_room_info->offline)
+    {
+        // 创建协议尚未确认前保留预览，避免旋转中心等扩展状态早于服务器目标。
+        _item_edit_sync->SetCreationPending(item_id, true);
+        _paintScene->SetItemEditPending(item_id, true);
+    }
     if (_room_info->offline)
     {
         // 3. 离线图片像素已驻留 UI，立即解除文件保护。
@@ -1964,6 +2192,7 @@ void Canvas::sendImageCreateOperation(const QString& item_id)
         // 序列化失败时不从本地场景删除预览，让用户仍能看到图片并可重新触发上传。
         return;
     }
+    _paintScene->SetItemEditPending(item_id, true);
     TcpMgr::getInstance()->slot_send_data(
         ReqId::ID_IMAGE_OPERATION_REQ,
         QByteArray::fromStdString(serialized_operation));
@@ -2066,6 +2295,7 @@ void Canvas::sendImageDeleteOperation(const QString& item_id)
 
 void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
 {
+    // 1. 校验当前房间上下文，历史图片只能应用到对应的在线画布。
     if (!_paintScene || !_room_info || _room_info->offline)
     {
         return;
@@ -2077,6 +2307,29 @@ void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
         return;
     }
 
+    // 2. 统一版本检查并处理自身确认，保留已加载像素和当前本地预览。
+    const QString operation_item_id = operation.operation_type() == message::IMAGE_DELETE
+        ? QString::fromStdString(operation.target_item_id()) : QString::fromStdString(operation.item().item_id());
+    if (_item_edit_sync && operation.server_sequence() < _item_edit_sync->Revision(operation_item_id))
+    {
+        return;
+    }
+    if (operation.uid() == UserMgr::getInstance()->getUid() &&
+        (operation.operation_type() == message::IMAGE_DELETE || _paintScene->findImageItem(operation_item_id)))
+    {
+        // 本地创建只登记确认版本，保留已加载像素和等待发送的最新拖动预览。
+        if (operation.operation_type() == message::IMAGE_CREATE)
+        {
+            _paintScene->SetItemEditPending(operation_item_id, false);
+        }
+        if (_item_edit_sync)
+        {
+            _item_edit_sync->ObserveLegacy(operation_item_id, operation.server_sequence(),
+                operation.operation_type() == message::IMAGE_DELETE, operation.operation_type() == message::IMAGE_CREATE);
+        }
+        return;
+    }
+    // 3. 创建先恢复图片占位和几何，再异步下载资源，不阻塞历史回放。
     if (operation.operation_type() == message::IMAGE_CREATE)
     {
         if (!operation.has_item() || !operation.item().has_transform() ||
@@ -2124,9 +2377,14 @@ void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
             QString::fromStdString(proto_item.asset_sha256()),
             QString::fromStdString(proto_item.mime_type())});
         requestNextImageDownloadToken();
+        if (_item_edit_sync)
+        {
+            _item_edit_sync->ObserveLegacy(operation_item_id, operation.server_sequence());
+        }
         return;
     }
 
+    // 4. 删除或旧协议变换按同一目标版本登记，避免后续通用编辑使用过期快照。
     const QString target_item_id = operation.operation_type() == message::IMAGE_DELETE
                                        ? QString::fromStdString(operation.target_item_id())
                                        : (operation.has_item()
@@ -2138,6 +2396,10 @@ void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
     }
     if (operation.operation_type() == message::IMAGE_DELETE)
     {
+        if (_item_edit_sync)
+        {
+            _item_edit_sync->ObserveLegacy(target_item_id, operation.server_sequence(), true);
+        }
         _paintScene->removeImageItem(target_item_id);
         return;
     }
@@ -2154,12 +2416,16 @@ void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
             transform.scale_y() > 0.0F ? transform.scale_y() : 1.0,
             transform.rotation());
         _applyingRemoteImageOperation = false;
+        if (_item_edit_sync)
+        {
+            _item_edit_sync->ObserveLegacy(target_item_id, operation.server_sequence());
+        }
     }
 }
 
 void Canvas::slot_onImageOperationBroadcast(QByteArray data)
 {
-    // 1. 解析在线图片操作并跳过本地已应用的广播。
+    // 1. 解析在线图片操作，自身广播也需要进入版本确认流程。
     if (_room_info && _room_info->offline)
     {
         return;
@@ -2169,11 +2435,6 @@ void Canvas::slot_onImageOperationBroadcast(QByteArray data)
     if (!operation.ParseFromArray(data.constData(), data.size()))
     {
         qWarning() << "[Canvas] 图片操作 protobuf 解析失败";
-        return;
-    }
-    if (operation.uid() == UserMgr::getInstance()->getUid())
-    {
-        // 本地预览已经存在，忽略自己的广播可以避免重复下载和重复创建。
         return;
     }
     // 2. 图片与文字、笔画使用统一的到达顺序，房间初始化前继续暂存。
@@ -2774,6 +3035,7 @@ void Canvas::flushRemoteDrawQueue()
     {
         _remoteDrawQueue.clear();
         _remote_operation_order.clear();
+        _remote_item_edits.clear();
         _remoteImageOperationQueue.clear();
         _remote_text_operations.clear();
         return;
@@ -2784,7 +3046,16 @@ void Canvas::flushRemoteDrawQueue()
     for (int handled = 0; handled < max_packets && !_remote_operation_order.isEmpty(); ++handled)
     {
         const ReqId message_id = _remote_operation_order.dequeue();
-        if (message_id == ReqId::ID_TEXT_OPERATION_RSP)
+        if (message_id == ReqId::ID_ITEM_EDIT_RSP)
+        {
+            if (_item_edit_sync)
+            {
+                _item_edit_sync->ApplyResponse(_remote_item_edits.dequeue());
+            } else
+            {
+                _remote_item_edits.dequeue();
+            }
+        } else if (message_id == ReqId::ID_TEXT_OPERATION_RSP)
         {
             ApplyTextResponse(_remote_text_operations.dequeue());
         } else if (message_id == ReqId::ID_IMAGE_OPERATION_RSP)

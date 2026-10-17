@@ -195,6 +195,7 @@ bool ValidateImageItem(const message::ImageItem& item, bool require_asset_metada
 
 void ImageOperationHandler::Handle(std::shared_ptr<CSession> session, const short& msg_id, const std::string& msg_data)
 {
+	// 1. 确认活动会话并解析结构化图片操作，不接受超长包。
 	(void)msg_id; // 回调接口保留消息 ID，图片处理只需要正文并统一广播响应 ID。
 	if (!session || session->IsClosed())
 	{
@@ -215,7 +216,7 @@ void ImageOperationHandler::Handle(std::shared_ptr<CSession> session, const shor
 		return;
 	}
 
-	// UID 必须以 TCP 会话绑定值为准，不能相信客户端随包提交的身份字段。
+	// 2. UID 必须以 TCP 会话绑定值为准，不能相信客户端随包提交的身份字段。
 	if (operation.uid() != session_uid)
 	{
 		LOG_WARN_CTX("ImageOperationHandler::Handle", "图片操作 UID 不匹配 session_uid=" << session_uid
@@ -252,7 +253,7 @@ void ImageOperationHandler::Handle(std::shared_ptr<CSession> session, const shor
 		return;
 	}
 
-	// 创建必须携带完整资源元数据；更新只允许携带变换，删除只需要目标 item_id。
+	// 3. 创建必须携带完整资源元数据；更新只允许携带变换，删除只需要目标 item_id。
 	if (operation.operation_type() == message::IMAGE_CREATE)
 	{
 		if (!operation.target_item_id().empty()
@@ -296,7 +297,7 @@ void ImageOperationHandler::Handle(std::shared_ptr<CSession> session, const shor
 		return;
 	}
 
-	// Room 在同一把锁内完成重复 item 检查、状态变更、序号分配和正文序列化，避免先校验后写入的竞态。
+	// 4. Room 在同一把锁内完成重复 item 检查、状态变更、序号分配和正文序列化。
 	std::string normalized_body;
 	if (!room->ApplyImageOperation(operation, &normalized_body))
 	{
@@ -305,7 +306,8 @@ void ImageOperationHandler::Handle(std::shared_ptr<CSession> session, const shor
 		return;
 	}
 
+	// 5. 成功广播包含发起者，使创建者获得通用编辑所需的已确认版本。
 	// Room 已在状态锁内完成序列化，并且按操作类型自行维护快照式图片历史
 	// （变换更新原位改写创建条目，不追加移动记录）；这里只负责在线广播。
-	room->Broadcast(normalized_body, ID_IMAGE_OPERATION_RSP, session_uid);
+	room->Broadcast(normalized_body, ID_IMAGE_OPERATION_RSP);
 }

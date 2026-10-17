@@ -4,6 +4,8 @@
 #include "CanvasServer/const.h"
 #include "Logger/Logger.h"
 
+#include <algorithm>
+
 Room::Room(const std::string& room_id)
     : _room_id(room_id)
 {
@@ -38,11 +40,27 @@ void Room::AppendHistoryLocked(HistoryEntry entry)
         const size_t kTrim = MAX_HISTORY_OPS / 10 + 1; // 每次裁剪约10%
         if (kTrim < _history.size())
         {
+            // 一旦淘汰笔迹的任一消息，同时移除同一笔迹的其余消息，禁止半笔迹回放。
+            std::unordered_set<std::string> removed_draw_ids;
+            for (std::size_t index = 0; index < kTrim; ++index)
+            {
+                if (!_history[index]._draw_item_id.empty()) removed_draw_ids.insert(_history[index]._draw_item_id);
+            }
             _history.erase(_history.begin(), _history.begin() + static_cast<long>(kTrim));
+            _history.erase(std::remove_if(_history.begin(), _history.end(), [&](const HistoryEntry& saved) {
+                return removed_draw_ids.count(saved._draw_item_id) != 0;
+            }), _history.end());
+            for (const auto& item_id : removed_draw_ids)
+            {
+                _item_edit_states.erase(item_id);
+                _draw_started.erase(item_id);
+                _draw_end_index.erase(item_id);
+            }
         }
         // 头部删除会让所有保留条目下标前移，图片创建条目索引必须整体重建，否则变换更新会改写到错误条目。
         RebuildImageHistoryIndexLocked();
         RebuildTextHistoryIndexLocked();
+        RebuildDrawHistoryIndexLocked();
     }
 }
 
@@ -62,8 +80,15 @@ void Room::RebuildImageHistoryIndexLocked()
 // 实现：获取历史记录快照
 std::vector<Room::HistoryEntry> Room::GetHistorySnapshot()
 {
+    // 1. 同一房间锁内复制创建记录和附属编辑快照，回放不依赖可变索引。
     std::lock_guard<std::mutex> lock(_mutex);
-    return _history;    // 拷贝一份，回放在锁外做
+    std::vector<HistoryEntry> snapshot;
+    for (const auto& entry : _history)
+    {
+        snapshot.push_back(entry);
+        if (!entry._edit_body.empty()) snapshot.push_back(HistoryEntry{ID_ITEM_EDIT_RSP, entry._edit_body});
+    }
+    return snapshot; // 创建和完整笔迹先回放，再应用该图元的最新编辑。
 }
 
 // 实现：清空历史记录
@@ -79,6 +104,7 @@ void Room::ClearHistory()
     _text_itemMap.clear();
     _text_create_indexMap.clear();
     _text_sequenceMap.clear();
+    ClearItemEditStateLocked();
 }
 
 void Room::RebuildTextHistoryIndexLocked()
@@ -128,7 +154,8 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 	if (operation.operation_type() < message::TEXT_CREATE || operation.operation_type() > message::TEXT_DELETE ||
 	(operation.uid() != _owner_uid && _editable_users.count(operation.uid()) == 0) ||
 	(operation.expected_sequence() != 0 && operation.expected_sequence() != known_sequence) ||
-	(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 : iterator == _text_itemMap.end()))
+	(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 ||
+	_item_edit_states.count(item_id) || _draw_started.count(item_id) : iterator == _text_itemMap.end()))
 	{
 		response.set_error(message::TextStateConflict);
 		response.set_error_message("文字状态已改变、已删除或没有编辑权限");
@@ -153,7 +180,7 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 		state.set_y(operation.item().y());
 	}
 	const bool is_delete = operation.operation_type() == message::TEXT_DELETE;
-	const std::uint64_t sequence = _text_sequence + 1;
+	const std::uint64_t sequence = std::max(_text_sequence, _edit_sequence) + 1;
 	response.set_error(0);
 	response.mutable_operation()->set_server_sequence(sequence);
 	*response.mutable_operation()->mutable_item() = state;
@@ -189,6 +216,7 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 			AppendHistoryLocked(HistoryEntry{ID_TEXT_OPERATION_RSP, snapshot_body, std::string(), item_id});
 		}
 	}
+	SyncLegacyTextLocked(operation, state, sequence);
 	return true;
 }
 
@@ -196,7 +224,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
 {
     // 1. 房间关闭和成员退出必须与图元提交使用同一接受边界。
     std::lock_guard<std::mutex> lock(_mutex);
-    if (!IsActiveMemberLocked(operation.uid())) return false;
+    if (!IsActiveMemberLocked(operation.uid()) || (operation.uid() != _owner_uid && !_editable_users.count(operation.uid()))) return false;
 
     // 序列化失败虽然通常只会在内存分配异常时发生，但仍需保留旧索引和序号，
     // 确保失败操作不会造成“房间状态已变更但没有广播”的隐性分叉。
@@ -220,7 +248,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
         max_image_items = MAX_IMAGE_ITEMS;
     }
 
-    // 图片操作的状态变更、重复检查和序号分配必须在同一把房间锁内完成，
+    // 2. 图片操作的状态变更、重复检查和序号分配必须在同一把房间锁内完成，
     // 这样即使未来增加多个逻辑线程，也不会产生两个相同 item_id 的创建结果。
     const std::string requested_item_id = operation.item().item_id();
     std::string target_item_id = operation.target_item_id();
@@ -229,7 +257,8 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
     {
         if (_image_items.size() >= max_image_items
         || requested_item_id.empty()
-        || _image_items.find(requested_item_id) != _image_items.end())
+        || _image_items.find(requested_item_id) != _image_items.end()
+        || _item_edit_states.count(requested_item_id) || _draw_started.count(requested_item_id))
         {
             return false;
         }
@@ -277,7 +306,8 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
     }
 
     operation.set_target_item_id(target_item_id);
-    operation.set_server_sequence(++_image_sequence);
+    _image_sequence = std::max(_image_sequence, _edit_sequence) + 1;
+    operation.set_server_sequence(_image_sequence);
 
     if (normalized_body && !operation.SerializeToString(normalized_body))
     {
@@ -287,7 +317,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
         return false;
     }
 
-    // 图片历史采用快照式记录：变换更新不追加移动条目，而是原位改写创建条目内的变换，
+    // 3. 图片历史采用快照式记录：变换更新不追加移动条目，而是原位改写创建条目内的变换，
     // 新成员回放时图片直接出现在最新位置，不会重放整段移动轨迹。
     // 本函数已持有 _mutex，必须走不加锁的 AppendHistoryLocked，不能调用公共入口 AppendHistory。
     switch (operation.operation_type())
@@ -346,6 +376,8 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
     default:
         break;
     }
+    // 4. 旧图片入口同步通用版本，使后续拖动和撤销使用同一接受边界。
+    SyncLegacyImageLocked(operation);
     return true;
 }
 
@@ -369,7 +401,11 @@ bool Room::TryJoin(std::shared_ptr<CSession> session)
 		// 2. 历史先入发送队列再发布成员；这里只入队，网络写入由 executor 执行。
 		if (first_join)
 		{
-			for (const auto& entry : _history) session->Send(entry._body, entry._msg_id);
+			for (const auto& entry : _history)
+			{
+				session->Send(entry._body, entry._msg_id);
+				if (!entry._edit_body.empty()) session->Send(entry._edit_body, ID_ITEM_EDIT_RSP);
+			}
 		}
 		_sessions[uid] = session;
 		session->SetRoom(shared_from_this());
@@ -639,6 +675,7 @@ std::vector<std::shared_ptr<CSession>> Room::FinishClose()
 		_text_itemMap.clear();
 		_text_create_indexMap.clear();
 		_text_sequenceMap.clear();
+		ClearItemEditStateLocked();
 	}
 	// 2. 解绑和结束通知使用成员快照，不重新访问已经清空的容器。
 	for (const auto& member : members) if (member) member->ClearRoom(this);
@@ -662,11 +699,19 @@ bool Room::AcceptDraw(std::shared_ptr<CSession> session, const message::DrawReq&
 		_text_itemMap.clear();
 		_text_create_indexMap.clear();
 		_text_sequenceMap.clear();
+		ClearItemEditStateLocked();
 	}
+	if (request.cmd() != message::CMD_CLEAR && !RegisterDrawLocked(request)) return false;
 	const bool is_pen = request.shape() == message::SHAPE_PEN || request.shape() == message::SHAPE_ERASER;
 	if (request.cmd() == message::CMD_START || request.cmd() == message::CMD_END ||
 	(is_pen && request.cmd() == message::CMD_MOVE))
-	AppendHistoryLocked(HistoryEntry{ID_DRAW_RSP, body, std::string(), std::string()});
+	{
+		AppendHistoryLocked(HistoryEntry{ID_DRAW_RSP, body, std::string(), std::string(), request.item_id()});
+		if (request.cmd() == message::CMD_END && _item_edit_states.count(request.item_id()))
+		{
+			_draw_end_index[request.item_id()] = _history.size() - 1;
+		}
+	}
 	// 3. 发送队列入队属于接受事务；Send 只入队，实际网络写入在 IO 线程执行。
 	for (const auto& member : _sessions)
 	{

@@ -53,6 +53,7 @@ void RectItem::setRect(const QRectF& rect)
     // 1. 矩形变化会影响场景索引，先通知 Qt 再保存新几何。
     prepareGeometryChange();
     _rect = rect;
+    UpdateBoundTextLayout();
     update();
 }
 

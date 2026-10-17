@@ -53,6 +53,8 @@ void PathItem::setPath(const QPainterPath& path)
     // 1. 路径改变会影响场景索引，先通知 Qt 即将变化。
     prepareGeometryChange();
     _path = path;
+    _original_path = path;
+    _path_transform.reset();
     update();
 }
 
@@ -61,6 +63,8 @@ void PathItem::appendLineTo(const QPointF& point)
     // 1. 追加点前通知 Qt，保证增量路径的新包围盒能够参与重绘。
     prepareGeometryChange();
     _path.lineTo(point);
+    _original_path = _path;
+    _path_transform.reset();
     update();
 }
 
@@ -82,4 +86,25 @@ QPen PathItem::pen() const
 {
     // 1. 返回画笔副本，调用方可以安全调整样式而不直接修改图元状态。
     return _pen;
+}
+
+QPainterPath PathItem::OriginalPath() const
+{
+    // 1. 保存原始点，后续缩放始终从同一份几何计算。
+    return _original_path;
+}
+
+QTransform PathItem::PathTransform() const
+{
+    // 1. 返回原始路径到显示路径的绝对映射。
+    return _path_transform;
+}
+
+void PathItem::SetPathTransform(const QTransform& transform)
+{
+    // 1. 路径尺寸改变前通知场景，保持场景索引和碰撞范围一致。
+    prepareGeometryChange();
+    _path_transform = transform;
+    _path = transform.map(_original_path);
+    update();
 }

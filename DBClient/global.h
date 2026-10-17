@@ -38,6 +38,8 @@ enum ReqId{
     ID_DESTROY_ROOM_RSP = 1036, // 房主解散完成。
     ID_ROOM_DESTROYED_BROADCAST = 1037, // 房间解散通知。
     ID_USER_LOGOUT = 1038, // HTTP 账号注销请求。
+    ID_ITEM_EDIT_REQ = 1040, // 图元编辑和条件撤销请求。
+    ID_ITEM_EDIT_RSP = 1041, // 图元编辑确认、广播和历史快照。
     ID_GET_VERIFY_CODE = 1001,                  //获取验证码
     ID_REGISTER = 1002,                         //注册账号
     ID_RESET_PWD = 1003,                        //重置密码

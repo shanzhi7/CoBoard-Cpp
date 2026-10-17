@@ -20,7 +20,8 @@ QString UserMgr::getToken()
 
 int UserMgr::getUid()
 {
-    return this->_my_info->_id;
+    // 1. 启动、离线画布及退出账号期间没有用户资料，零表示尚未登录。
+    return _my_info ? _my_info->_id : 0;
 }
 
 QString UserMgr::getAvatar()

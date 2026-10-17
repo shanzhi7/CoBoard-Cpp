@@ -41,7 +41,7 @@ public:
 	void Close(); // 幂等关闭连接，并投递业务清理。
 private:
 	void ReadHead(); // 读取并校验四字节帧头。
-	void ReadBody(short msg_id, short msg_len); // 分发快通道绘画或普通业务。
+	void ReadBody(short msg_id, short msg_len); // 分发绘画、图元编辑快通道或普通业务。
 	void HandleWrite(const boost::system::error_code& error, std::shared_ptr<CSession> self); // 驱动串行发送队列。
 	boost::asio::ip::tcp::socket _socket; // 当前连接套接字。
 	std::string _session_id; // 连接唯一标识。

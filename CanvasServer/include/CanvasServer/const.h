@@ -57,6 +57,8 @@ enum MSG_IDS {
     ID_REVOKE_EDIT_REQ = 1024,    //取消编辑权限请求
     ID_REVOKE_EDIT_RSP = 1025,    //取消编辑权限回包
     ID_PERMISSION_CHANGED_BROADCAST = 1026,    //编辑权限变更广播
+    ID_ITEM_EDIT_REQ = 1040, // 通用图元编辑请求。
+    ID_ITEM_EDIT_RSP = 1041, // 通用图元编辑确认及广播。
     ID_TEXT_OPERATION_REQ = 1031, // 文字操作请求。
     ID_TEXT_OPERATION_RSP = 1032, // 文字操作确认和广播。
     ID_IMAGE_OPERATION_REQ = 1027,              //图片图元操作请求，正文为 ImageOperation

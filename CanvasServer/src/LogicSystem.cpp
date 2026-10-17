@@ -136,6 +136,7 @@ void LogicSystem::RegisterCallBacks()
     // 2. 图片和文字属于低频结构化业务，统一校验权限并更新房间状态。
     _fun_callbacks[ID_IMAGE_OPERATION_REQ] = &ImageOperationHandler::Handle;
     _fun_callbacks[ID_TEXT_OPERATION_REQ] = &TextOperationHandler::Handle;
+    // ID_ITEM_EDIT_REQ 与 ID_DRAW_REQ 均由 CSession 快通道直接处理。
 
     // 3. 退出及解散交给独立处理器，LogicSystem 只负责消息顺序。
     _fun_callbacks[ID_LEAVE_ROOM_REQ] = [this](std::shared_ptr<CSession> session, const short& id, const std::string& body) {

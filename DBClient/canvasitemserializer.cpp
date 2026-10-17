@@ -6,6 +6,7 @@
 #include <QPainterPath>
 #include <QTransform>
 
+#include "canvasitemeditstate.h"
 #include "canvasitems/arrowitem.h"
 #include "canvasitems/canvasitem.h"
 #include "canvasitems/diamonditem.h"
@@ -58,6 +59,65 @@ bool IsNumber(const QJsonValue& value)
 {
     // 1. JSON 整数和浮点数均可读，非有限值和字符串均拒绝。
     return value.isDouble() && std::isfinite(value.toDouble());
+}
+
+QJsonObject TextToJson(const QString& text, const TextStyle& style)
+{
+    // 1. 独立和附属文字共用同一组值字段，不保存编辑光标或选择状态。
+    return {{QStringLiteral("text"), text},
+            {QStringLiteral("font_family"), style._font_family},
+            {QStringLiteral("font_size"), style._font_size},
+            {QStringLiteral("text_color"), style._color.name(QColor::HexArgb)},
+            {QStringLiteral("bold"), style._is_bold}};
+}
+
+bool ReadText(const QJsonObject& object, const QString& item_id,
+              const QPointF& position, bool allow_empty, TextItemData* data)
+{
+    // 1. 先严格检查 JSON 类型，不能把缺失的布尔或字号转换为看似有效的默认值。
+    if (!object.value("text").isString() || !object.value("font_family").isString() ||
+        !object.value("text_color").isString() || !object.value("bold").isBool() ||
+        !IsNumber(object.value("font_size")))
+    {
+        return false;
+    }
+    *data = {item_id, object.value("text").toString(),
+             {object.value("font_family").toString(), object.value("font_size").toInt(),
+              QColor(object.value("text_color").toString()), object.value("bold").toBool()}, position};
+
+    // 2. 使用现有文字值校验器检查 UTF-8 字节数、字号、颜色及位置，后台不构造编辑器。
+    return object.value("font_size").toDouble() == data->_style._font_size &&
+           TextItem::IsValidData(*data, allow_empty);
+}
+
+bool ReadComponents(const QJsonValue& value, int count, QVector<double>* components)
+{
+    // 1. 编辑扩展使用固定长度数组，字符串和缺失分量不能隐式转换为零。
+    if (!value.isArray() || value.toArray().size() != count)
+    {
+        return false;
+    }
+    components->clear();
+    for (const QJsonValue& component : value.toArray())
+    {
+        if (!IsNumber(component))
+        {
+            return false;
+        }
+        components->append(component.toDouble());
+    }
+    return true;
+}
+
+QJsonArray ComponentsToJson(const QVector<double>& components)
+{
+    // 1. 保存编辑快照中的值数组，路径映射不烘焙进原始点集。
+    QJsonArray result;
+    for (double component : components)
+    {
+        result.append(component);
+    }
+    return result;
 }
 
 bool ReadPen(const QJsonObject& object, QPen* pen)
@@ -264,14 +324,7 @@ bool CanvasItemSerializer::ValidateItem(const QJsonObject& item_data,
     } else if (type == "text")
     {
         TextItemData data;
-        data._item_id = item_data.value("item_id").toString();
-        data._text = item_data.value("text").toString();
-        data._position = position;
-        data._style = {item_data.value("font_family").toString(), item_data.value("font_size").toInt(),
-                       QColor(item_data.value("text_color").toString()), item_data.value("bold").toBool()};
-        is_valid = is_valid && item_data.value("text").isString() && item_data.value("bold").isBool() &&
-                   IsNumber(item_data.value("font_size")) &&
-                   item_data.value("font_size").toDouble() == data._style._font_size && TextItem::IsValidData(data);
+        is_valid = is_valid && ReadText(item_data, item_data.value("item_id").toString(), position, false, &data);
     } else if (type == "image")
     {
         QPointF original_size;
@@ -290,7 +343,31 @@ bool CanvasItemSerializer::ValidateItem(const QJsonObject& item_data,
     {
         is_valid = false;
     }
-    if (!is_valid && error_message) *error_message = QStringLiteral("图元类型、属性、几何或资源引用无效");
+    // 3. 版本 2 扩展可省略以兼容旧文件，但出现时必须属于正确类型且字段完整。
+    if (item_data.contains("path_transform"))
+    {
+        QVector<double> components;
+        is_valid = is_valid && (type == "pen" || type == "eraser") &&
+                   ReadComponents(item_data.value("path_transform"), 6, &components);
+    }
+    if (item_data.contains("text_layout"))
+    {
+        QVector<double> components;
+        is_valid = is_valid && type == "text" && ReadComponents(item_data.value("text_layout"), 2, &components) &&
+                   components.at(0) >= 0.0 && components.at(1) >= 0.0;
+    }
+    if (item_data.contains("bound_text"))
+    {
+        TextItemData data;
+        is_valid = is_valid && (type == "rect" || type == "oval" || type == "diamond") &&
+                   item_data.value("bound_text").isObject() &&
+                   ReadText(item_data.value("bound_text").toObject(), item_data.value("item_id").toString(),
+                            position, true, &data);
+    }
+    if (!is_valid && error_message)
+    {
+        *error_message = QStringLiteral("图元类型、属性、几何、文字排版或资源引用无效");
+    }
     return is_valid;
 }
 
@@ -313,6 +390,7 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
         if (error_message) *error_message = QStringLiteral("画布包含不支持的图元类型");
         return false;
     }
+    const CanvasItemEditState edit_state = CanvasItemEdit::Capture(item);
     QJsonObject data{{QStringLiteral("item_id"), item->itemId()},
                      {QStringLiteral("type"), type},
                      {QStringLiteral("position"), PointToJson(item->pos())},
@@ -325,7 +403,7 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
 
     if (auto* path_item = dynamic_cast<PathItem*>(item))
     {
-        const QPainterPath path = path_item->path();
+        const QPainterPath path = path_item->OriginalPath();
         QJsonArray elements;
         for (int index = 0; index < path.elementCount(); ++index)
         {
@@ -335,6 +413,7 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
         data.insert(QStringLiteral("path"), elements);
         data.insert(QStringLiteral("fill_rule"), static_cast<int>(path.fillRule()));
         data.insert(QStringLiteral("pen"), PenToJson(path_item->pen()));
+        data.insert(QStringLiteral("path_transform"), ComponentsToJson(edit_state._geometry));
     } else if (auto* rect_item = dynamic_cast<RectItem*>(item))
     {
         data.insert(QStringLiteral("rect"), RectToJson(rect_item->rect()));
@@ -357,12 +436,12 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
         data.insert(QStringLiteral("pen"), PenToJson(diamond_item->Pen()));
     } else if (auto* text_item = dynamic_cast<TextItem*>(item))
     {
-        const TextItemData text_data = text_item->GetTextData();
-        data.insert("text", text_data._text);
-        data.insert("font_family", text_data._style._font_family);
-        data.insert("font_size", text_data._style._font_size);
-        data.insert("text_color", text_data._style._color.name(QColor::HexArgb));
-        data.insert("bold", text_data._style._is_bold);
+        const QJsonObject text_data = TextToJson(edit_state._text, edit_state._text_style);
+        for (auto iterator = text_data.constBegin(); iterator != text_data.constEnd(); ++iterator)
+        {
+            data.insert(iterator.key(), iterator.value());
+        }
+        data.insert(QStringLiteral("text_layout"), ComponentsToJson(edit_state._geometry));
     } else if (auto* image_item = dynamic_cast<ImageItem*>(item))
     {
         if (image_item->loadState() != ImageItem::ImageLoadState::Ready || image_item->pixmap().isNull())
@@ -386,6 +465,11 @@ bool CanvasItemSerializer::SerializeItem(CanvasItem* item,
         data.insert(QStringLiteral("display_size"), QJsonArray{image_item->displaySize().width(), image_item->displaySize().height()});
     }
 
+    // 3. 附属文字只保存在父图元中，子编辑器的 ID、坐标及选中状态都不是独立文档内容。
+    if (CanvasItemEdit::IsClosed(item) && item->BoundTextItem())
+    {
+        data.insert(QStringLiteral("bound_text"), TextToJson(edit_state._text, edit_state._text_style));
+    }
     *item_data = data;
     return true;
 }
@@ -529,7 +613,39 @@ CanvasItem* CanvasItemSerializer::DeserializeItem(const QJsonObject& item_data,
         return nullptr;
     }
 
-    // 3. 公共变换在局部几何恢复后应用，保持路径与图元坐标一致。
+    // 3. 先恢复局部编辑扩展，原始路径只应用一次映射；旧文件沿用自然排版和单位映射。
+    if (item_data.contains("path_transform") || item_data.contains("text_layout") || item_data.contains("bound_text"))
+    {
+        CanvasItemEditState edit_state = CanvasItemEdit::Capture(item);
+        if (item_data.contains("path_transform"))
+        {
+            ReadComponents(item_data.value("path_transform"), 6, &edit_state._geometry);
+        }
+        if (item_data.contains("text_layout"))
+        {
+            ReadComponents(item_data.value("text_layout"), 2, &edit_state._geometry);
+        }
+        if (item_data.contains("bound_text"))
+        {
+            TextItemData bound_data;
+            ReadText(item_data.value("bound_text").toObject(), item_id, position, true, &bound_data);
+            edit_state._text = bound_data._text;
+            edit_state._text_style = bound_data._style;
+            item->SetBoundTextLayoutEnabled(false);
+            item->SetBoundTextData(bound_data._text, bound_data._style);
+        }
+        if (!CanvasItemEdit::Apply(item, edit_state))
+        {
+            delete item;
+            if (error_message)
+            {
+                *error_message = QStringLiteral("图元编辑状态无法恢复");
+            }
+            return nullptr;
+        }
+    }
+
+    // 4. 自动布局可能调整旋转中心和位置，最后恢复文件里的公共变换保证已有锚点不漂移。
     item->setPos(position);
     QPointF origin;
     ReadPair(item_data.value("transform_origin"), &origin);

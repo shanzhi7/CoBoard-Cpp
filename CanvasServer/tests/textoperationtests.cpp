@@ -12,6 +12,8 @@
 #include <iostream>
 #include <stdexcept>
 
+void RunItemEditTests(); // 验证通用图元编辑和共享版本。
+
 namespace
 {
 void Check(bool is_valid, const char* message)
@@ -262,6 +264,7 @@ int main()
 	// 1. 直接验证房间状态机，无需启动 Redis 或正式业务服务。
 	try
 	{
+		RunItemEditTests();
 		TestTextStateAndHistory();
 		TestHistoryTrimming();
 		TestHandlerBroadcastAndLimits();

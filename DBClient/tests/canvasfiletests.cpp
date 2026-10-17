@@ -9,6 +9,7 @@
 #include "canvasfilemanager.h"
 #include "canvas.h"
 #include "canvasitemserializer.h"
+#include "canvasitemeditstate.h"
 #include "canvasitems/arrowitem.h"
 #include "canvasitems/diamonditem.h"
 #include "canvasitems/eraseritem.h"
@@ -54,6 +55,10 @@ private slots:
     void initTestCase(); // 为测试资源代理创建隔离缓存目录。
     void cleanupTestCase(); // 回收测试代理和缓存线程。
     void DocumentRoundTrip(); // 往返全部几何图元、变换、背景和堆叠顺序。
+    void EditedItemsRoundTrip(); // 保存原始路径映射、封闭图形附属文字和独立文字排版。
+    void LegacySchemaCompatibility(); // 读取版本 1 并在再次导出时使用版本 2。
+    void InvalidEditExtensions_data(); // 提供编辑扩展的错误类型、长度和文字限制样本。
+    void InvalidEditExtensions(); // 确认后台拒绝非法编辑扩展，不构造场景图元。
     void EmbeddedImageRoundTrip(); // 验证图片资源随画布文件内嵌并能恢复图元。
     void RejectConnectionsWithoutChangingSource(); // 非空连接文件失败且原场景保持不变。
     void ExportPngAndJpg(); // 检查全画布尺寸、PNG 透明度和 JPG 白底。
@@ -198,6 +203,249 @@ void CanvasFileTests::DocumentRoundTrip()
     QCOMPARE(second_snapshot._items.at(0).value("type").toString(), source_document._items.at(0).value("type").toString());
     QCOMPARE(second_snapshot._items.at(0).value("z_value").toDouble(), source_document._items.at(0).value("z_value").toDouble());
     QVERIFY(!restored_scene.canUndoLocal());
+}
+
+void CanvasFileTests::EditedItemsRoundTrip()
+{
+    // 1. 路径保留原始曲线和独立几何映射，公共变换同时包含旋转及非等比缩放。
+    PaintScene source;
+    source.setSceneRect(0, 0, 1100, 900);
+    source.setBackgroundBrush(Qt::white);
+    auto* path_item = new PenItem(QStringLiteral("edited-path"));
+    QPainterPath original_path;
+    original_path.moveTo(10, 20);
+    original_path.cubicTo(30, 100, 100, 30, 130, 85);
+    path_item->setPath(original_path);
+    path_item->SetPathTransform(QTransform(1.8, 0.15, 0.2, 0.6, 12, -3));
+    path_item->setTransform(QTransform::fromScale(0.8, 1.2));
+    path_item->setTransformOriginPoint(QPointF(17, 25));
+    path_item->setRotation(23);
+    path_item->setPos(80, 90);
+    source.addItem(path_item);
+
+    // 2. 三种封闭形状各自拥有文字组件，保存时组件不能成为独立顶层图元。
+    auto* rectangle = new RectItem(QStringLiteral("bound-rect"));
+    rectangle->setRect(QRectF(5, 7, 145, 45));
+    auto* oval = new OvalItem(QStringLiteral("bound-oval"));
+    oval->setRect(QRectF(2, 4, 180, 60));
+    auto* diamond = new DiamondItem(QStringLiteral("bound-diamond"));
+    diamond->SetRect(QRectF(8, 3, 220, 70));
+    const QVector<CanvasItem*> closed_items{rectangle, oval, diamond};
+    int item_index = 0;
+    for (CanvasItem* item : closed_items)
+    {
+        source.addItem(item);
+        TextStyle style;
+        style._font_size = 21;
+        style._is_bold = true;
+        style._color = QColor(90, 40, 140, 220);
+        item->SetBoundTextData(QStringLiteral("附属文字自动换行\n内容跟随父图元移动和旋转"), style);
+        item->setTransformOriginPoint(QPointF(11, 13));
+        item->setTransform(QTransform(1.1, 0.1, 0.2, 0.9, 3, 4));
+        item->setRotation(17 + item_index * 9);
+        item->setPos(300 + item_index * 220, 180);
+        item->setSelected(true);
+        QVERIFY(item->BoundTextItem());
+        QVERIFY(item->BoundTextItem()->parentItem() == item);
+        ++item_index;
+    }
+    TextItemData text_data{QStringLiteral("wrapped-text"), QStringLiteral("独立文字保持字号并按指定宽度自动换行 longwordwithoutspaces"),
+                          TextStyle(), QPointF(60, 620)};
+    TextItem* text_item = source.AddTextItem(text_data);
+    text_item->SetLayoutSize(QSizeF(180, 160));
+    text_item->setRotation(-12);
+
+    // 3. 选择框和文字组件不写入文档，完整导出也不包含本地交互覆盖层。
+    QHash<QString, CanvasItemEditState> before_states;
+    for (CanvasItem* item : QVector<CanvasItem*>{path_item, rectangle, oval, diamond, text_item})
+    {
+        before_states.insert(item->itemId(), CanvasItemEdit::Capture(item));
+    }
+    QString error_message;
+    CanvasDocument document;
+    QVERIFY2(source.BuildCanvasDocument(&document, &error_message), qPrintable(error_message));
+    QCOMPARE(document._schema_version, 2);
+    QCOMPARE(document._items.size(), 5);
+    for (const QJsonObject& item : document._items)
+    {
+        QVERIFY(!item.contains("selected"));
+        QVERIFY(!item.contains("is_selected"));
+    }
+    const QImage selected_image = source.RenderCanvasImage(&error_message);
+    QVERIFY2(!selected_image.isNull(), qPrintable(error_message));
+    source.clearSelection();
+    QCOMPARE(source.RenderCanvasImage(&error_message), selected_image);
+
+    // 4. 文件往返后逐个比较编辑快照，确保路径未被重复变换且公共原点没有被布局覆盖。
+    CanvasDocument restored;
+    QString file_path;
+    QVERIFY(ExportAndImport(document, &restored, &file_path));
+    PaintScene loaded;
+    QVERIFY2(loaded.LoadCanvasDocument(restored, &error_message), qPrintable(error_message));
+    for (auto iterator = before_states.cbegin(); iterator != before_states.cend(); ++iterator)
+    {
+        CanvasItem* item = loaded.FindCanvasItem(iterator.key());
+        QVERIFY(item);
+        QVERIFY(CanvasItemEdit::Capture(item) == iterator.value());
+        QVERIFY(!item->isSelected());
+    }
+    auto* loaded_path = dynamic_cast<PathItem*>(loaded.FindCanvasItem(path_item->itemId()));
+    QVERIFY(loaded_path);
+    QCOMPARE(loaded_path->OriginalPath(), original_path);
+    QCOMPARE(loaded_path->path(), path_item->path());
+    QCOMPARE(loaded_path->PathTransform(), path_item->PathTransform());
+    QCOMPARE(loaded.FindTextItem(text_data._item_id)->LayoutSize(), QSizeF(180, 160));
+    CanvasDocument second_snapshot;
+    QVERIFY(loaded.BuildCanvasDocument(&second_snapshot, &error_message));
+    QCOMPARE(second_snapshot._items, document._items);
+}
+
+void CanvasFileTests::LegacySchemaCompatibility()
+{
+    // 1. 用不含新增字段的版本 1 文件模拟已有用户画布，路径映射和文字排版保持旧默认值。
+    PaintScene source;
+    source.setSceneRect(0, 0, 300, 250);
+    source.setBackgroundBrush(Qt::white);
+    AddShapeItems(&source);
+    source.AddTextItem({QStringLiteral("legacy-text"), QStringLiteral("旧文件文字"), TextStyle(), QPointF(20, 150)});
+    CanvasDocument document;
+    QString error_message;
+    QVERIFY(source.BuildCanvasDocument(&document, &error_message));
+    CanvasDocument restored;
+    QString file_path;
+    QVERIFY(ExportAndImport(document, &restored, &file_path));
+    QFile file(file_path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    root.insert("schema_version", 1);
+    QJsonArray items;
+    for (const QJsonValue& value : root.value("items").toArray())
+    {
+        QJsonObject item = value.toObject();
+        item.remove("path_transform");
+        item.remove("text_layout");
+        item.remove("bound_text");
+        items.append(item);
+    }
+    root.insert("items", items);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QVERIFY(file.write(QJsonDocument(root).toJson()) > 0);
+    file.close();
+
+    // 2. 通过实际后台读取流程加载旧版本，重新快照后得到等价的新版本图元描述。
+    ImageAssetManager asset_manager;
+    CanvasFileManager file_manager(&asset_manager);
+    QSignalSpy spy(&file_manager, &CanvasFileManager::sigImportReady);
+    file_manager.ImportCanvasAsync(file_path, QStringLiteral("legacy-import"));
+    if (spy.isEmpty())
+    {
+        QVERIFY(spy.wait(10000));
+    }
+    QVERIFY2(spy.first().at(2).toString().isEmpty(), qPrintable(spy.first().at(2).toString()));
+    const CanvasDocument legacy_document = qvariant_cast<CanvasDocument>(spy.first().at(1));
+    QCOMPARE(legacy_document._schema_version, 1);
+    PaintScene loaded;
+    QVERIFY(loaded.LoadCanvasDocument(legacy_document, &error_message));
+    CanvasDocument snapshot;
+    QVERIFY(loaded.BuildCanvasDocument(&snapshot, &error_message));
+    QCOMPARE(snapshot._items, document._items);
+    QCOMPARE(loaded.FindTextItem(QStringLiteral("legacy-text"))->LayoutSize(), QSizeF(0, 0));
+
+    // 3. 即便直接再次保存旧值模型，新写文件的根版本也必须升级为 2。
+    QVERIFY(ExportAndImport(legacy_document, &restored, &file_path));
+    QCOMPARE(restored._schema_version, 2);
+}
+
+void CanvasFileTests::InvalidEditExtensions_data()
+{
+    // 1. 每个样本只破坏一种扩展字段，覆盖类型约束和文字长度限制。
+    QTest::addColumn<QString>("failure_case");
+    for (const QString& failure_case : {QStringLiteral("path-count"), QStringLiteral("path-type"), QStringLiteral("path-owner"),
+             QStringLiteral("layout-negative"), QStringLiteral("layout-count"), QStringLiteral("layout-owner"),
+             QStringLiteral("bound-type"), QStringLiteral("bound-limit"), QStringLiteral("bound-style"), QStringLiteral("bound-owner")})
+    {
+        QTest::newRow(qPrintable(failure_case)) << failure_case;
+    }
+}
+
+void CanvasFileTests::InvalidEditExtensions()
+{
+    // 1. 从真实图元创建有效文件，再按样本修改局部 JSON，确保失败来自新增字段。
+    QFETCH(QString, failure_case);
+    PaintScene source;
+    source.setSceneRect(0, 0, 300, 200);
+    source.setBackgroundBrush(Qt::white);
+    AddShapeItems(&source);
+    source.AddTextItem({QStringLiteral("edit-text"), QStringLiteral("text"), TextStyle(), QPointF(20, 30)});
+    CanvasDocument document;
+    QString error_message;
+    QVERIFY(source.BuildCanvasDocument(&document, &error_message));
+    CanvasDocument restored;
+    QString file_path;
+    QVERIFY(ExportAndImport(document, &restored, &file_path));
+    QFile file(file_path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    file.close();
+    QJsonArray items = root.value("items").toArray();
+    const QString target_type = failure_case.startsWith("path-") && failure_case != "path-owner" ? QStringLiteral("pen") :
+        (failure_case.startsWith("layout-") && failure_case != "layout-owner") || failure_case == "bound-owner" ? QStringLiteral("text") : QStringLiteral("rect");
+    for (int index = 0; index < items.size(); ++index)
+    {
+        QJsonObject item = items.at(index).toObject();
+        if (item.value("type").toString() != target_type)
+        {
+            continue;
+        }
+        if (failure_case.startsWith("path-"))
+        {
+            QJsonArray mapping{1, 0, 0, 1, 0, 0};
+            if (failure_case == "path-count")
+            {
+                mapping.removeLast();
+            }
+            if (failure_case == "path-type")
+            {
+                mapping.replace(1, QStringLiteral("0"));
+            }
+            item.insert("path_transform", mapping);
+        } else if (failure_case.startsWith("layout-"))
+        {
+            item.insert("text_layout", failure_case == "layout-count" ? QJsonArray{100} :
+                QJsonArray{failure_case == "layout-negative" ? -1 : 100, 40});
+        } else
+        {
+            QJsonObject bound{{"text", failure_case == "bound-limit" ? QString(16385, 'a') : QStringLiteral("valid")},
+                {"font_family", "Microsoft YaHei"}, {"font_size", failure_case == "bound-style" ? 145 : 24},
+                {"text_color", "#ff000000"}, {"bold", false}};
+            if (failure_case == "bound-type")
+            {
+                item.insert("bound_text", QStringLiteral("invalid"));
+            } else
+            {
+                item.insert("bound_text", bound);
+            }
+        }
+        items.replace(index, item);
+        break;
+    }
+    root.insert("items", items);
+    QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    QVERIFY(file.write(QJsonDocument(root).toJson()) > 0);
+    file.close();
+
+    // 2. 后台导入必须报告错误，不把不完整编辑状态交给 GUI 恢复入口。
+    ImageAssetManager asset_manager;
+    CanvasFileManager file_manager(&asset_manager);
+    QSignalSpy spy(&file_manager, &CanvasFileManager::sigImportReady);
+    file_manager.ImportCanvasAsync(file_path, QStringLiteral("invalid-edit"));
+    if (spy.isEmpty())
+    {
+        QVERIFY(spy.wait(10000));
+    }
+    QCOMPARE(spy.size(), 1);
+    QVERIFY(!spy.first().at(2).toString().isEmpty());
 }
 
 void CanvasFileTests::EmbeddedImageRoundTrip()
@@ -445,7 +693,7 @@ void CanvasFileTests::InvalidFiles()
     QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
     file.close();
     QJsonArray items = root.value("items").toArray();
-    if (failure_case == "version") root.insert("schema_version", 2);
+    if (failure_case == "version") root.insert("schema_version", 3);
     else if (failure_case == "duplicate-id") items.append(items.first());
     else if (failure_case == "order") root.insert("item_order", QJsonArray{"wrong-id"});
     else if (failure_case == "connections") root.insert("connections", QJsonArray{QJsonObject{{"from", "pen-id"}}});
@@ -649,6 +897,8 @@ void CanvasFileTests::TextEditingKeys()
     QTest::keyClick(view, Qt::Key_Return, Qt::ControlModifier);
     QVERIFY(!canvas._paintScene->IsTextEditing());
     QVERIFY(canvas._paintScene->CanUndoLocalOperation());
+    QCOMPARE(view->InteractionMode(), CanvasInteractionMode::Select);
+    QVERIFY(item->isSelected());
 
     // 4. 完成后双击可再次编辑；Esc 只取消草稿，删除键在普通状态删除整图元。
     QTest::mouseClick(canvas.findChild<QToolButton*>("select_tool"), Qt::LeftButton);
@@ -659,13 +909,24 @@ void CanvasFileTests::TextEditingKeys()
     QCOMPARE(item->GetTextData()._text, QStringLiteral("中文\nsecon"));
     item->setSelected(true);
     const QPointF previous_position = item->pos();
-    const QPoint drag_start = view->mapFromScene(item->pos() + QPointF(5, 5));
-    QSignalSpy move_spy(canvas._paintScene, &PaintScene::SigTextMoved);
+    const QPoint drag_start = view->mapFromScene(item->mapToScene(CanvasItemEdit::Bounds(item).center()));
+    QSignalSpy move_spy(canvas._paintScene, &PaintScene::SigItemEditChanged);
     QTest::mousePress(view->viewport(), Qt::LeftButton, Qt::NoModifier, drag_start);
     QTest::mouseMove(view->viewport(), drag_start + QPoint(40, 35), 30);
     QTest::mouseRelease(view->viewport(), Qt::LeftButton, Qt::NoModifier, drag_start + QPoint(40, 35));
     QVERIFY(item->pos() != previous_position);
-    QCOMPARE(move_spy.size(), 1);
+    int completed_moves = 0;
+    for (const QList<QVariant>& change : move_spy)
+    {
+        if (!change.at(3).toBool())
+        {
+            continue;
+        }
+        ++completed_moves;
+        QCOMPARE(qvariant_cast<CanvasItemEditState>(change.at(0))._position, previous_position);
+        QCOMPARE(qvariant_cast<CanvasItemEditState>(change.at(1))._position, item->pos());
+    }
+    QCOMPARE(completed_moves, 1);
     QVERIFY(canvas.grab().save(QCoreApplication::applicationDirPath() + QStringLiteral("/text-canvas-check.png")));
     view->setFocus();
     QTest::keyClick(view, Qt::Key_Delete);
@@ -698,12 +959,17 @@ void CanvasFileTests::TextUndoAndStyle()
     item->SetTextData(data);
     QVERIFY(canvas._paintScene->FinishTextEditing(true));
 
-    // 2. 内容样式撤销保留当前位置，第二次撤销才删除最初新建。
+    // 2. 移动和文字修改各是一条完整操作，撤销按时间顺序逐步恢复后再删除新建。
+    const CanvasItemEditState before_move = CanvasItemEdit::Capture(item);
     item->setPos(100, 120);
+    canvas._paintScene->SubmitItemEditChange(before_move, CanvasItemEdit::Capture(item), QStringLiteral("text-test-move"), true);
+    canvas.OnUndoTriggered();
+    QCOMPARE(item->GetTextData()._text, QStringLiteral("changed"));
+    QCOMPARE(item->pos(), before_move._position);
     canvas.OnUndoTriggered();
     QCOMPARE(item->GetTextData()._text, QStringLiteral("original"));
     QVERIFY(item->GetTextData()._style == TextStyle());
-    QCOMPARE(item->pos(), QPointF(100, 120));
+    QCOMPARE(item->pos(), QPointF(10, 20));
     canvas.OnUndoTriggered();
     QVERIFY(!canvas._paintScene->FindTextItem(data._item_id));
     QVERIFY(!canvas._paintScene->CanUndoLocalOperation());

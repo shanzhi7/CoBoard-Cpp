@@ -1,4 +1,6 @@
 #include "canvasitem.h"
+#include "textitem.h"
+#include "../canvasitemeditstate.h"
 
 #include <QKeyEvent>
 #include <QGraphicsScene>
@@ -53,7 +55,57 @@ void CanvasItem::setInteractionEnabled(bool enabled)
 
 bool CanvasItem::isInteractionEnabled() const
 {
+    // 1. 返回图元编辑许可，模式和待确认状态仍由场景控制。
     return _interaction_enabled;
+}
+
+QPainterPath CanvasItem::shape() const
+{
+    // 1. 共用几何适配器，避免显示范围与鼠标首次命中范围混淆。
+    return CanvasItemEdit::Outline(this);
+}
+
+TextItem* CanvasItem::BoundTextItem() const
+{
+    // 1. 子组件由 Qt 父子关系释放，调用方不得独立登记或销毁。
+    return _bound_text_item;
+}
+
+void CanvasItem::SetBoundTextData(const QString& text, const TextStyle& style)
+{
+    // 1. 只有明确的封闭几何支持附属文字，空文字也保留可重用编辑器。
+    if (!CanvasItemEdit::IsClosed(this)) return;
+    if (!_bound_text_item)
+    {
+        _bound_text_item = new TextItem(itemId() + QStringLiteral("/label"), this);
+        _bound_text_item->setFlag(ItemIsSelectable, false);
+        _bound_text_item->setFlag(ItemIsMovable, false);
+        _bound_text_item->setAcceptedMouseButtons(Qt::NoButton);
+        connect(_bound_text_item, &TextItem::SigLayoutChanged, this, &CanvasItem::UpdateBoundTextLayout);
+    }
+
+    // 2. 批量替换内容时禁止递归增高，随后用最终文档尺寸完成一次布局。
+    const bool was_active = _is_bound_text_layout_active;
+    _is_bound_text_layout_active = true;
+    _bound_text_item->SetTextData({itemId() + QStringLiteral("/label"), text, style, _bound_text_item->pos()});
+    _is_bound_text_layout_active = was_active;
+    UpdateBoundTextLayout();
+}
+
+void CanvasItem::SetBoundTextLayoutEnabled(bool enabled)
+{
+    // 1. 快照恢复先写完父几何与文本，再统一刷新布局。
+    _is_bound_text_layout_enabled = enabled;
+}
+
+void CanvasItem::UpdateBoundTextLayout()
+{
+    // 1. 文档布局变化会重入尺寸通知，使用图元级守卫保证一次稳定更新。
+    if (!_bound_text_item || _is_bound_text_layout_active || !_is_bound_text_layout_enabled) return;
+    _is_bound_text_layout_active = true;
+    CanvasItemEdit::LayoutBoundText(this);
+    _bound_text_item->setVisible(!_bound_text_item->GetTextData()._text.isEmpty() || _bound_text_item->IsEditing());
+    _is_bound_text_layout_active = false;
 }
 
 QVariant CanvasItem::itemChange(GraphicsItemChange change, const QVariant& value)

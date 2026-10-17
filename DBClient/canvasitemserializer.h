@@ -14,7 +14,7 @@ class CanvasItem;
 class CanvasItemSerializer
 {
 public:
-    static bool ValidateItem(const QJsonObject& item_data, const QMap<QString, CanvasAssetData>& asset_dataMap, QString* error_message); // 后台校验图元几何、枚举和资源引用。
-    static bool SerializeItem(CanvasItem* item, QJsonObject* item_data, CanvasDocument* document, QString* error_message); // 序列化图元及其图片资源引用。
-    static CanvasItem* DeserializeItem(const QJsonObject& item_data, const QMap<QString, CanvasAssetData>& asset_dataMap, QString* error_message); // 从已校验数据创建独立图元。
+    static bool ValidateItem(const QJsonObject& item_data, const QMap<QString, CanvasAssetData>& asset_dataMap, QString* error_message); // 后台校验几何、文字排版及资源引用，不创建 GUI 对象。
+    static bool SerializeItem(CanvasItem* item, QJsonObject* item_data, CanvasDocument* document, QString* error_message); // 保存原始路径、编辑映射、父图元附属文字和图片资源引用。
+    static CanvasItem* DeserializeItem(const QJsonObject& item_data, const QMap<QString, CanvasAssetData>& asset_dataMap, QString* error_message); // 兼容旧图元描述并在局部排版后恢复公共变换。
 };

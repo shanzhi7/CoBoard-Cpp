@@ -5,6 +5,8 @@ package message;
 //公共错误码定义(与 C++ 里的 enum 保持一致)
 enum ErrorCodes {
     SUCCESS = 0;
+    ItemEditConflict = 1051; // 图元版本冲突或目标不存在。
+    ItemEditInvalidArgument = 1052; // 图元编辑参数无效。
 
     // --- 基础/系统错误 (1001 - 1019) ---
     Error_Json = 1001;        // Json解析错误
@@ -57,6 +59,8 @@ enum ErrorCodes {
 // 消息ID (用于 TCP 长连接区分包类型)
 enum MsgID {
     ID_UNKNOWN = 0;
+    ID_ITEM_EDIT_REQ = 1040; // 通用图元编辑请求。
+    ID_ITEM_EDIT_RSP = 1041; // 通用图元编辑确认及广播。
     ID_LEAVE_ROOM_REQ = 1033; // 普通成员退出请求。
     ID_LEAVE_ROOM_RSP = 1034; // 普通成员退出完成。
     ID_DESTROY_ROOM_REQ = 1035; // 房主解散请求。
@@ -458,4 +462,54 @@ message LogoutRsp {
     int32 error = 1; // Token 原子撤销的结果。
     int32 uid = 2; // 本次注销账号。
     string request_id = 3; // 原样返回的请求关联。
+}
+
+// 通用编辑与既有绘图类型保持数值对应；橡皮擦只保留编号，不允许编辑。
+enum ItemKind {
+    ITEM_UNKNOWN = 0; // 未知图元。
+    ITEM_PEN = 1; // 画笔。
+    ITEM_RECT = 2; // 矩形。
+    ITEM_OVAL = 3; // 椭圆。
+    ITEM_LINE = 4; // 直线。
+    ITEM_ERASER = 5; // 橡皮擦，不接受编辑。
+    ITEM_ARROW = 6; // 箭头。
+    ITEM_DIAMOND = 7; // 菱形。
+    ITEM_IMAGE = 8; // 图片。
+    ITEM_TEXT = 9; // 独立文字。
+}
+message ItemEditState {
+    string item_id = 1; // 稳定图元标识。
+    ItemKind kind = 2; // 创建时确定的图元类型。
+    double x = 3; // 图元位置 X。
+    double y = 4; // 图元位置 Y。
+    double origin_x = 5; // 旋转及缩放原点 X。
+    double origin_y = 6; // 旋转及缩放原点 Y。
+    double rotation = 7; // 顺时针旋转角度。
+    double scale = 8; // Qt 独立缩放，正常初始值为 1。
+    repeated double matrix = 9; // Qt QTransform 的九个分量，按 m11 到 m33 排列。
+    repeated double geometry = 10; // 矩形四分量、线段四端点、图片/文字宽高、笔迹六分量仿射矩阵。
+    string text = 11; // 独立文字或封闭图元内文字，最多 16 KiB。
+    string font_family = 12; // 全文统一字体。
+    uint32 font_size = 13; // 场景像素字号，8 至 144。
+    uint32 color = 14; // 文字 ARGB 颜色。
+    bool bold = 15; // 全文统一加粗。
+}
+message ItemEditOperation {
+    int32 uid = 1; // 必须与已登录会话一致。
+    string room_id = 2; // 必须与当前房间一致。
+    string operation_id = 3; // 客户端请求标识，重试沿用以保证幂等。
+    string target_item_id = 4; // 操作目标。
+    uint64 expected_revision = 5; // 严格匹配目标版本，零也参与比较。
+    ItemEditState state = 6; // 待修改字段的绝对状态。
+    uint32 fields = 7; // 位掩码：1 为几何，2 为文字，可组合原子提交。
+    uint64 revision = 8; // 服务端赋值的已确认版本。
+    bool preview = 9; // 拖动预览不推进版本、不写历史、不等待确认；缺省为最终提交。
+    bool cancel_preview = 10; // 仅与 preview 同用，撤销同一 operation_id 的临时预览。
+}
+message ItemEditOperationRsp {
+    int32 error = 1; // 公共错误码。
+    ItemEditOperation operation = 2; // 关联原请求及规范版本。
+    ItemEditState current_state = 3; // 目标最新完整状态，不存在时省略。
+    string error_message = 4; // 可显示的失败原因。
+    ItemEditState confirmed_state = 5; // 预览对应的已提交状态，用于取消或断线超时恢复。
 }

@@ -43,7 +43,7 @@ void ImageItem::paint(QPainter* painter,
         return;
     }
 
-    // 图片可能在网络线程完成后才回到 UI 线程，这里只读取已经提交到图元的值，避免绘制阶段触碰网络对象。
+    // 1. 图片可能在网络线程完成后才回到 UI 线程，绘制只读取已提交的图元状态。
     painter->save();
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
@@ -80,15 +80,7 @@ void ImageItem::paint(QPainter* painter,
                           text);
     }
 
-    // 选中框属于交互反馈，不会进入资源同步数据，避免远端用户看到本地选择状态。
-    if (isSelected())
-    {
-        QPen selection_pen(QColor(40, 120, 220));
-        selection_pen.setWidthF(1.5);
-        painter->setPen(selection_pen);
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRect(_item_rect);
-    }
+    // 2. 选择框由场景统一覆盖层绘制，图片不再维护另一套边框样式。
 
     painter->restore();
 }

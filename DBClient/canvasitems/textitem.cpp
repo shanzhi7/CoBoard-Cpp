@@ -136,6 +136,12 @@ TextItem::TextItem(const QString& item_id, QGraphicsItem* parent)
     // 1. 普通状态不让子图元抢走父图元的选择和拖动。
     _editor->setTextInteractionFlags(Qt::NoTextInteraction);
     _editor->setAcceptedMouseButtons(Qt::NoButton);
+    if (parent)
+    {
+        QTextOption option = _editor->document()->defaultTextOption();
+        option.setAlignment(Qt::AlignHCenter);
+        _editor->document()->setDefaultTextOption(option);
+    }
     connect(_editor->document(), &QTextDocument::contentsChanged, this, &TextItem::UpdateTextGeometry);
     connect(_editor->document()->documentLayout(), &QAbstractTextDocumentLayout::documentSizeChanged,
             this, [this](const QSizeF&) { UpdateTextGeometry(); });
@@ -151,15 +157,8 @@ QRectF TextItem::boundingRect() const
 
 void TextItem::paint(QPainter* painter, const QStyleOptionGraphicsItem*, QWidget*)
 {
-    // 1. 字体由子图元原生绘制，父图元只绘制可排除的选择反馈。
-    if (isSelected() && !_is_editing)
-    {
-        painter->save();
-        painter->setPen(QPen(QColor(40, 120, 220), 1, Qt::DashLine));
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRect(_text_rect);
-        painter->restore();
-    }
+    // 1. 字体由原生子编辑器绘制，选择框统一由场景覆盖层绘制。
+    Q_UNUSED(painter);
 }
 
 void TextItem::UpdateTextGeometry()
@@ -167,8 +166,40 @@ void TextItem::UpdateTextGeometry()
     // 1. 文档布局变化先通知场景，再更新父图元边界。
     const QSizeF size = _editor->document()->size();
     prepareGeometryChange();
-    _text_rect = QRectF(0, 0, qMax(12.0, size.width()), qMax(qreal(_text_style._font_size), size.height()));
+    _text_rect = QRectF(0, 0, qMax(12.0, qMax(_layout_size.width(), size.width())),
+                       qMax(_layout_size.height(), qMax(qreal(_text_style._font_size), size.height())));
     update();
+    emit SigLayoutChanged();
+}
+
+void TextItem::SetLayoutSize(const QSizeF& size)
+{
+    // 1. 零宽保持旧文件的自然排版；正宽启用中文及长单词自适应换行。
+    const QSizeF next_size(qMax(0.0, size.width()), qMax(0.0, size.height()));
+    if (_layout_size == next_size)
+    {
+        return;
+    }
+    _layout_size = next_size;
+    QTextOption option = _editor->document()->defaultTextOption();
+    option.setWrapMode(_layout_size.width() > 0.0 ? QTextOption::WrapAtWordBoundaryOrAnywhere : QTextOption::NoWrap);
+    _editor->document()->setDefaultTextOption(option);
+    _editor->setTextWidth(_layout_size.width() > 0.0 ? _layout_size.width() : -1.0);
+
+    // 2. 高度只表示留白下限，文本本身仍按原字号排版。
+    UpdateTextGeometry();
+}
+
+QSizeF TextItem::LayoutSize() const
+{
+    // 1. 返回可持久化的手工布局值，区别于随内容变化的实际边界。
+    return _layout_size;
+}
+
+qreal TextItem::ContentHeight() const
+{
+    // 1. 文档高度不包含手工预留空白，父图形据此决定是否增高。
+    return _editor->document()->size().height();
 }
 
 void TextItem::SetTextStyle(const TextStyle& style)

@@ -451,9 +451,9 @@ QToolButton:hover {
       <number>0</number>
      </property>
      <item>
-      <widget class="QToolButton" name="select_tool">
+      <widget class="CanvasToolButton" name="select_tool">
        <property name="toolTip">
-        <string>鼠标工具：选择和移动图片、文字（Ctrl 多选）</string>
+        <string>鼠标工具：选择、移动和变换图元（V）</string>
        </property>
        <property name="text">
         <string/>
@@ -471,7 +471,7 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="hand_tool">
+      <widget class="CanvasToolButton" name="hand_tool">
        <property name="toolTip">
         <string>手形工具：拖动画布视口</string>
        </property>
@@ -491,7 +491,7 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="text_tool">
+      <widget class="CanvasToolButton" name="text_tool">
        <property name="text"><string>T</string></property>
        <property name="toolTip"><string>文字工具：点击创建或编辑文字</string></property>
        <property name="checkable"><bool>true</bool></property>
@@ -516,7 +516,7 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="pen_tool">
+      <widget class="CanvasToolButton" name="pen_tool">
        <property name="maximumSize">
         <size>
          <width>16777215</width>
@@ -544,9 +544,9 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="eraser_tool">
+      <widget class="CanvasToolButton" name="eraser_tool">
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/res/Eraser.png);</string>
+        <string notr="true"></string>
        </property>
        <property name="text">
         <string/>
@@ -560,9 +560,9 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="line_tool">
+      <widget class="CanvasToolButton" name="line_tool">
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/res/line.png);</string>
+        <string notr="true"></string>
        </property>
        <property name="text">
         <string/>
@@ -570,7 +570,7 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="arrow_tool">
+      <widget class="CanvasToolButton" name="arrow_tool">
        <property name="toolTip">
         <string>箭头工具：从按下点指向释放点</string>
        </property>
@@ -590,9 +590,9 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="rect_tool">
+      <widget class="CanvasToolButton" name="rect_tool">
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/res/shape_rect.png);</string>
+        <string notr="true"></string>
        </property>
        <property name="text">
         <string/>
@@ -606,9 +606,9 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="oval_tool">
+      <widget class="CanvasToolButton" name="oval_tool">
        <property name="styleSheet">
-        <string notr="true">border-image: url(:/res/shape_oval.png);</string>
+        <string notr="true"></string>
        </property>
        <property name="text">
         <string/>
@@ -622,7 +622,7 @@ QToolButton:hover {
       </widget>
      </item>
      <item>
-      <widget class="QToolButton" name="diamond_tool">
+      <widget class="CanvasToolButton" name="diamond_tool">
        <property name="toolTip">
         <string>菱形工具：拖拽确定菱形范围</string>
        </property>
@@ -943,6 +943,11 @@ QToolButton:hover {
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>CanvasToolButton</class>
+   <extends>QToolButton</extends>
+   <header>canvastoolbutton.h</header>
+  </customwidget>
   <customwidget>
    <class>CanvasGraphicsView</class>
    <extends>QGraphicsView</extends>
