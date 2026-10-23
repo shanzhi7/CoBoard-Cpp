@@ -38,7 +38,6 @@ class Canvas;
 class Canvas : public QMainWindow
 {
     Q_OBJECT
-    friend class CanvasFileTests;
 
 public:
     explicit Canvas(const LatencyTestOptions& test_options = LatencyTestOptions(),
@@ -66,7 +65,7 @@ private slots:
     void OnTextToolTriggered(); // 选择独立文字工具。
     void OnTextStyleChanged(); // 在编辑中更新草稿，普通状态提交一次样式操作。
     void OnUndoTriggered(); // 按离线或在线规则执行统一撤销。
-    void OnTextOperationReceived(QByteArray data); // 接收确认、远端修改及历史文字状态。
+    void OnTextOperationReceived(const message::TextOperationRsp& response); // 接收确认、远端修改及历史文字状态。
     void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
     void CompleteLocalCreation(QString item_id); // 本地图元创建完成后回到鼠标模式并选中刚创建的图元。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
@@ -87,8 +86,8 @@ private slots:
     void slot_onStrokeMove(QString uuid, int type, QPointF currentPos); // 缓存路径点或发送几何 MOVE。
     void slot_onStrokeEnd(QString uuid, int type, QPointF endPos); // 刷新路径缓存并发送 END。
 
-    void slot_onDrawBroadcast(QByteArray data);   // 收到服务器广播
-    void slot_onImageOperationBroadcast(QByteArray data); // 收到图片图元操作广播并开始资源加载
+    void slot_onDrawBroadcast(const message::DrawReq& req);   // 收到服务器广播
+    void slot_onImageOperationBroadcast(const message::ImageOperation& operation); // 收到图片图元操作广播并开始资源加载
     void slot_onImageAssetHttpFinished(ReqId reqid, QString response, ErrorCodes error); // 处理图片签名接口回包
     void slot_onLocalAssetReady(QString request_id, QString file_path, ImageAssetInfo asset_info, QPixmap pixmap); // 接收代理导入结果和保护句柄。
     void slot_onLocalAssetFailed(QString request_id, QString file_path, QString error_message); // 处理后台本地图片读取失败且不创建图元。
@@ -113,7 +112,7 @@ private slots:
 
 private:
     void ConfigureItemEditSync(); // 按当前房间、身份和权限更新图元同步上下文。
-    void OnItemEditReceived(QByteArray data); // 将通用编辑按接收顺序加入远端队列。
+    void OnItemEditReceived(const message::ItemEditOperationRsp& response); // 将通用编辑按接收顺序加入远端队列。
     void UpdateReturnActions(bool can_retry = false); // 按房主身份及退出状态更新返回菜单。
     void UpdateTextControls(); // 按工具和选中文字同步字号及加粗控件。
     void SubmitTextOperation(message::TextOperationType type, const TextItemData& before,

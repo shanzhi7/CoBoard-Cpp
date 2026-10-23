@@ -9,8 +9,8 @@
 
 #include "global.h"
 #include "singleton.h"
+#include "decodedtcpmessage.h"
 #include <QObject>
-#include <QTcpSocket>
 #include <QAbstractSocket>
 #include <QMap>
 #include <QByteArray>
@@ -18,22 +18,20 @@
 #include <QTimer>
 #include <QThread>
 
+class CanvasTcpWorker;
+
 class TcpMgr : public QObject,public Singleton<TcpMgr>,public std::enable_shared_from_this<TcpMgr>
 {
     Q_OBJECT
 public:
     explicit TcpMgr(); // 初始化画布连接、消息处理表和重连定时器。
+    ~TcpMgr() override; // 停止 worker 并等待网络线程回收。
 public:
     friend class Singleton<TcpMgr>;
 
 private:
-    QTcpSocket _socket;         //套接字
     QString _host;              //ip
     uint16_t _port;              //端口
-    QByteArray _buffer;         //接收数据用的缓冲区
-    bool _b_recv_pending;       //是否有等待读取的消息体
-    quint16  _message_id;       //请求id
-    quint16 _message_len;       //内容长度
 
     // 暂存重定向后的目标房间信息
     QString _pending_room_id; // 重定向后等待加入的房间 ID。
@@ -44,8 +42,8 @@ private:
     int _reconnect_cnt;             //重连失败次数 (用于指数退避)
     bool _is_offline_reconnect = false; //用于是否处于 "掉线重连流程" (区分重定向切服流程)
     bool _exit_pending = false; // 正在退出时禁止普通重连、自动 Join 和房间提交。
-    bool _is_switching_exit_connection = false; // 主动替换退出连接时忽略本地 abort 的断开通知。
     bool _is_authenticated = false; // 当前 TCP 连接是否已完成 Canvas 鉴权。
+    bool _is_connected = false; // UI 线程记录的当前代次连接状态。
     bool _room_request_pending = false; // 创建或加入尚未获得结果时不能提前注销。
     bool _is_logged_out = false; // 主动退出后屏蔽旧连接通知和自动重连。
 
@@ -55,21 +53,29 @@ private:
     uint16_t _room_port = 0; // 恢复房间时使用的服务器端口。
 
 
-    QMap<ReqId,std::function<void(ReqId,int,QByteArray)>> _handlers; // 消息 ID 对应的处理函数。
+    QMap<ReqId, std::function<void(const DecodedTcpMessage::Payload&)>> _handlers; // 已解码消息对应的 UI 业务处理函数。
+    QThread _network_thread; // 专用事件循环，由 TcpMgr 停止并等待退出。
+    CanvasTcpWorker* _worker = nullptr; // 网络线程拥有的 worker，线程结束后删除。
+    quint64 _connection_generation = 0; // 过滤连接切换前已经排队的旧事件。
 
     void initHandlers();        //注册回包函数
-    void handleMsg(ReqId id,int len,QByteArray data);   //处理收到的Msg
+    void HandleMessage(quint64 generation, const DecodedTcpMessage& decoded); // 在 UI 线程分派当前连接的已解码结果。
+    void StartConnection(); // 推进代次并排队连接当前服务器。
+    void StopWorker(); // 应用退出或析构时关闭 socket 并回收线程。
 
     int calc_backoff_ms();                              //计算指数退避时间
     void send_canvas_login();                           //复用LoginWidget 的 CanvasLogin 组包
 
 signals:
+    void SigConnectRequested(QString host, quint16 port, quint64 generation); // 向 worker 排队建立连接。
+    void SigSendRequested(quint16 message_id, QByteArray body, quint64 generation); // 向 worker 排队发送请求。
+    void SigDisconnectRequested(quint64 generation); // 向 worker 排队注销连接。
     void SigExitConnectionReady(); // 退出专用连接已完成认证。
     void SigExitTransportFailed(QString message); // 退出连接失败，控制器保留原请求。
     void SigRoomExitResponse(QString room_id, QString request_id, int error); // 普通退出或解散的关联结果。
     void SigRoomDestroyed(QString room_id, QString reason); // 当前房间被服务端解散。
-    void SigItemEditReceived(QByteArray data); // 转发通用图元编辑确认与历史快照。
-    void SigTextOperationReceived(QByteArray data); // 转发文字确认、远端状态和房间历史。
+    void SigItemEditReceived(const message::ItemEditOperationRsp& response); // 转发已解码的通用图元编辑确认与历史快照。
+    void SigTextOperationReceived(const message::TextOperationRsp& response); // 转发已解码的文字确认、远端状态和房间历史。
     void sig_con_success(bool);                                         //连接成功发送该信号
     void sig_send_data(ReqId reqid,QByteArray data);                    //发送tcp包信号
     void sig_login_failed(int err);                                     //登录失败信号
@@ -82,8 +88,8 @@ signals:
     void sig_user_joined(UserInfo member);                              //用户加入 (广播)
     void sig_user_left(int uid);                                        //用户离开 (广播)
 
-    void sig_draw_broadcast(QByteArray data);                           // 绘画广播 (二进制 DrawReq)
-    void sig_image_operation_broadcast(QByteArray data);                // 图片图元操作广播 (二进制 ImageOperation)
+    void sig_draw_broadcast(const message::DrawReq& request); // 转发已解码的绘画广播。
+    void sig_image_operation_broadcast(const message::ImageOperation& operation); // 转发已解码的图片图元操作。
     void sig_permission_changed(int target_uid, bool can_edit);          // 房间编辑权限变更广播
 
     void sig_go_lobby(QString tip);                                     //断线后回到大厅并且提示

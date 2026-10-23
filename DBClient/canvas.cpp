@@ -972,7 +972,41 @@ void Canvas::initToolBtn()
             _selected_playout_device_id = device_id;
     });
 
-    // 点击按钮主体只切换开关，点击右侧菜单箭头则由设备菜单处理。
+    // 4. 连接、重连及失败期间禁用语音控件，关闭已展开菜单以阻止继续选择旧设备。
+    auto update_voice_controls = [this](VoiceManager::State state) {
+        // 1. 控件可用性与已完成初始化的语音状态保持一致。
+        const bool is_connected = state == VoiceManager::State::Connected;
+        ui->mic_toolBtn->setEnabled(is_connected);
+        ui->speaker_toolBtn->setEnabled(is_connected);
+        QString status = QStringLiteral("语音未连接");
+        if (state == VoiceManager::State::Error)
+        {
+            status = QStringLiteral("语音连接失败，暂不可用");
+        } else if (state != VoiceManager::State::Disconnected)
+        {
+            status = QStringLiteral("语音正在连接，请稍候");
+        }
+        ui->mic_toolBtn->setToolTip(is_connected ? QStringLiteral("麦克风") : status);
+        ui->speaker_toolBtn->setToolTip(is_connected ? QStringLiteral("扬声器") : status);
+        // 2. 收起当前菜单，避免重建或失败期间继续使用旧设备列表。
+        if (!is_connected)
+        {
+            if (ui->mic_toolBtn->menu()) ui->mic_toolBtn->menu()->hide();
+            if (ui->speaker_toolBtn->menu()) ui->speaker_toolBtn->menu()->hide();
+        }
+    };
+    connect(VoiceManager::getInstance().get(), &VoiceManager::sig_state_changed,
+            this, update_voice_controls);
+    connect(VoiceManager::getInstance().get(), &VoiceManager::sig_error,
+            this, [this](const QString& message) {
+        // 1. 使用非模态提示，不阻塞失败资源的异步回收和画板操作。
+        ui->mic_toolBtn->setToolTip(message);
+        ui->speaker_toolBtn->setToolTip(message);
+        if (isVisible()) TipWidget::showTip(ui->graphicsView, message);
+    });
+    update_voice_controls(VoiceManager::getInstance()->state());
+
+    // 5. 点击按钮主体只切换开关，点击右侧菜单箭头则由设备菜单处理。
     connect(ui->mic_toolBtn, &QToolButton::clicked, this, [this, update_microphone_icon]() {
         VoiceManager* voice_manager = VoiceManager::getInstance().get();
         const bool enabled = !voice_manager->microphoneEnabled();
@@ -988,7 +1022,7 @@ void Canvas::initToolBtn()
         qDebug() << "[Voice UI] speaker enabled:" << enabled;
     });
 
-    // 菜单每次展开时重新枚举设备，避免设备插拔后仍显示旧列表。
+    // 6. 菜单每次展开时重新枚举设备，管理器同时校验连接状态以拦截旧动作。
     auto* microphone_menu = new QMenu(ui->mic_toolBtn);
     microphone_menu->setTitle(QStringLiteral("选择麦克风"));
     microphone_menu->setStyleSheet(QStringLiteral(
@@ -1155,19 +1189,14 @@ void Canvas::ConfigureItemEditSync()
     _item_edit_sync->Configure(_room_info ? _room_info->id : QString(), uid, is_offline, can_edit);
 }
 
-void Canvas::OnItemEditReceived(QByteArray data)
+void Canvas::OnItemEditReceived(const message::ItemEditOperationRsp& response)
 {
     // 1. 创建和编辑共用接收顺序，历史图元必须先创建再恢复最终变换。
     if (_room_info && _room_info->offline)
     {
         return;
     }
-    message::ItemEditOperationRsp response;
-    if (!response.ParseFromArray(data.constData(), data.size()) || !response.has_operation())
-    {
-        return;
-    }
-    // 2. 解析成功后同步登记类型和载荷，保证回放队列始终一一对应。
+    // 2. 同步登记类型和已解码载荷，保证回放队列始终一一对应。
     _remote_item_edits.enqueue(response);
     _remote_operation_order.enqueue(ReqId::ID_ITEM_EDIT_RSP);
 }
@@ -1252,11 +1281,9 @@ void Canvas::SubmitTextOperation(message::TextOperationType type, const TextItem
     UpdateTextControls();
 }
 
-void Canvas::OnTextOperationReceived(QByteArray data)
+void Canvas::OnTextOperationReceived(const message::TextOperationRsp& response)
 {
     // 1. 房间初始化前暂存历史，避免回放文字被初始化清屏删除。
-    message::TextOperationRsp response;
-    if (!response.ParseFromArray(data.constData(), data.size()) || !response.has_operation()) return;
     if (_room_info && _room_info->offline) return;
     _remote_text_operations.enqueue(response);
     _remote_operation_order.enqueue(ReqId::ID_TEXT_OPERATION_RSP);
@@ -2423,20 +2450,14 @@ void Canvas::applyRemoteImageOperation(const message::ImageOperation& operation)
     }
 }
 
-void Canvas::slot_onImageOperationBroadcast(QByteArray data)
+void Canvas::slot_onImageOperationBroadcast(const message::ImageOperation& operation)
 {
-    // 1. 解析在线图片操作，自身广播也需要进入版本确认流程。
+    // 1. 接收 worker 已解码的图片操作，自身广播也进入版本确认流程。
     if (_room_info && _room_info->offline)
     {
         return;
     }
 
-    message::ImageOperation operation;
-    if (!operation.ParseFromArray(data.constData(), data.size()))
-    {
-        qWarning() << "[Canvas] 图片操作 protobuf 解析失败";
-        return;
-    }
     // 2. 图片与文字、笔画使用统一的到达顺序，房间初始化前继续暂存。
     _remoteImageOperationQueue.enqueue(operation);
     _remote_operation_order.enqueue(ReqId::ID_IMAGE_OPERATION_RSP);
@@ -2941,14 +2962,10 @@ void Canvas::slot_onStrokeEnd(QString uuid, int type, QPointF endPos)
 }
 
 //收到绘画广播
-void Canvas::slot_onDrawBroadcast(QByteArray data)
+void Canvas::slot_onDrawBroadcast(const message::DrawReq& req)
 {
-    // 1. 解析在线笔画，自己的操作已在本地场景应用。
+    // 1. 接收 worker 已解码的在线笔画，自己的操作已在本地场景应用。
     if (_room_info && _room_info->offline)
-        return;
-
-    message::DrawReq req;
-    if (!req.ParseFromArray(data.data(), data.size()))
         return;
 
     //不收自己发送的

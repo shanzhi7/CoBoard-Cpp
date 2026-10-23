@@ -1,214 +1,130 @@
 #include "tcpmgr.h"
-#include "message.pb.h"
-#include "usermgr.h"
-#include <QNetworkProxy>
+
+#include <limits>
+#include <utility>
+
+#include <QCoreApplication>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
 
-TcpMgr::TcpMgr():_host(""),_port(0),_b_recv_pending(false),_message_id(0),_message_len(0),_reconnect_timer(new QTimer(this)),_reconnect_cnt(0)
+#include "canvastcpworker.h"
+#include "usermgr.h"
+
+TcpMgr::TcpMgr():_host(""),_port(0),_reconnect_timer(new QTimer(this)),_reconnect_cnt(0)
 {
-    // 1. 绑定连接和收包通知，主动退出后不再交付旧连接事件。
-    QObject::connect(&_socket,&QTcpSocket::connected,this,[this](){
-        if (_is_logged_out) return;
-        _is_switching_exit_connection = false;
-        _socket.setSocketOption(QAbstractSocket::LowDelayOption, 1);
-        // 1. 退出专用重连只鉴权，不进入旧房间自动恢复。
-        if (_exit_pending)
-        {
+    // 1. 创建独立网络线程，所有 socket 回调通过 queued signal 回到控制器线程。
+    qRegisterMetaType<DecodedTcpMessage>("DecodedTcpMessage");
+    _worker = new CanvasTcpWorker;
+    _worker->moveToThread(&_network_thread);
+    connect(&_network_thread, &QThread::finished, _worker, &QObject::deleteLater);
+    connect(this, &TcpMgr::SigConnectRequested, _worker, &CanvasTcpWorker::ConnectToServer, Qt::QueuedConnection);
+    connect(this, &TcpMgr::SigSendRequested, _worker, &CanvasTcpWorker::SendData, Qt::QueuedConnection);
+    connect(this, &TcpMgr::SigDisconnectRequested, _worker, &CanvasTcpWorker::DisconnectFromServer, Qt::QueuedConnection);
+    connect(_worker, &CanvasTcpWorker::SigConnected, this, [this](quint64 generation) {
+        if (generation != _connection_generation || _is_logged_out) return;
+        _is_connected = true;
+        if (_exit_pending || _is_offline_reconnect || !_pending_room_id.isEmpty())
             send_canvas_login();
-            return;
-        }
-        qDebug()<<"连接到 Server！";
-
-        if(!_pending_room_id.isEmpty()) //检查是否有“重定向后的加入房间”任务
-        {
-            qDebug() << "[TcpMgr] Detected pending Redirect Task. Re-sending JoinRoomReq...";
-
-            // 构造请求包
-            message::JoinRoomReq req;
-            req.set_uid(_pending_uid);
-            req.set_room_id(_pending_room_id.toStdString());
-
-            // 序列化
-            std::string binaryData;
-            req.SerializeToString(&binaryData);
-            QByteArray sendData = QByteArray::fromStdString(binaryData);
-
-            // 重定向切服：先登录
-            send_canvas_login();
-            return;
-        }
-        // 掉线重连连上后：自动 CanvasLogin
-        if (_is_offline_reconnect)
-        {
-            qDebug() << "[TcpMgr] offline reconnect connected, auto canvas login...";
-            send_canvas_login();
-            return;
-        }
-        // 首次登录到CanvasServer服务
-        emit sig_con_success(true);
-    });
-
-    //准备读取数据
-    QObject::connect(&_socket,&QTcpSocket::readyRead,this,[this](){
-        if (_is_logged_out) return;
-        //当有数据可读时，读取所有数据
-        //读取数据追加到缓冲区buffer
-        _buffer.append(_socket.readAll());
-
-
-        // 循环处理_buffer 直到缓冲区无数据，避免粘包问题
-        while(_buffer.size() > 0)
-        {
-            QDataStream stream(&_buffer,QIODevice::ReadOnly);
-            stream.setByteOrder(QDataStream::BigEndian);        //设置大端字节序(网络字节序)
-            stream.setVersion(QDataStream::Qt_6_5);             //设置版本
-            //解析消息头(当前没有等待的消息)
-            if(!_b_recv_pending)
-            {
-                //消息头不够(4字节),等待更多数据
-                if(_buffer.size() < sizeof(quint16) * 2)
-                {
-                    break;
-                }
-                //读取消息id和长度
-                stream >> _message_id >> _message_len;
-                _buffer = _buffer.mid(sizeof(quint16) * 2);
-                //qDebug() << "Message ID:" << _message_id << ", Length:" << _message_len;
-
-            }
-
-            //解析消息体
-            if(_buffer.size() < _message_len)   //长度不足
-            {
-                _b_recv_pending = true;         //当前有等待的消息
-                break;
-            }
-
-            _b_recv_pending = false;            //当前无等待消息
-
-            //消息体足够，解析处理
-            QByteArray messageBody = _buffer.mid(0,_message_len);
-            //qDebug() << "Received body:" << messageBody;
-
-            handleMsg(ReqId(_message_id),_message_len,messageBody);
-
-            //移除已经解析的消息体
-            _buffer = _buffer.mid(_message_len);    //如果执行完mid 长度不为 0，说明读取到了下一条消息
-        }
-    });
-
-    // 2. 绑定错误、断开和重连定时器，主动退出不能恢复旧会话。
-    QObject::connect(&_socket,QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
-                     [&](QAbstractSocket::SocketError socketError){
-                         Q_UNUSED(socketError);
-                         if (_is_logged_out) return;
-                         if (_exit_pending)
-                         {
-                             _is_switching_exit_connection = false;
-                             _is_authenticated = false;
-                             emit SigExitTransportFailed(QStringLiteral("退出连接失败，请重试"));
-                             return;
-                         }
-
-                         qDebug() << "Error:" << _socket.errorString() ;
-                         switch (socketError)
-                         {
-                         case QTcpSocket::ConnectionRefusedError:     //服务端拒绝
-                             qDebug() << "Connection Refused!";
-                             emit sig_con_success(false);
-                             break;
-                         case QTcpSocket::RemoteHostClosedError:      //服务端关闭
-                             qDebug() << "Remote Host Closed Connection!";
-                             break;
-                         case QTcpSocket::HostNotFoundError:          //未找到目标服务(host,port)
-                             qDebug() << "Host Not Found!";
-                             emit sig_con_success(false);
-                             break;
-                         case QTcpSocket::SocketTimeoutError:         //连接超时
-                             qDebug() << "Connection Timeout!";
-                             emit sig_con_success(false);
-                             break;
-                         case QTcpSocket::NetworkError:               //网络错误
-                             qDebug() << "Network Error!";
-                             break;
-                         default:
-                             qDebug() << "Other Error!";
-                             break;
-                         }
-                         if (_is_offline_reconnect)
-                         {
-                             emit sig_go_lobby("网络错误，正在尝试重连…");
-                             slot_start_reconnect();
-                         }
-                     });
-
-    _reconnect_timer->setSingleShot(true);   //设置单次定时器
-    QObject::connect(_reconnect_timer, &QTimer::timeout, this, &TcpMgr::slot_do_reconnect);     //连接定时器timeout 重新连接服务器
-
-    // disconnected监听
-    QObject::connect(&_socket,&QTcpSocket::disconnected,this,[this](){
-        qDebug() << "[TcpMgr] disconnected";
+        else
+            emit sig_con_success(true);
+    }, Qt::QueuedConnection);
+    connect(_worker, &CanvasTcpWorker::SigMessageDecoded, this, &TcpMgr::HandleMessage, Qt::QueuedConnection);
+    connect(_worker, &CanvasTcpWorker::SigDisconnected, this, [this](quint64 generation) {
+        if (generation != _connection_generation) return;
+        _is_connected = false;
         _is_authenticated = false;
         _room_request_pending = false;
         if (_exit_pending)
         {
-            if (_is_switching_exit_connection) return;
             emit SigExitTransportFailed(QStringLiteral("连接已断开，退出尚未确认，请重试"));
             return;
         }
-
-        // 主动退出账号时只清理本地连接，不应再次进入断线重连流程。
-        if (_is_logged_out)
-            return;
-
-        // 如果是重定向切服造成的断开 (slot_switch_server 里 abort)，不要走掉线重连
-        if(!_pending_room_id.isEmpty())
+        if (_is_logged_out || !_pending_room_id.isEmpty()) return;
+        emit sig_go_lobby("服务器连接断开，正在尝试重连...");
+        _is_offline_reconnect = true;
+        slot_start_reconnect();
+    }, Qt::QueuedConnection);
+    connect(_worker, &CanvasTcpWorker::SigSocketError, this,
+            [this](quint64 generation, QAbstractSocket::SocketError error, const QString& detail) {
+        if (generation != _connection_generation || _is_logged_out) return;
+        qDebug() << "[TcpMgr] socket error:" << detail;
+        if (_exit_pending)
         {
-            qDebug()<<"[TcpMgr] 在重定向切换期间断开连接，忽略离线重连";
+            _is_authenticated = false;
+            emit SigExitTransportFailed(QStringLiteral("退出连接失败，请重试"));
             return;
         }
-
-        //通知UI回大厅 (本地行为，不依赖服务器在线)
-        emit sig_go_lobby("服务器连接断开，正在尝试重连...");
-
+        if (error == QAbstractSocket::ConnectionRefusedError || error == QAbstractSocket::HostNotFoundError ||
+            error == QAbstractSocket::SocketTimeoutError) emit sig_con_success(false);
         if (_is_offline_reconnect)
         {
+            emit sig_go_lobby("网络错误，正在尝试重连…");
             slot_start_reconnect();
-            return;
         }
+    }, Qt::QueuedConnection);
+    connect(_worker, &CanvasTcpWorker::SigDecodeFailed, this, [this](quint64 generation, quint16 message_id) {
+        if (generation != _connection_generation || _is_logged_out || _exit_pending) return;
+        if (message_id == ID_CREAT_ROOM_RSP || message_id == ID_JOIN_ROOM_RSP) _room_request_pending = false;
+    }, Qt::QueuedConnection);
+    connect(QCoreApplication::instance(), &QCoreApplication::aboutToQuit, this, &TcpMgr::StopWorker);
+    _network_thread.start();
 
-        //标记进入掉线流程
-        _is_offline_reconnect = true;
-
-        //启动指数退避重连
-        slot_start_reconnect();
-    });
-
-    // 3. 初始化消息处理表和发送入口。
+    // 2. 定时器和业务处理表留在 UI 线程，兼容现有连接、房间和退出状态机。
+    _reconnect_timer->setSingleShot(true);
+    connect(_reconnect_timer, &QTimer::timeout, this, &TcpMgr::slot_do_reconnect);
     initHandlers();
+    connect(this, &TcpMgr::sig_send_data, this, &TcpMgr::slot_send_data);
+}
 
-    //连接tcp发送信号与槽函数
-    connect(this,&TcpMgr::sig_send_data,this,&TcpMgr::slot_send_data);
+TcpMgr::~TcpMgr()
+{
+    // 1. 正常退出与直接析构共用回收入口。
+    StopWorker();
+}
+
+void TcpMgr::StopWorker()
+{
+    // 1. 作废排队事件并暂停重连，应用对象已销毁时也不依赖排队命令退出。
+    _reconnect_timer->stop();
+    _is_logged_out = true;
+    ++_connection_generation;
+    if (_network_thread.isRunning())
+    {
+        // 2. quit 可跨线程调用，finished 的延迟删除在网络线程回收 worker 和 socket。
+        _network_thread.quit();
+        _network_thread.wait();
+    }
+}
+
+void TcpMgr::StartConnection()
+{
+    // 1. 每次切换连接都推进代次，屏蔽已经排队的旧连接事件。
+    ++_connection_generation;
+    _is_connected = false;
+    _is_authenticated = false;
+    emit SigConnectRequested(_host, _port, _connection_generation);
+}
+
+void TcpMgr::HandleMessage(quint64 generation, const DecodedTcpMessage& decoded)
+{
+    // 1. 只处理当前连接且未注销的已解码消息。
+    if (generation != _connection_generation || _is_logged_out) return;
+    Q_ASSERT(QThread::currentThread() == thread());
+    const auto id = static_cast<ReqId>(decoded._message_id);
+    // 2. 退出时只交付终态回包，场景与业务信号仍在 UI 线程按序执行。
+    auto it = _handlers.find(id);
+    if (it == _handlers.end()) return;
+    if (_exit_pending && id != ID_CANVAS_LOGIN_RSP && id != ID_LEAVE_ROOM_RSP &&
+        id != ID_DESTROY_ROOM_RSP && id != ID_ROOM_DESTROYED_BROADCAST) return;
+    it.value()(decoded._payload);
 }
 
 void TcpMgr::initHandlers()
 {
     // 1. 按消息编号登记账号、房间和图元回调，文字确认交给画布处理。
-    _handlers.insert(ReqId::ID_CANVAS_LOGIN_RSP,[this](ReqId id,int len,QByteArray data){
-        qDebug()<<"handle id is "<<id<<" data is "<<data;
+    _handlers.insert(ReqId::ID_CANVAS_LOGIN_RSP,[this](const DecodedTcpMessage::Payload& payload){
 
-        //将ByteArray转换成QJsonDocument
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
-
-        //检测是否转换成功
-        if(jsonDoc.isNull())
-        {
-            qDebug()<<"creat QJsonDocument 错误";
-            return;
-        }
-        QJsonObject jsonObj = jsonDoc.object();
+        const auto& jsonObj = std::get<QJsonObject>(payload);
         if(!jsonObj.contains("error"))      //没有error这个键
         {
             int err = ErrorCodes::ERR_JSON;
@@ -285,41 +201,29 @@ void TcpMgr::initHandlers()
     });
 
     // 2. 退出结果交给控制器，统一处理关联、重试和页面收尾。
-    _handlers.insert(ID_LEAVE_ROOM_RSP, [this](ReqId, int, QByteArray body) {
-        message::LeaveRoomRsp response;
-        if (response.ParseFromArray(body.constData(), body.size()))
-            emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
+    _handlers.insert(ID_LEAVE_ROOM_RSP, [this](const DecodedTcpMessage::Payload& payload) {
+        const auto& response = std::get<message::LeaveRoomRsp>(payload);
+        emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
     });
-    _handlers.insert(ID_DESTROY_ROOM_RSP, [this](ReqId, int, QByteArray body) {
-        message::DestroyRoomRsp response;
-        if (response.ParseFromArray(body.constData(), body.size()))
-            emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
+    _handlers.insert(ID_DESTROY_ROOM_RSP, [this](const DecodedTcpMessage::Payload& payload) {
+        const auto& response = std::get<message::DestroyRoomRsp>(payload);
+        emit SigRoomExitResponse(QString::fromStdString(response.room_id()), QString::fromStdString(response.request_id()), response.error());
     });
-    _handlers.insert(ID_ROOM_DESTROYED_BROADCAST, [this](ReqId, int, QByteArray body) {
-        message::RoomDestroyedBroadcast notification;
-        if (notification.ParseFromArray(body.constData(), body.size()))
-            emit SigRoomDestroyed(QString::fromStdString(notification.room_id()), QString::fromStdString(notification.reason()));
+    _handlers.insert(ID_ROOM_DESTROYED_BROADCAST, [this](const DecodedTcpMessage::Payload& payload) {
+        const auto& notification = std::get<message::RoomDestroyedBroadcast>(payload);
+        emit SigRoomDestroyed(QString::fromStdString(notification.room_id()), QString::fromStdString(notification.reason()));
     });
 
     //注册创建房间回包函数
-    _handlers.insert(ReqId::ID_CREAT_ROOM_RSP,[this](ReqId id,int len,QByteArray data){
+    _handlers.insert(ReqId::ID_CREAT_ROOM_RSP,[this](const DecodedTcpMessage::Payload& payload){
         _room_request_pending = false;
-        qDebug()<<"handle id is "<<id<<" data is "<<data;
 
-        //将ByteArray转换成QJsonDocument
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(data);
-
-        //检测是否转换成功
-        if(jsonDoc.isNull())
-        {
-            qDebug()<<"creat QJsonDocument 错误";
-            return;
-        }
-        QJsonObject jsonObj = jsonDoc.object();
+        const auto& jsonObj = std::get<QJsonObject>(payload);
         if(!jsonObj.contains("error"))      //没有error这个键
         {
             int err = ErrorCodes::ERR_JSON;
             qDebug()<<"创建房间失败,error json解析失败 "<<err;
+            return;
         }
         int err = jsonObj["error"].toInt();
         if(err != ErrorCodes::SUCCESS)
@@ -346,17 +250,10 @@ void TcpMgr::initHandlers()
 
 
     //注册加入房间回包函数
-    _handlers.insert(ReqId::ID_JOIN_ROOM_RSP,[this](ReqId id,int len,QByteArray data){
+    _handlers.insert(ReqId::ID_JOIN_ROOM_RSP,[this](const DecodedTcpMessage::Payload& payload){
         _room_request_pending = false;
-        qDebug()<<"handle id is "<<id<<" data is "<<data;
 
-        message::JoinRoomRsp rsp;
-        // 从 QByteArray 解析 Protobuf
-        if (!rsp.ParseFromArray(data.data(), data.size()))
-        {
-            qDebug() << "Create/Join Room Rsp: Protobuf解析失败";
-            return;
-        }
+        const auto& rsp = std::get<message::JoinRoomRsp>(payload);
         int err = rsp.error();                  //获取错误码
 
         //处理重定向逻辑
@@ -424,13 +321,8 @@ void TcpMgr::initHandlers()
     });
 
     // 注册有人加入广播
-    _handlers.insert(ReqId::ID_USER_JOIN_BROADCAST, [this](ReqId id, int len, QByteArray data) {
-        message::UserJoinRoomBroadcast msg;
-        if (!msg.ParseFromArray(data.data(), data.size()))
-        {
-            qDebug() << "解析 UserJoinRoomBroadcast 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_USER_JOIN_BROADCAST, [this](const DecodedTcpMessage::Payload& payload) {
+        const auto& msg = std::get<message::UserJoinRoomBroadcast>(payload);
 
         const message::UserInfo& info = msg.user_info();
 
@@ -447,13 +339,8 @@ void TcpMgr::initHandlers()
     });
 
     // 注册有人离开广播
-    _handlers.insert(ReqId::ID_USER_LEAVE_BROADCAST, [this](ReqId id, int len, QByteArray data) {
-        message::UserLeaveRoomBroadcast msg;
-        if (!msg.ParseFromArray(data.data(), data.size()))
-        {
-            qDebug() << "解析 UserLeaveRoomBroadcast 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_USER_LEAVE_BROADCAST, [this](const DecodedTcpMessage::Payload& payload) {
+        const auto& msg = std::get<message::UserLeaveRoomBroadcast>(payload);
 
         if (!msg.room_id().empty() && QString::fromStdString(msg.room_id()) != _resume_room_id) return;
         int uid = msg.uid();
@@ -464,60 +351,45 @@ void TcpMgr::initHandlers()
     });
 
     //注册绘画广播 (服务器转发别人画的)
-    _handlers.insert(ReqId::ID_DRAW_RSP,[this](ReqId,int,QByteArray data){
-        emit sig_draw_broadcast(data);  //发送广播信号
+    _handlers.insert(ReqId::ID_DRAW_RSP,[this](const DecodedTcpMessage::Payload& payload){
+        emit sig_draw_broadcast(std::get<message::DrawReq>(payload));  //发送广播信号
     });
 
     // 图片操作使用独立消息 ID，不能复用 DrawReq 的解析路径，否则字段含义会被误解释。
-    _handlers.insert(ReqId::ID_IMAGE_OPERATION_RSP,[this](ReqId,int,QByteArray data){
-        emit sig_image_operation_broadcast(data);
+    _handlers.insert(ReqId::ID_IMAGE_OPERATION_RSP,[this](const DecodedTcpMessage::Payload& payload){
+        emit sig_image_operation_broadcast(std::get<message::ImageOperation>(payload));
     });
     // 通用编辑有独立消息类型，必须保持与其他绘画回包的到达顺序。
-    _handlers.insert(ReqId::ID_ITEM_EDIT_RSP, [this](ReqId, int, QByteArray data) {
-        // 1. 原样转交当前载荷，画布统一排队并保持创建与编辑的先后顺序。
-        emit SigItemEditReceived(data);
+    _handlers.insert(ReqId::ID_ITEM_EDIT_RSP, [this](const DecodedTcpMessage::Payload& payload) {
+        // 1. 转交已解码载荷，画布统一排队并保持创建与编辑的先后顺序。
+        emit SigItemEditReceived(std::get<message::ItemEditOperationRsp>(payload));
     });
-    _handlers.insert(ReqId::ID_TEXT_OPERATION_RSP, [this](ReqId, int, QByteArray data) {
-        emit SigTextOperationReceived(data);
+    _handlers.insert(ReqId::ID_TEXT_OPERATION_RSP, [this](const DecodedTcpMessage::Payload& payload) {
+        emit SigTextOperationReceived(std::get<message::TextOperationRsp>(payload));
     });
 
     // 注册收到群聊消息
 
 
     // 注册授权编辑回包
-    _handlers.insert(ReqId::ID_GRANT_EDIT_RSP,[this](ReqId,int,QByteArray data){
-        message::GrantEditRsp rsp;
-        if(!rsp.ParseFromArray(data.data(),data.size()))
-        {
-            qDebug() << "解析 GrantEditRsp 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_GRANT_EDIT_RSP,[this](const DecodedTcpMessage::Payload& payload){
+        const auto& rsp = std::get<message::GrantEditRsp>(payload);
         qDebug() << "授权编辑回包, error=" << rsp.error()
                  << " target=" << rsp.target_uid()
                  << " can_edit=" << rsp.can_edit();
     });
 
     // 注册取消编辑权限回包
-    _handlers.insert(ReqId::ID_REVOKE_EDIT_RSP,[this](ReqId,int,QByteArray data){
-        message::RevokeEditRsp rsp;
-        if(!rsp.ParseFromArray(data.data(),data.size()))
-        {
-            qDebug() << "解析 RevokeEditRsp 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_REVOKE_EDIT_RSP,[this](const DecodedTcpMessage::Payload& payload){
+        const auto& rsp = std::get<message::RevokeEditRsp>(payload);
         qDebug() << "取消编辑权限回包, error=" << rsp.error()
                  << " target=" << rsp.target_uid()
                  << " can_edit=" << rsp.can_edit();
     });
 
     // 注册编辑权限变更广播
-    _handlers.insert(ReqId::ID_PERMISSION_CHANGED_BROADCAST,[this](ReqId,int,QByteArray data){
-        message::PermissionChangedBroadcast msg;
-        if(!msg.ParseFromArray(data.data(),data.size()))
-        {
-            qDebug() << "解析 PermissionChangedBroadcast 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_PERMISSION_CHANGED_BROADCAST,[this](const DecodedTcpMessage::Payload& payload){
+        const auto& msg = std::get<message::PermissionChangedBroadcast>(payload);
 
         qDebug() << "编辑权限变更广播, target=" << msg.target_uid()
                  << " can_edit=" << msg.can_edit()
@@ -525,13 +397,8 @@ void TcpMgr::initHandlers()
         emit sig_permission_changed(msg.target_uid(), msg.can_edit());
     });
     // 注册收到群聊消息
-    _handlers.insert(ReqId::ID_CHAT_RSP,[this](ReqId,int,QByteArray data){
-        message::ChatRsp rsp;
-        if(!rsp.ParseFromArray(data.data(),data.size()))
-        {
-            qDebug() << "解析 UserLeaveRoomBroadcast 失败";
-            return;
-        }
+    _handlers.insert(ReqId::ID_CHAT_RSP,[this](const DecodedTcpMessage::Payload& payload){
+        const auto& rsp = std::get<message::ChatRsp>(payload);
 
         // 发送接收群聊消息信号
         emit sig_chat_received(
@@ -543,20 +410,6 @@ void TcpMgr::initHandlers()
             (qulonglong)rsp.server_ts()
             );
     });
-}
-
-void TcpMgr::handleMsg(ReqId id, int len, QByteArray data)
-{
-    auto it = _handlers.find(id);
-    if(it == _handlers.end())
-    {
-        qDebug()<<"not found id ["<<id<<"] to handle";
-        return;
-    }
-    // 1. 等待退出时保留终态消息，旧房间数据不能再进入画面。
-    if (_exit_pending && id != ID_CANVAS_LOGIN_RSP && id != ID_LEAVE_ROOM_RSP &&
-        id != ID_DESTROY_ROOM_RSP && id != ID_ROOM_DESTROYED_BROADCAST) return;
-    it.value()(id,len,data);
 }
 
 void TcpMgr::slot_tcp_connect(ServerInfo si)
@@ -576,8 +429,7 @@ void TcpMgr::slot_tcp_connect(ServerInfo si)
     _host = si.Host;
     _port = static_cast<uint16_t>(si.Port.toUInt());
 
-    _socket.setProxy(QNetworkProxy::NoProxy);           //禁用代理
-    _socket.connectToHost(_host,_port);                 //连接服务器
+    StartConnection();
 }
 
 void TcpMgr::Logout()
@@ -591,7 +443,7 @@ void TcpMgr::Logout()
     _reconnect_cnt = 0;
     _is_offline_reconnect = false;
 
-    // 2. 清除重定向、房间恢复和接收缓存，下一次登录从全新连接开始。
+    // 2. 清除重定向和房间恢复目标，下一次登录从全新连接开始。
     _pending_room_id.clear();
     _pending_uid = 0;
     _resume_room_id.clear();
@@ -599,14 +451,11 @@ void TcpMgr::Logout()
     _room_port = 0;
     _host.clear();
     _port = 0;
-    _buffer.clear();
-    _b_recv_pending = false;
-    _message_id = 0;
-    _message_len = 0;
 
-    // 3. 主动中止 TCP 连接，服务端会按连接关闭流程移除房间成员。
-    if (_socket.state() != QAbstractSocket::UnconnectedState)
-        _socket.abort();
+    // 3. 推进代次后在网络线程中止 TCP，服务端按连接关闭流程移除成员。
+    ++_connection_generation;
+    _is_connected = false;
+    emit SigDisconnectRequested(_connection_generation);
 }
 
 void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
@@ -614,22 +463,14 @@ void TcpMgr::slot_send_data(ReqId reqid, QByteArray data)
     // 1. 退出账号后忽略旧界面的发送请求。
     if (_is_logged_out) return;
     if (_exit_pending && reqid != ID_CANVAS_LOGIN_REQ && reqid != ID_LEAVE_ROOM_REQ && reqid != ID_DESTROY_ROOM_REQ) return;
+    if (data.size() > std::numeric_limits<quint16>::max())
+    {
+        qWarning() << "[TcpMgr] slot_send_data: message exceeds TCP frame limit, id=" << reqid;
+        return;
+    }
     if (reqid == ID_CREAT_ROOM_REQ || reqid == ID_JOIN_ROOM_REQ) _room_request_pending = true;
-    quint16 id = reqid;
-    quint16 len = static_cast<quint16>(data.size());
-
-    // 2. 使用现有协议封装消息头和消息体。
-    QByteArray block;
-    QDataStream out(&block,QIODevice::WriteOnly);
-    out.setByteOrder(QDataStream::BigEndian);       //设置网络字节序(大端字节序)
-
-    //写入包头
-    out<<id<<len;
-
-    //写入body
-    block.append(data);
-    // 3. 交由套接字异步发送数据。
-    _socket.write(block);                           //发送数据
+    // 2. worker 在线程内按原协议添加网络字节序包头并保持发送顺序。
+    emit SigSendRequested(static_cast<quint16>(reqid), std::move(data), _connection_generation);
 }
 
 void TcpMgr::slot_grant_edit(const QString& room_id, int target_uid)    //授权给别人权限处理函数
@@ -658,7 +499,7 @@ void TcpMgr::slot_revoke_edit(const QString& room_id, int target_uid)       //�
 
 void TcpMgr::slot_switch_server(const QString &host, int port,const QString& room_id, int uid)
 {
-
+    // 1. 保存重定向目标，暂停掉线恢复，下一次鉴权后再自动加入房间。
     _is_offline_reconnect = false; // 切服不是掉线重连
     _reconnect_timer->stop();
     _reconnect_cnt = 0;
@@ -668,10 +509,9 @@ void TcpMgr::slot_switch_server(const QString &host, int port,const QString& roo
     _host = host;
     _port = port;
 
-    //主动断开当前连接
-    _socket.abort();
+    // 2. 切服时旧事件由代次隔离，连接替换交给 worker 所属线程。
     qDebug() << "[TcpMgr] Switching to " << host << ":" << port;
-    _socket.connectToHost(host, port);
+    StartConnection();
 
 }
 
@@ -685,8 +525,7 @@ int TcpMgr::calc_backoff_ms()   //计算指数退避ms，也就是下次发送�
 
 void TcpMgr::slot_start_reconnect() // 启动/继续指数退避重连
 {
-    // 1. QTimer 只能在所属线程的事件循环中启动。网络错误信号通常来自
-    // QTcpSocket 线程，但保留线程保护可以避免未来跨线程调用时触发 Qt 警告。
+    // 1. QTimer 只能在所属线程的事件循环中启动，保留外部调用的线程保护。
     if (QThread::currentThread() != thread())
     {
         QMetaObject::invokeMethod(this, &TcpMgr::slot_start_reconnect, Qt::QueuedConnection);
@@ -725,16 +564,11 @@ void TcpMgr::slot_do_reconnect()    // 真正进行一次 connectToHost
 
     // 3. 更新重连次数并使用新连接恢复会话。
     _reconnect_cnt++;
-    // 确保 socket 干净
-    if (_socket.state() != QAbstractSocket::UnconnectedState)
-        _socket.abort();
-
     _host = host;
     _port = port;
 
     qDebug() << "[TcpMgr] reconnecting to" << host << ":" << port;
-    _socket.setProxy(QNetworkProxy::NoProxy);
-    _socket.connectToHost(host, port);
+    StartConnection();
 }
 
 void TcpMgr::send_canvas_login() //复用LoginWidget 的 CanvasLogin 组包
@@ -768,22 +602,16 @@ void TcpMgr::SetExitPending(bool pending)
 void TcpMgr::PrepareExitConnection(const QString& host, int port)
 {
     // 1. 已认证连接直接发送退出，重试不自动加入旧房间。
-    if (_socket.state() == QAbstractSocket::ConnectedState && _is_authenticated && _host == host && _port == port)
+    if (_is_connected && _is_authenticated && _host == host && _port == port)
     {
         emit SigExitConnectionReady();
         return;
     }
-    // 2. 重连前废弃旧帧缓存，connected 回调只发送认证。
-    _buffer.clear();
-    _b_recv_pending = false;
-    _message_id = 0;
-    _message_len = 0;
+    // 2. 重连前废弃旧代次，connected 回调只发送认证。
     _is_authenticated = false;
-    _is_switching_exit_connection = true;
-    if (_socket.state() != QAbstractSocket::UnconnectedState) _socket.abort();
     _host = host;
     _port = static_cast<uint16_t>(port);
-    _socket.connectToHost(host, _port);
+    StartConnection();
 }
 
 void TcpMgr::ClearRoomRecovery()

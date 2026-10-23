@@ -69,6 +69,8 @@ qt_add_executable(DBClient
     canvasgraphicsview.h canvasgraphicsview.cpp canvasgraphicsview.ui
     testmode.h testmode.cpp
     tcpmgr.h tcpmgr.cpp
+    canvastcpworker.h canvastcpworker.cpp
+    decodedtcpmessage.h
     newroomdialog.h newroomdialog.cpp newroomdialog.ui
     paintscene.h paintscene.cpp
     canvasdocument.h

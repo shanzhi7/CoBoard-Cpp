@@ -149,11 +149,12 @@ void VoiceManager::resumeAudio()
 
 QVector<VoiceManager::AudioDevice> VoiceManager::recordingDevices() const
 {
-    // 1. 从当前平台音频枚举设备并刷新稳定 ID 缓存，失败返回空列表。
+    // 1. 只在连接及音频初始化成功后枚举，避免访问连接中或失败会话的 ADM。
     QVector<AudioDevice> devices;
-    if (!_platform_audio)
+    if (_state.load() != State::Connected || !_platform_audio)
         return devices;
 
+    // 2. 刷新稳定 ID 缓存，枚举失败时返回空列表。
     try
     {
         _cached_recording_devices.clear();
@@ -173,11 +174,12 @@ QVector<VoiceManager::AudioDevice> VoiceManager::recordingDevices() const
 
 QVector<VoiceManager::AudioDevice> VoiceManager::playoutDevices() const
 {
-    // 1. 从当前平台音频枚举输出设备并刷新缓存，旧会话设备不跨退出保留。
+    // 1. 连接失败或正在重建时不进入 SDK，旧会话设备不跨退出保留。
     QVector<AudioDevice> devices;
-    if (!_platform_audio)
+    if (_state.load() != State::Connected || !_platform_audio)
         return devices;
 
+    // 2. 刷新输出设备及稳定 ID 缓存，枚举失败时返回空列表。
     try
     {
         _cached_playout_devices.clear();
@@ -197,16 +199,17 @@ QVector<VoiceManager::AudioDevice> VoiceManager::playoutDevices() const
 
 bool VoiceManager::setRecordingDevice(const QString& device_id)
 {
-    if (!_platform_audio || device_id.isEmpty())
+    // 1. 菜单中已经排队的点击也必须检查状态，不能重连失败或正在清理的会话。
+    if (_state.load() != State::Connected || !_platform_audio || device_id.isEmpty())
         return false;
 
-    // 1. 如果缓存为空，或者找不到该 ID，先主动刷新一次（覆盖冷启动与新插设备两种情况）
+    // 2. 缓存为空或未命中时重新枚举，覆盖设备插拔。
     if (_cached_recording_devices.isEmpty() || !_cached_recording_devices.contains(device_id))
     {
         recordingDevices();
     }
 
-    // 2. 纯内存校验：确保设备物理在线
+    // 3. 校验设备存在，不向 SDK 提交已经失效的设备标识。
     if (!_cached_recording_devices.contains(device_id))
     {
         qWarning() << "[VoiceManager] 指定的麦克风不存在或已断开:" << device_id;
@@ -214,7 +217,7 @@ bool VoiceManager::setRecordingDevice(const QString& device_id)
         return false;
     }
 
-    // 3. 校验通过，安全下发到底层
+    // 4. 保存选择并异步重建语音连接，旧资源释放完成后再初始化设备。
     try
     {
         // 1.10.x 的 C++ SDK 只提供初始化前的 setRecordingDevice，
@@ -239,17 +242,17 @@ bool VoiceManager::setRecordingDevice(const QString& device_id)
 
 bool VoiceManager::setPlayoutDevice(const QString& device_id)
 {
-    if (!_platform_audio || device_id.isEmpty())
+    // 1. 仅允许操作已经连接的音频，拒绝失败或正在清理的会话。
+    if (_state.load() != State::Connected || !_platform_audio || device_id.isEmpty())
         return false;
 
-
-    // 1. 如果缓存为空，或者找不到该 ID，先主动刷新一次（覆盖冷启动与新插设备两种情况）
+    // 2. 缓存为空或未命中时重新枚举，覆盖设备插拔。
     if (_cached_playout_devices.isEmpty() || !_cached_playout_devices.contains(device_id))
     {
         playoutDevices();
     }
 
-    // 2. 纯内存校验：确保设备物理在线
+    // 3. 校验设备存在，不向 SDK 提交已经失效的设备标识。
     if (!_cached_playout_devices.contains(device_id))
     {
         qWarning() << "[VoiceManager] 指定的扬声器不存在或已断开:" << device_id;
@@ -257,7 +260,7 @@ bool VoiceManager::setPlayoutDevice(const QString& device_id)
         return false;
     }
 
-    // 3. 校验通过，安全下发到底层
+    // 4. 保存选择并异步重建语音连接，旧资源释放完成后再初始化设备。
     try
     {
         // 与麦克风相同，输出设备必须在 ADM 开始播放前设置。
@@ -348,8 +351,7 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
         if (!request_succeeded)
         {
             qWarning() << "[VoiceManager] token network error:" << network_error;
-            emit sig_error(QStringLiteral("获取语音 Token 失败: ") + network_error);
-            setState(State::Error);
+            HandleConnectionFailure(QStringLiteral("获取语音 Token 失败: ") + network_error);
             return;
         }
 
@@ -357,8 +359,7 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
         const QJsonDocument document = QJsonDocument::fromJson(response_data, &parse_error);
         if (parse_error.error != QJsonParseError::NoError || !document.isObject())
         {
-            emit sig_error(QStringLiteral("语音 Token 响应格式错误"));
-            setState(State::Error);
+            HandleConnectionFailure(QStringLiteral("语音 Token 响应格式错误"));
             return;
         }
 
@@ -371,8 +372,7 @@ void VoiceManager::requestVoiceToken(const QString& room_id)
                 << "token empty:" << token.isEmpty();
         if (error_code != 0 || url.isEmpty() || token.isEmpty())
         {
-            emit sig_error(QStringLiteral("语音 Token 无效，错误码: ") + QString::number(error_code));
-            setState(State::Error);
+            HandleConnectionFailure(QStringLiteral("语音 Token 无效，错误码: ") + QString::number(error_code));
             return;
         }
 
@@ -390,17 +390,17 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
         // WebRTC ADM 拒绝为 Device not found。
         _platform_audio = std::make_unique<livekit::PlatformAudio>();
         applyPreferredAudioDevices();
+        _room = std::make_unique<livekit::Room>();
+        _room->setDelegate(this);
     } catch (const std::exception& exception)
     {
-        qWarning() << "[VoiceManager] platform audio init failed:"
+        qWarning() << "[VoiceManager] voice init failed:"
                    << QString::fromUtf8(exception.what());
-        emit sig_error(QStringLiteral("平台音频初始化失败: ") + QString::fromUtf8(exception.what()));
-        _platform_audio.reset();
+        HandleConnectionFailure(QStringLiteral("语音初始化失败: ") + QString::fromUtf8(exception.what()));
+        return;
     }
 
     // 2. 捕获本轮 Room 和代次，后台连接不访问可能已被移交的成员。
-    _room = std::make_unique<livekit::Room>();
-    _room->setDelegate(this);       //设置livekit代理对象
     setState(State::Connecting);
 
     const std::string server_url = url.toStdString();
@@ -408,31 +408,33 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
     livekit::Room* connecting_room = _room.get();
     const quint64 generation = _voice_generation.load();
     _connect_thread = QThread::create([this, server_url, access_token, connecting_room, generation]() {
+        // 1. 独立线程只处理当前捕获的 Room，阻塞连接不会占用 UI 事件循环。
         livekit::RoomOptions options;
         // 自动订阅远端轨道，否则不会收到远端语音。
         options.auto_subscribe = true;
 
+        bool connected = false;
+        QString error_message = QStringLiteral("语音连接失败，请检查网络或联系管理员确认服务额度");
         try
         {
-            const bool connected = connecting_room->connect(server_url, access_token, options);   //触发onCnnectionStateChanged回调
+            connected = connecting_room->connect(server_url, access_token, options);
             qInfo() << "[VoiceManager] Room::connect returned:" << connected;
-            if (!connected)
-            {
-                QMetaObject::invokeMethod(this, [this, generation]() {
-                    if (_voice_generation.load() != generation) return;
-                    emit sig_error(QStringLiteral("LiveKit 房间连接失败"));
-                    setState(State::Error);
-                }, Qt::QueuedConnection);
-            }
         } catch (const std::exception& exception)
         {
-            const QString message = QString::fromUtf8(exception.what());
-            QMetaObject::invokeMethod(this, [this, message, generation]() {
-                if (_voice_generation.load() != generation) return;
-                emit sig_error(QStringLiteral("LiveKit 连接异常: ") + message);
-                setState(State::Error);
-            }, Qt::QueuedConnection);
+            error_message = QStringLiteral("语音连接异常: ") + QString::fromUtf8(exception.what());
         }
+
+        // 2. connect 完成后才能使用参与者和音频，结果与失败清理交回 Qt 线程。
+        QMetaObject::invokeMethod(this, [this, connecting_room, generation, connected, error_message]() {
+            // 1. 旧连接的成功或失败结果均不能操作新会话。
+            if (_voice_generation.load() != generation || _room.get() != connecting_room) return;
+            if (!connected)
+            {
+                HandleConnectionFailure(error_message);
+                return;
+            }
+            handleConnected();
+        }, Qt::QueuedConnection);
     });
 
     // 3. 已完成的连接线程仅由当前拥有者回收，清理线程接手后不重复删除。
@@ -443,6 +445,17 @@ void VoiceManager::connectLiveKit(const QString& url, const QString& token)
         connect_thread->deleteLater();
     });
     _connect_thread->start();
+}
+
+void VoiceManager::HandleConnectionFailure(const QString& message)
+{
+    // 1. 先作废代次并移交资源，清理线程等待 connect 返回后再断开和销毁 SDK 对象。
+    Q_ASSERT(QThread::currentThread() == thread());
+    LeaveRoomAsync();
+
+    // 2. 保持失败状态且不自动重试，避免额度耗尽时重复连接和访问旧设备。
+    setState(State::Error);
+    emit sig_error(message);
 }
 
 void VoiceManager::applyPreferredAudioDevices()
@@ -509,6 +522,7 @@ void VoiceManager::publishMicrophone()
 
     try
     {
+        // 2. 当前连接已就绪，再启动采集并发布唯一的本地音轨。
         // PlatformAudio 使用 WebRTC 系统音频设备，并自带回声消除、降噪和自动增益。
         _audio_source = _platform_audio->createAudioSource();           //直接启动采集源，默认绑定操作系统的默认通信设备
         _audio_track = livekit::LocalAudioTrack::createLocalAudioTrack( //将音频源包装为 RTC 本地音轨(在 WebRTC 层创建了 AudioTrackInterface)
@@ -527,12 +541,12 @@ void VoiceManager::publishMicrophone()
         qInfo() << "[VoiceManager] microphone published";
     } catch (const std::exception& exception)
     {
-        // publishTrack 失败时释放已创建的对象，允许后续真正的连接恢复再次尝试。
+        // 3. 发布失败先释放半成品，再统一回收房间，避免继续暴露失效设备。
         _audio_track.reset();
         _audio_source.reset();
         qWarning() << "[VoiceManager] microphone init failed:"
                    << QString::fromUtf8(exception.what());
-        emit sig_error(QStringLiteral("麦克风初始化失败: ") + QString::fromUtf8(exception.what()));
+        HandleConnectionFailure(QStringLiteral("麦克风初始化失败: ") + QString::fromUtf8(exception.what()));
     }
 }
 
@@ -559,7 +573,9 @@ void VoiceManager::handleConnected()
             return;
         }
 
-        publishMicrophone();    //发布麦克风音轨
+        // 2. 初始化失败可能已经移交资源，不能再将失败会话标记为 Connected。
+        publishMicrophone();
+        if (!_audio_track) return;
         applySpeakerState();    //订阅远端音频
         setState(State::Connected);
         qInfo() << "[VoiceManager] voice connected, audio initialized";
@@ -567,8 +583,7 @@ void VoiceManager::handleConnected()
     {
         qWarning() << "[VoiceManager] platform audio init failed:"
                    << QString::fromUtf8(exception.what());
-        emit sig_error(QStringLiteral("平台音频初始化失败: ") + QString::fromUtf8(exception.what()));
-        setState(State::Error);
+        HandleConnectionFailure(QStringLiteral("平台音频初始化失败: ") + QString::fromUtf8(exception.what()));
     }
 }
 
@@ -610,6 +625,8 @@ void VoiceManager::onConnectionStateChanged(
     const auto connection_state = event.state;
     QMetaObject::invokeMethod(this, [this, source_room, generation, connection_state]() {
         if (_voice_generation.load() != generation || _room.get() != source_room) return;
+        // 首次连接以 connect 的返回结果为准，不能在参与者尚未就绪时初始化音频。
+        if (_state.load() == State::Connecting) return;
         if (connection_state == livekit::ConnectionState::Connected) handleConnected();
         else if (connection_state == livekit::ConnectionState::Reconnecting) setState(State::Reconnecting);
         else setState(State::Disconnected);
@@ -618,11 +635,14 @@ void VoiceManager::onConnectionStateChanged(
 
 void VoiceManager::onDisconnected(livekit::Room& room, const livekit::DisconnectedEvent&)
 {
-    // 1. 已退出房间的断开回调不能覆盖新房间状态。
+    // 1. 已退出房间的回调不能覆盖新房间，首次连接失败由 connect 的返回结果处理。
     livekit::Room* source_room = &room;
     const quint64 generation = _voice_generation.load();
     QMetaObject::invokeMethod(this, [this, source_room, generation]() {
-        if (_voice_generation.load() == generation && _room.get() == source_room) setState(State::Disconnected);
+        if (_voice_generation.load() != generation || _room.get() != source_room) return;
+        if (_state.load() == State::Connecting) return;
+        // 2. 最终断开后释放设备，旧菜单动作不能再访问失效的 SDK 会话。
+        HandleConnectionFailure(QStringLiteral("语音连接已断开"));
     }, Qt::QueuedConnection);
 }
 

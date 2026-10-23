@@ -83,6 +83,7 @@ private:
 
     void requestVoiceToken(const QString& room_id);     // 向 GateServer 请求短期 Token
     void connectLiveKit(const QString& url, const QString& token); // 在工作线程连接房间
+    void HandleConnectionFailure(const QString& message); // 作废失败会话并异步回收资源，在 Qt 线程报告错误。
     void handleConnected();                             // 在 Qt 线程完成音频初始化
     void publishMicrophone();                          // 创建并发布平台麦克风
     void applyPreferredAudioDevices();                  // 在建立房间连接前应用设备选择
