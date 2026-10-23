@@ -382,6 +382,7 @@ void CanvasItemEdit::Resize(CanvasItem* item, const CanvasItemEditState& before,
     {
         return;
     }
+    // 2. 图片只调整局部显示矩形，资源引用和源像素保持不变。
     const QSignalBlocker blocker(item);
     const QRectF source = Bounds(item);
     const QTransform mapping = RectMapping(source, target);
@@ -394,6 +395,9 @@ void CanvasItemEdit::Resize(CanvasItem* item, const CanvasItemEditState& before,
     } else if (auto* value = dynamic_cast<ArrowItem*>(item))
     {
         value->SetLine(mapping.map(value->Line()));
+    } else if (auto* value = dynamic_cast<ImageItem*>(item))
+    {
+        value->setDisplaySize(target.size());
     } else if (auto* value = dynamic_cast<TextItem*>(item))
     {
         value->SetLayoutSize(target.size());

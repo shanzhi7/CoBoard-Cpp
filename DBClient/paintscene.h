@@ -133,7 +133,7 @@ signals:
                           QSize original_size,
                           QPointF scene_pos,
                           QSizeF display_size); // 通知 Canvas 图片已创建，资源同步由 Canvas 负责。
-    void sigImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 转发实时变换和拖动结束的最终状态。
+    void sigImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 保留旧图片变换信号接口，鼠标变换改用 SigItemEditChanged。
     void sigImageDeleteRequested(QString item_id); // 通知 Canvas 执行图片删除。
     void sigImageRetryRequested(QString item_id); // 转发鼠标模式下的图片重试意图。
     void sigImagePreviewRequested(QString item_id); // 转发鼠标模式下的图片预览意图。
@@ -155,8 +155,6 @@ private:
     void recordFinishedLocalItem(const QString& item_id,
                                  const std::shared_ptr<IDrawTool>& operation); // 登记完成图元和撤销句柄。
     void updateEraserCursor(const QPointF& pos); // 更新与擦除宽度一致的光标。
-    void PrepareImageDrag(); // 记录 Qt 鼠标抓取对应的多选图片起始位置。
-    void FinishImageDrag(bool send_final); // 清理拖动记录，并按需补发最终状态。
     void UpdateImageInteraction(ImageItem* image_item); // 更新移动和焦点权限，保留选择状态。
     bool removeImageItemInternal(const QString& item_id, bool remove_undo_record); // 删除图片并可选清理撤销记录。
 
@@ -193,7 +191,6 @@ private:
     QStack<DrawItemRecord> _localUndoStack; // 保持本地创建顺序的撤销栈。
     QHash<QString, QGraphicsItem*> _localItems; // 本地绘画图元 ID 索引。
     QHash<QString, ImageItem*> _imageItems; // 本地和远端图片统一索引。
-    QHash<QString, QPointF> _image_drag_start_positions; // 拖动起始位置，避免持有图片裸指针。
     QHash<QString, TextItem*> _text_itemMap; // 场景拥有的文字稳定 ID 索引。
     QHash<QString, QPointF> _text_drag_positionMap; // 鼠标拖动开始时的文字坐标。
     QSet<QString> _pending_text_ids; // 等待在线确认的文字 ID。

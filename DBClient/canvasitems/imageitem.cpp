@@ -38,29 +38,21 @@ void ImageItem::paint(QPainter* painter,
     Q_UNUSED(option);
     Q_UNUSED(widget);
 
+    // 1. 检查绘图设备，绘制只读取 UI 线程已经提交的图元状态。
     if (!painter)
     {
         return;
     }
 
-    // 1. 图片可能在网络线程完成后才回到 UI 线程，绘制只读取已提交的图元状态。
     painter->save();
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
 
+    // 2. 图片和占位内容共用显示矩形，网络状态改变不应导致几何跳动。
     if (_load_state == ImageLoadState::Ready && !_pixmap.isNull())
     {
-        // KeepAspectRatioByExpanding 会裁剪内容，不适合画布资源；这里保持完整图片并在矩形内留出空白。
-        const QPixmap scaled_pixmap = _pixmap.scaled(_item_rect.size().toSize(),
-                                                     Qt::KeepAspectRatio,
-                                                     Qt::SmoothTransformation);
-        const QRectF target_rect(QPointF(_item_rect.center().x() - scaled_pixmap.width() / 2.0,
-                                         _item_rect.center().y() - scaled_pixmap.height() / 2.0),
-                                 QSizeF(scaled_pixmap.size()));
-        painter->drawPixmap(target_rect,
-                            scaled_pixmap,
-                            QRectF(scaled_pixmap.rect()));
-    }
-    else
+        // 原图直接映射到显示矩形，宽高可独立调整且不生成新的缩放像素副本。
+        painter->drawPixmap(_item_rect, _pixmap, QRectF(_pixmap.rect()));
+    } else
     {
         // Loading 和 Failed 都需要保留稳定尺寸，否则异步状态改变会造成场景布局跳动。
         const QColor background = _load_state == ImageLoadState::Failed
@@ -80,8 +72,7 @@ void ImageItem::paint(QPainter* painter,
                           text);
     }
 
-    // 2. 选择框由场景统一覆盖层绘制，图片不再维护另一套边框样式。
-
+    // 3. 选择框由场景统一覆盖层绘制，恢复画笔状态供其他图元使用。
     painter->restore();
 }
 

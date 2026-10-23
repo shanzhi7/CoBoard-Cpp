@@ -368,7 +368,6 @@ bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* err
         {
             _imageItems.insert(item_id, image_item);
             UpdateImageInteraction(image_item);
-            connect(image_item, &CanvasItem::sigGeometryChanged, this, &PaintScene::sigImageGeometryChanged);
             connect(image_item, &ImageItem::sigRetryRequested, this, &PaintScene::sigImageRetryRequested);
             connect(image_item, &ImageItem::sigPreviewRequested, this, &PaintScene::sigImagePreviewRequested);
         }
@@ -831,7 +830,7 @@ void PaintScene::setShapeType(ShapeType type)
 
 void PaintScene::SetInteractionMode(CanvasInteractionMode mode)
 {
-    // 1. 切换模式前结束当前笔画和图片拖动，不能遗留跨工具的鼠标抓取。
+    // 1. 切换模式前取消统一变换手势并结束笔画，不能遗留跨工具的鼠标抓取。
     if (_interaction_mode != mode)
     {
         _selection_controller->Cancel(QString(), true);
@@ -843,7 +842,6 @@ void PaintScene::SetInteractionMode(CanvasInteractionMode mode)
         {
             finishCurrentOperation(_currentOperation->currentPosition());
         }
-        FinishImageDrag(_editable);
         if (QGraphicsItem* grabber = mouseGrabberItem())
         {
             grabber->ungrabMouse();
@@ -874,50 +872,6 @@ CanvasInteractionMode PaintScene::InteractionMode() const
     return _interaction_mode;
 }
 
-void PaintScene::PrepareImageDrag()
-{
-    // 1. 只记录 Qt 实际抓取的可编辑图片，点击空白或只读选择不产生变换提交。
-    _image_drag_start_positions.clear();
-    auto* grabbed_image = dynamic_cast<ImageItem*>(mouseGrabberItem());
-    if (!_editable || !grabbed_image)
-    {
-        return;
-    }
-
-    // 2. Qt 会同时移动已选图元；用 ID 保存起点可安全应对远端删除。
-    for (QGraphicsItem* item : selectedItems())
-    {
-        if (auto* image_item = dynamic_cast<ImageItem*>(item))
-        {
-            _image_drag_start_positions.insert(image_item->itemId(), image_item->pos());
-        }
-    }
-}
-
-void PaintScene::FinishImageDrag(bool send_final)
-{
-    // 1. 先移出当前记录，信号回调删除图片或切换模式时不会重复提交。
-    const auto start_positions = _image_drag_start_positions;
-    _image_drag_start_positions.clear();
-    if (!send_final)
-    {
-        return;
-    }
-
-    // 2. 仅补发仍存在且实际移动的图片，未移动的点击不产生网络消息。
-    for (auto iterator = start_positions.cbegin(); iterator != start_positions.cend(); ++iterator)
-    {
-        ImageItem* image_item = findImageItem(iterator.key());
-        if (image_item && image_item->pos() != iterator.value())
-        {
-            emit sigImageGeometryChanged(image_item->itemId(),
-                                         image_item->sceneBoundingRect(),
-                                         image_item->rotation(),
-                                         image_item->scale());
-        }
-    }
-}
-
 void PaintScene::UpdateImageInteraction(ImageItem* image_item)
 {
     // 1. 选择标记始终保留，模式通过场景和视图的事件分发控制实际选择操作。
@@ -939,7 +893,6 @@ void PaintScene::setEditable(bool editable)
     {
         _selection_controller->Cancel();
         FinishTextEditing(true);
-        FinishImageDrag(false);
         if (QGraphicsItem* grabber = mouseGrabberItem())
         {
             grabber->ungrabMouse();
@@ -1497,8 +1450,6 @@ ImageItem* PaintScene::addImageItem(const QString& item_id,
     _imageItems.insert(item_id, image_item);
     // 2. 新图片按当前模式配置交互，不改变工具或已有选择。
     UpdateImageInteraction(image_item);
-    connect(image_item, &CanvasItem::sigGeometryChanged,
-            this, &PaintScene::sigImageGeometryChanged);
     // 失败占位图支持双击重试；信号对信号转发，PaintScene 不接触网络层，重试仍由 Canvas 统一排队。
     connect(image_item, &ImageItem::sigRetryRequested,
             this, &PaintScene::sigImageRetryRequested);
@@ -1579,7 +1530,6 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
 
     ImageItem* image_item = iterator.value();
     _imageItems.erase(iterator);
-    _image_drag_start_positions.remove(item_id);
     // 3. 仅清理对应撤销条目，保留其他图元的创建顺序。
     if (remove_undo_record)
     {
@@ -1684,7 +1634,6 @@ void PaintScene::resetScene()
     _pending_text_ids.clear();
     _text_drag_positionMap.clear();
     _currUuid.clear();
-    _image_drag_start_positions.clear();
 
     // 2. 橡皮擦光标属于场景，clear() 会一起删除，因此先摘出并在末尾恢复。
     QGraphicsEllipseItem* cursor = _eraserCursorItem;

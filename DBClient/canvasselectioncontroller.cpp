@@ -62,14 +62,10 @@ qreal DistanceToSegment(const QPointF& point, const QPointF& start, const QPoint
 
 int HitHandle(const CanvasItem* item, const SelectionFrame& frame, const QPointF& point)
 {
-    // 1. 旋转优先于四角和边缘；图片只提供旋转，不开放拖拽伸缩。
+    // 1. 旋转优先于四角和边缘，图片与其他图元共用局部坐标控制柄。
     if (QLineF(point, frame._rotation_point).length() <= 8.0)
     {
         return 8;
-    }
-    if (CanvasItemEdit::Kind(item) == 8)
-    {
-        return -1;
     }
     for (int index = 0; index < 4; ++index)
     {
@@ -357,6 +353,7 @@ void CanvasSelectionController::UpdateSingleItem(const QPointF& scene_pos)
         return;
     }
     const qreal current_height = CanvasItemEdit::Bounds(item).height();
+    const qreal current_rotation = item->rotation();
     const QSignalBlocker blocker(item);
     CanvasItemEdit::Apply(item, before);
     const QPointF local_pos = _scene_to_local.map(scene_pos);
@@ -368,7 +365,9 @@ void CanvasSelectionController::UpdateSingleItem(const QPointF& scene_pos)
         const QPointF current = local_pos - center;
         const qreal delta = std::atan2(current.y(), current.x()) - std::atan2(initial.y(), initial.x());
         item->setTransformOriginPoint(center);
-        item->setRotation(before._rotation + delta * 180.0 / 3.14159265358979323846);
+        // 跨越 atan2 分支时选择最近的整圈角度，连续拖动不会突然跳回上一圈。
+        const qreal rotation = before._rotation + delta * 180.0 / 3.14159265358979323846;
+        item->setRotation(rotation + 360.0 * std::round((current_rotation - rotation) / 360.0));
         item->setPos(item->pos() + scene_center - item->mapToScene(center));
         return;
     }
