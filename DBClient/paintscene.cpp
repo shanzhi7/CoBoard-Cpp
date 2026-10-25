@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QUuid>
 #include <QTransform>
+#include <QtAlgorithms>
 
 #include "canvasitemserializer.h"
 #include "canvasselectioncontroller.h"
@@ -251,6 +252,12 @@ bool PaintScene::RemoveCanvasItem(const QString& item_id)
     return true;
 }
 
+QVector<CanvasItem*> PaintScene::SelectedCanvasItems() const
+{
+    // 1. 选择控制器统一过滤附属文字和橡皮擦，复制范围与移动手势保持一致。
+    return _selection_controller ? _selection_controller->SelectedItems() : QVector<CanvasItem*>();
+}
+
 PaintScene::UndoKind PaintScene::NextUndoKind() const
 {
     // 1. 统一时间顺序由同一栈维护，在线与离线只区分提交方式。
@@ -383,6 +390,74 @@ bool PaintScene::LoadCanvasDocument(const CanvasDocument& document, QString* err
     clearSelection();
     _localUndoStack.clear();
     return true;
+}
+
+bool PaintScene::InsertClipboardDocument(const CanvasDocument& document, bool record_undo, QVector<QString>* item_ids, QString* error_message)
+{
+    // 1. 先在独立对象中恢复所有图元，任何失败都释放临时对象而不污染当前场景。
+    if (!item_ids || document._items.isEmpty() || document._items.size() != document._item_order.size())
+    {
+        if (error_message) *error_message = QStringLiteral("剪贴板图元顺序无效");
+        return false;
+    }
+    QMap<QString, CanvasItemData> item_data_map;
+    QVector<CanvasItem*> created;
+    for (const CanvasItemData& item_data : document._items)
+    {
+        const QString item_id = item_data.value(QStringLiteral("item_id")).toString();
+        if (item_id.isEmpty() || item_data_map.contains(item_id) || FindCanvasItem(item_id))
+        {
+            if (error_message) *error_message = QStringLiteral("剪贴板图元 ID 无效或已存在");
+            return false;
+        }
+        item_data_map.insert(item_id, item_data);
+    }
+    for (const QString& item_id : document._item_order)
+    {
+        CanvasItem* item = CanvasItemSerializer::DeserializeItem(item_data_map.value(item_id), document._asset_dataMap, error_message);
+        if (!item)
+        {
+            qDeleteAll(created);
+            return false;
+        }
+        created.append(item);
+    }
+
+    // 2. 全部成功后按剪贴板层级加入并重建图片、文字和统一 ID 索引。
+    clearSelection();
+    for (CanvasItem* item : created)
+    {
+        addItem(item);
+        ConfigureCanvasItem(item);
+        item->setSelected(true);
+        item_ids->append(item->itemId());
+        if (auto* image_item = dynamic_cast<ImageItem*>(item))
+        {
+            _imageItems.insert(item->itemId(), image_item);
+            UpdateImageInteraction(image_item);
+            connect(image_item, &ImageItem::sigRetryRequested, this, &PaintScene::sigImageRetryRequested);
+            connect(image_item, &ImageItem::sigPreviewRequested, this, &PaintScene::sigImagePreviewRequested);
+        }
+        if (auto* text_item = dynamic_cast<TextItem*>(item))
+        {
+            ConnectTextItem(text_item);
+        }
+    }
+    // 3. 选择控制器在场景加入后刷新，确保多选边框立即包含全部新副本。
+    _selection_controller->Refresh();
+    if (record_undo) RecordClipboardCreation(*item_ids);
+    return true;
+}
+
+void PaintScene::RecordClipboardCreation(const QVector<QString>& item_ids)
+{
+    // 1. 仅为仍属于本场景的完整副本登记一条整体撤销记录。
+    if (item_ids.isEmpty()) return;
+    for (const QString& item_id : item_ids) if (!FindCanvasItem(item_id)) return;
+    DrawItemRecord record;
+    record.is_clipboard_batch = true;
+    record.clipboard_item_ids = item_ids;
+    _localUndoStack.push(record);
 }
 
 QImage PaintScene::RenderCanvasImage(QString* error_message)
@@ -969,6 +1044,13 @@ void PaintScene::undoLastLocalItem()
     while (!_localUndoStack.isEmpty())
     {
         const DrawItemRecord record = _localUndoStack.pop();
+
+        if (record.is_clipboard_batch)
+        {
+            // 2. 批量粘贴视为一条创建记录，撤销时移除全部副本。
+            for (const QString& item_id : record.clipboard_item_ids) RemoveCanvasItem(item_id);
+            return;
+        }
 
         if (record.is_item_edit)
         {

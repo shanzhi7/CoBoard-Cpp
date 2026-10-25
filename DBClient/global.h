@@ -40,6 +40,8 @@ enum ReqId{
     ID_USER_LOGOUT = 1038, // HTTP 账号注销请求。
     ID_ITEM_EDIT_REQ = 1040, // 图元编辑和条件撤销请求。
     ID_ITEM_EDIT_RSP = 1041, // 图元编辑确认、广播和历史快照。
+    ID_ITEM_CREATE_BATCH_REQ = 1042, // 复制粘贴图元的原子批量创建请求。
+    ID_ITEM_CREATE_BATCH_RSP = 1043, // 批量创建确认、广播和历史回放。
     ID_GET_VERIFY_CODE = 1001,                  //获取验证码
     ID_REGISTER = 1002,                         //注册账号
     ID_RESET_PWD = 1003,                        //重置密码

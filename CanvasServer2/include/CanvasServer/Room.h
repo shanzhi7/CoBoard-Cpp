@@ -75,6 +75,7 @@ public:
 	bool ApplyTextOperation(const message::TextOperation& operation, message::TextOperationRsp& response); // 原子更新文字状态、版本和历史。
 	bool ApplyItemEditOperation(const message::ItemEditOperation& operation, message::ItemEditOperationRsp& response, const CSession* expected_session = nullptr); // 原子校验版本并更新单个图元。
 	bool AcceptItemEdit(std::shared_ptr<CSession> session, const message::ItemEditOperation& operation); // 快通道原子处理预览或最终提交并按版本顺序入发送队列。
+	bool AcceptItemCreateBatch(std::shared_ptr<CSession> session, const message::ItemCreateBatch& batch); // 原子校验、创建并广播复制粘贴图元批次。
 	void FillItemEditState(message::ItemEditOperationRsp& response); // 填写目标当前完整状态和版本。
 	void FillTextState(message::TextOperationRsp& response); // 失败响应附带当前目标状态和版本。
 
@@ -86,6 +87,7 @@ public:
 	bool AcceptDraw(std::shared_ptr<CSession> session, const message::DrawReq& request, const std::string& body); // 原子接受绘画、记录历史并入队广播。
 
 private:
+	std::vector<HistoryEntry> GetHistorySnapshotLocked(); // 持有房间锁时生成批量创建及逐图元最终状态的回放快照。
 	bool ApplyItemEditOperationLocked(const message::ItemEditOperation& operation, message::ItemEditOperationRsp& response, const CSession* expected_session); // 持有房间锁时校验、生成预览或提交最终状态。
 	void FillItemEditStateLocked(message::ItemEditOperationRsp& response); // 持锁填写规范状态，删除后仍返回最后版本。
 	void ClearItemEditStateLocked(); // 清空编辑索引、笔迹状态和请求幂等缓存。
@@ -127,6 +129,9 @@ private:
 	std::unordered_map<std::string, std::size_t> _draw_end_index; // 完整笔迹结束消息在历史中的下标。
 	std::unordered_map<std::string, message::ItemEditOperationRsp> _edit_responses; // 最近成功请求的幂等确认缓存。
 	std::deque<std::string> _edit_response_order; // 幂等缓存淘汰顺序，限制长期房间内存。
+	std::unordered_map<std::string, message::ItemCreateBatchRsp> _batch_responses; // 最近批量创建确认，用于重复粘贴请求幂等返回。
+	std::deque<std::string> _batch_response_order; // 批量创建幂等缓存的淘汰顺序。
+	std::unordered_map<std::string, std::size_t> _batch_create_index; // 批量图元到创建历史的索引，避免旧协议重复创建。
 	std::uint64_t _edit_sequence = 0; // 跨图片、文字和通用编辑的服务端单调版本。
 
 	// 防止房间画太久内存爆

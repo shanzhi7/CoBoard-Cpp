@@ -75,6 +75,7 @@ qt_add_executable(DBClient
     paintscene.h paintscene.cpp
     canvasdocument.h
     canvasitemserializer.h canvasitemserializer.cpp
+    canvasclipboardpayload.h canvasclipboardpayload.cpp
     canvasfilemanager.h canvasfilemanager.cpp
     canvasitems/canvasitem.h canvasitems/canvasitem.cpp
     canvasitems/textitem.h canvasitems/textitem.cpp

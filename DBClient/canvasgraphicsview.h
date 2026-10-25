@@ -41,13 +41,14 @@ public:
 signals:
     void zoomChanged(qreal zoom_factor); // 当前缩放比例发生变化
     void sigImageFilesDropped(QStringList file_paths, QPointF scene_pos); // 本地图片文件拖入画布时通知上层处理资源导入
-    void sigPasteImageRequested(); // 用户在画布视图中触发粘贴快捷键时通知上层读取剪贴板
+    void sigPasteImageRequested(QPointF scene_pos); // 粘贴时传递鼠标的场景坐标，作为图元中心落点。
+    void sigCopyItemsRequested(); // 用户在画布视图中触发复制快捷键时通知上层写入内部剪贴板。
     void SigCursorScenePositionChanged(QPointF scene_pos); // 手形模式下向状态栏转发滚动后的场景坐标。
     void SigToolShortcutRequested(int tool_id); // 画布焦点中的字母按键请求切换已注册工具。
 
 protected:
     void wheelEvent(QWheelEvent* event) override; // 处理 Ctrl 加滚轮缩放
-    void keyPressEvent(QKeyEvent* event) override; // 优先保留文本编辑，再处理工具字母键和图片粘贴。
+    void keyPressEvent(QKeyEvent* event) override; // 优先保留文本编辑，再处理工具字母键和图元复制粘贴。
     void mouseMoveEvent(QMouseEvent* event) override; // 保留 Qt 视口拖动并更新手形模式下的坐标显示。
     void dragEnterEvent(QDragEnterEvent* event) override; // 接受包含本地文件 URL 的拖放进入事件
     void dragMoveEvent(QDragMoveEvent* event) override; // 拖放移动期间持续确认本地文件格式

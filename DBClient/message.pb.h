@@ -92,6 +92,15 @@ extern ImageOperationDefaultTypeInternal _ImageOperation_default_instance_;
 class ImageTransform;
 struct ImageTransformDefaultTypeInternal;
 extern ImageTransformDefaultTypeInternal _ImageTransform_default_instance_;
+class ItemCreateBatch;
+struct ItemCreateBatchDefaultTypeInternal;
+extern ItemCreateBatchDefaultTypeInternal _ItemCreateBatch_default_instance_;
+class ItemCreateBatchRsp;
+struct ItemCreateBatchRspDefaultTypeInternal;
+extern ItemCreateBatchRspDefaultTypeInternal _ItemCreateBatchRsp_default_instance_;
+class ItemCreateItem;
+struct ItemCreateItemDefaultTypeInternal;
+extern ItemCreateItemDefaultTypeInternal _ItemCreateItem_default_instance_;
 class ItemEditOperation;
 struct ItemEditOperationDefaultTypeInternal;
 extern ItemEditOperationDefaultTypeInternal _ItemEditOperation_default_instance_;
@@ -253,6 +262,8 @@ enum MsgID : int {
   ID_UNKNOWN = 0,
   ID_ITEM_EDIT_REQ = 1040,
   ID_ITEM_EDIT_RSP = 1041,
+  ID_ITEM_CREATE_BATCH_REQ = 1042,
+  ID_ITEM_CREATE_BATCH_RSP = 1043,
   ID_LEAVE_ROOM_REQ = 1033,
   ID_LEAVE_ROOM_RSP = 1034,
   ID_DESTROY_ROOM_REQ = 1035,
@@ -277,8 +288,8 @@ enum MsgID : int {
 bool MsgID_IsValid(int value);
 extern const uint32_t MsgID_internal_data_[];
 constexpr MsgID MsgID_MIN = static_cast<MsgID>(0);
-constexpr MsgID MsgID_MAX = static_cast<MsgID>(1041);
-constexpr int MsgID_ARRAYSIZE = 1041 + 1;
+constexpr MsgID MsgID_MAX = static_cast<MsgID>(1043);
+constexpr int MsgID_ARRAYSIZE = 1043 + 1;
 const ::google::protobuf::EnumDescriptor*
 MsgID_descriptor();
 template <typename T>
@@ -5910,6 +5921,244 @@ class ItemEditState final : public ::google::protobuf::Message
 };
 // -------------------------------------------------------------------
 
+class ItemCreateItem final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ItemCreateItem) */ {
+ public:
+  inline ItemCreateItem() : ItemCreateItem(nullptr) {}
+  ~ItemCreateItem() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ItemCreateItem* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ItemCreateItem));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ItemCreateItem(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ItemCreateItem(const ItemCreateItem& from) : ItemCreateItem(nullptr, from) {}
+  inline ItemCreateItem(ItemCreateItem&& from) noexcept
+      : ItemCreateItem(nullptr, std::move(from)) {}
+  inline ItemCreateItem& operator=(const ItemCreateItem& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ItemCreateItem& operator=(ItemCreateItem&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ItemCreateItem& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ItemCreateItem* internal_default_instance() {
+    return reinterpret_cast<const ItemCreateItem*>(
+        &_ItemCreateItem_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 42;
+  friend void swap(ItemCreateItem& a, ItemCreateItem& b) { a.Swap(&b); }
+  inline void Swap(ItemCreateItem* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ItemCreateItem* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ItemCreateItem* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ItemCreateItem>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ItemCreateItem& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ItemCreateItem& from) { ItemCreateItem::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ItemCreateItem* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ItemCreateItem"; }
+
+ protected:
+  explicit ItemCreateItem(::google::protobuf::Arena* arena);
+  ItemCreateItem(::google::protobuf::Arena* arena, const ItemCreateItem& from);
+  ItemCreateItem(::google::protobuf::Arena* arena, ItemCreateItem&& from) noexcept
+      : ItemCreateItem(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kItemIdFieldNumber = 1,
+    kItemJsonFieldNumber = 3,
+    kKindFieldNumber = 2,
+    kStackOrderFieldNumber = 4,
+  };
+  // string item_id = 1;
+  void clear_item_id() ;
+  const std::string& item_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_item_id(Arg_&& arg, Args_... args);
+  std::string* mutable_item_id();
+  PROTOBUF_NODISCARD std::string* release_item_id();
+  void set_allocated_item_id(std::string* value);
+
+  private:
+  const std::string& _internal_item_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_item_id(
+      const std::string& value);
+  std::string* _internal_mutable_item_id();
+
+  public:
+  // string item_json = 3;
+  void clear_item_json() ;
+  const std::string& item_json() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_item_json(Arg_&& arg, Args_... args);
+  std::string* mutable_item_json();
+  PROTOBUF_NODISCARD std::string* release_item_json();
+  void set_allocated_item_json(std::string* value);
+
+  private:
+  const std::string& _internal_item_json() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_item_json(
+      const std::string& value);
+  std::string* _internal_mutable_item_json();
+
+  public:
+  // .message.ItemKind kind = 2;
+  void clear_kind() ;
+  ::message::ItemKind kind() const;
+  void set_kind(::message::ItemKind value);
+
+  private:
+  ::message::ItemKind _internal_kind() const;
+  void _internal_set_kind(::message::ItemKind value);
+
+  public:
+  // uint32 stack_order = 4;
+  void clear_stack_order() ;
+  ::uint32_t stack_order() const;
+  void set_stack_order(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_stack_order() const;
+  void _internal_set_stack_order(::uint32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ItemCreateItem)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      2, 4, 0,
+      47, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ItemCreateItem& from_msg);
+    ::google::protobuf::internal::ArenaStringPtr item_id_;
+    ::google::protobuf::internal::ArenaStringPtr item_json_;
+    int kind_;
+    ::uint32_t stack_order_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
 class ImageTransform final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:message.ImageTransform) */ {
  public:
@@ -9327,6 +9576,275 @@ class ItemEditOperation final : public ::google::protobuf::Message
 };
 // -------------------------------------------------------------------
 
+class ItemCreateBatch final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ItemCreateBatch) */ {
+ public:
+  inline ItemCreateBatch() : ItemCreateBatch(nullptr) {}
+  ~ItemCreateBatch() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ItemCreateBatch* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ItemCreateBatch));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ItemCreateBatch(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ItemCreateBatch(const ItemCreateBatch& from) : ItemCreateBatch(nullptr, from) {}
+  inline ItemCreateBatch(ItemCreateBatch&& from) noexcept
+      : ItemCreateBatch(nullptr, std::move(from)) {}
+  inline ItemCreateBatch& operator=(const ItemCreateBatch& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ItemCreateBatch& operator=(ItemCreateBatch&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ItemCreateBatch& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ItemCreateBatch* internal_default_instance() {
+    return reinterpret_cast<const ItemCreateBatch*>(
+        &_ItemCreateBatch_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 43;
+  friend void swap(ItemCreateBatch& a, ItemCreateBatch& b) { a.Swap(&b); }
+  inline void Swap(ItemCreateBatch* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ItemCreateBatch* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ItemCreateBatch* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ItemCreateBatch>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ItemCreateBatch& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ItemCreateBatch& from) { ItemCreateBatch::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ItemCreateBatch* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ItemCreateBatch"; }
+
+ protected:
+  explicit ItemCreateBatch(::google::protobuf::Arena* arena);
+  ItemCreateBatch(::google::protobuf::Arena* arena, const ItemCreateBatch& from);
+  ItemCreateBatch(::google::protobuf::Arena* arena, ItemCreateBatch&& from) noexcept
+      : ItemCreateBatch(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kItemsFieldNumber = 5,
+    kRoomIdFieldNumber = 2,
+    kOperationIdFieldNumber = 3,
+    kUidFieldNumber = 1,
+    kPayloadVersionFieldNumber = 4,
+    kServerSequenceFieldNumber = 6,
+  };
+  // repeated .message.ItemCreateItem items = 5;
+  int items_size() const;
+  private:
+  int _internal_items_size() const;
+
+  public:
+  void clear_items() ;
+  ::message::ItemCreateItem* mutable_items(int index);
+  ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>* mutable_items();
+
+  private:
+  const ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>& _internal_items() const;
+  ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>* _internal_mutable_items();
+  public:
+  const ::message::ItemCreateItem& items(int index) const;
+  ::message::ItemCreateItem* add_items();
+  const ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>& items() const;
+  // string room_id = 2;
+  void clear_room_id() ;
+  const std::string& room_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_room_id(Arg_&& arg, Args_... args);
+  std::string* mutable_room_id();
+  PROTOBUF_NODISCARD std::string* release_room_id();
+  void set_allocated_room_id(std::string* value);
+
+  private:
+  const std::string& _internal_room_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_room_id(
+      const std::string& value);
+  std::string* _internal_mutable_room_id();
+
+  public:
+  // string operation_id = 3;
+  void clear_operation_id() ;
+  const std::string& operation_id() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_operation_id(Arg_&& arg, Args_... args);
+  std::string* mutable_operation_id();
+  PROTOBUF_NODISCARD std::string* release_operation_id();
+  void set_allocated_operation_id(std::string* value);
+
+  private:
+  const std::string& _internal_operation_id() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_operation_id(
+      const std::string& value);
+  std::string* _internal_mutable_operation_id();
+
+  public:
+  // int32 uid = 1;
+  void clear_uid() ;
+  ::int32_t uid() const;
+  void set_uid(::int32_t value);
+
+  private:
+  ::int32_t _internal_uid() const;
+  void _internal_set_uid(::int32_t value);
+
+  public:
+  // uint32 payload_version = 4;
+  void clear_payload_version() ;
+  ::uint32_t payload_version() const;
+  void set_payload_version(::uint32_t value);
+
+  private:
+  ::uint32_t _internal_payload_version() const;
+  void _internal_set_payload_version(::uint32_t value);
+
+  public:
+  // uint64 server_sequence = 6;
+  void clear_server_sequence() ;
+  ::uint64_t server_sequence() const;
+  void set_server_sequence(::uint64_t value);
+
+  private:
+  ::uint64_t _internal_server_sequence() const;
+  void _internal_set_server_sequence(::uint64_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ItemCreateBatch)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      3, 6, 1,
+      51, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ItemCreateBatch& from_msg);
+    ::google::protobuf::RepeatedPtrField< ::message::ItemCreateItem > items_;
+    ::google::protobuf::internal::ArenaStringPtr room_id_;
+    ::google::protobuf::internal::ArenaStringPtr operation_id_;
+    ::int32_t uid_;
+    ::uint32_t payload_version_;
+    ::uint64_t server_sequence_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
 class ImageItem final : public ::google::protobuf::Message
 /* @@protoc_insertion_point(class_definition:message.ImageItem) */ {
  public:
@@ -10480,6 +10998,232 @@ class ItemEditOperationRsp final : public ::google::protobuf::Message
     ::message::ItemEditOperation* operation_;
     ::message::ItemEditState* current_state_;
     ::message::ItemEditState* confirmed_state_;
+    ::int32_t error_;
+    PROTOBUF_TSAN_DECLARE_MEMBER
+  };
+  union { Impl_ _impl_; };
+  friend struct ::TableStruct_message_2eproto;
+};
+// -------------------------------------------------------------------
+
+class ItemCreateBatchRsp final : public ::google::protobuf::Message
+/* @@protoc_insertion_point(class_definition:message.ItemCreateBatchRsp) */ {
+ public:
+  inline ItemCreateBatchRsp() : ItemCreateBatchRsp(nullptr) {}
+  ~ItemCreateBatchRsp() PROTOBUF_FINAL;
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+  void operator delete(ItemCreateBatchRsp* msg, std::destroying_delete_t) {
+    SharedDtor(*msg);
+    ::google::protobuf::internal::SizedDelete(msg, sizeof(ItemCreateBatchRsp));
+  }
+#endif
+
+  template <typename = void>
+  explicit PROTOBUF_CONSTEXPR ItemCreateBatchRsp(
+      ::google::protobuf::internal::ConstantInitialized);
+
+  inline ItemCreateBatchRsp(const ItemCreateBatchRsp& from) : ItemCreateBatchRsp(nullptr, from) {}
+  inline ItemCreateBatchRsp(ItemCreateBatchRsp&& from) noexcept
+      : ItemCreateBatchRsp(nullptr, std::move(from)) {}
+  inline ItemCreateBatchRsp& operator=(const ItemCreateBatchRsp& from) {
+    CopyFrom(from);
+    return *this;
+  }
+  inline ItemCreateBatchRsp& operator=(ItemCreateBatchRsp&& from) noexcept {
+    if (this == &from) return *this;
+    if (::google::protobuf::internal::CanMoveWithInternalSwap(GetArena(), from.GetArena())) {
+      InternalSwap(&from);
+    } else {
+      CopyFrom(from);
+    }
+    return *this;
+  }
+
+  inline const ::google::protobuf::UnknownFieldSet& unknown_fields() const
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance);
+  }
+  inline ::google::protobuf::UnknownFieldSet* mutable_unknown_fields()
+      ABSL_ATTRIBUTE_LIFETIME_BOUND {
+    return _internal_metadata_.mutable_unknown_fields<::google::protobuf::UnknownFieldSet>();
+  }
+
+  static const ::google::protobuf::Descriptor* descriptor() {
+    return GetDescriptor();
+  }
+  static const ::google::protobuf::Descriptor* GetDescriptor() {
+    return default_instance().GetMetadata().descriptor;
+  }
+  static const ::google::protobuf::Reflection* GetReflection() {
+    return default_instance().GetMetadata().reflection;
+  }
+  static const ItemCreateBatchRsp& default_instance() {
+    return *internal_default_instance();
+  }
+  static inline const ItemCreateBatchRsp* internal_default_instance() {
+    return reinterpret_cast<const ItemCreateBatchRsp*>(
+        &_ItemCreateBatchRsp_default_instance_);
+  }
+  static constexpr int kIndexInFileMessages = 44;
+  friend void swap(ItemCreateBatchRsp& a, ItemCreateBatchRsp& b) { a.Swap(&b); }
+  inline void Swap(ItemCreateBatchRsp* other) {
+    if (other == this) return;
+    if (::google::protobuf::internal::CanUseInternalSwap(GetArena(), other->GetArena())) {
+      InternalSwap(other);
+    } else {
+      ::google::protobuf::internal::GenericSwap(this, other);
+    }
+  }
+  void UnsafeArenaSwap(ItemCreateBatchRsp* other) {
+    if (other == this) return;
+    ABSL_DCHECK(GetArena() == other->GetArena());
+    InternalSwap(other);
+  }
+
+  // implements Message ----------------------------------------------
+
+  ItemCreateBatchRsp* New(::google::protobuf::Arena* arena = nullptr) const {
+    return ::google::protobuf::Message::DefaultConstruct<ItemCreateBatchRsp>(arena);
+  }
+  using ::google::protobuf::Message::CopyFrom;
+  void CopyFrom(const ItemCreateBatchRsp& from);
+  using ::google::protobuf::Message::MergeFrom;
+  void MergeFrom(const ItemCreateBatchRsp& from) { ItemCreateBatchRsp::MergeImpl(*this, from); }
+
+  private:
+  static void MergeImpl(
+      ::google::protobuf::MessageLite& to_msg,
+      const ::google::protobuf::MessageLite& from_msg);
+
+  public:
+  bool IsInitialized() const {
+    return true;
+  }
+  ABSL_ATTRIBUTE_REINITIALIZES void Clear() PROTOBUF_FINAL;
+  #if defined(PROTOBUF_CUSTOM_VTABLE)
+  private:
+  static ::size_t ByteSizeLong(const ::google::protobuf::MessageLite& msg);
+  static ::uint8_t* _InternalSerialize(
+      const MessageLite& msg, ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream);
+
+  public:
+  ::size_t ByteSizeLong() const { return ByteSizeLong(*this); }
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+    return _InternalSerialize(*this, target, stream);
+  }
+  #else   // PROTOBUF_CUSTOM_VTABLE
+  ::size_t ByteSizeLong() const final;
+  ::uint8_t* _InternalSerialize(
+      ::uint8_t* target,
+      ::google::protobuf::io::EpsCopyOutputStream* stream) const final;
+  #endif  // PROTOBUF_CUSTOM_VTABLE
+  int GetCachedSize() const { return _impl_._cached_size_.Get(); }
+
+  private:
+  void SharedCtor(::google::protobuf::Arena* arena);
+  static void SharedDtor(MessageLite& self);
+  void InternalSwap(ItemCreateBatchRsp* other);
+ private:
+  template <typename T>
+  friend ::absl::string_view(
+      ::google::protobuf::internal::GetAnyMessageName)();
+  static ::absl::string_view FullMessageName() { return "message.ItemCreateBatchRsp"; }
+
+ protected:
+  explicit ItemCreateBatchRsp(::google::protobuf::Arena* arena);
+  ItemCreateBatchRsp(::google::protobuf::Arena* arena, const ItemCreateBatchRsp& from);
+  ItemCreateBatchRsp(::google::protobuf::Arena* arena, ItemCreateBatchRsp&& from) noexcept
+      : ItemCreateBatchRsp(arena) {
+    *this = ::std::move(from);
+  }
+  const ::google::protobuf::internal::ClassData* GetClassData() const PROTOBUF_FINAL;
+  static void* PlacementNew_(const void*, void* mem,
+                             ::google::protobuf::Arena* arena);
+  static constexpr auto InternalNewImpl_();
+  static const ::google::protobuf::internal::ClassDataFull _class_data_;
+
+ public:
+  ::google::protobuf::Metadata GetMetadata() const;
+  // nested types ----------------------------------------------------
+
+  // accessors -------------------------------------------------------
+  enum : int {
+    kErrorMessageFieldNumber = 3,
+    kBatchFieldNumber = 2,
+    kErrorFieldNumber = 1,
+  };
+  // string error_message = 3;
+  void clear_error_message() ;
+  const std::string& error_message() const;
+  template <typename Arg_ = const std::string&, typename... Args_>
+  void set_error_message(Arg_&& arg, Args_... args);
+  std::string* mutable_error_message();
+  PROTOBUF_NODISCARD std::string* release_error_message();
+  void set_allocated_error_message(std::string* value);
+
+  private:
+  const std::string& _internal_error_message() const;
+  inline PROTOBUF_ALWAYS_INLINE void _internal_set_error_message(
+      const std::string& value);
+  std::string* _internal_mutable_error_message();
+
+  public:
+  // .message.ItemCreateBatch batch = 2;
+  bool has_batch() const;
+  void clear_batch() ;
+  const ::message::ItemCreateBatch& batch() const;
+  PROTOBUF_NODISCARD ::message::ItemCreateBatch* release_batch();
+  ::message::ItemCreateBatch* mutable_batch();
+  void set_allocated_batch(::message::ItemCreateBatch* value);
+  void unsafe_arena_set_allocated_batch(::message::ItemCreateBatch* value);
+  ::message::ItemCreateBatch* unsafe_arena_release_batch();
+
+  private:
+  const ::message::ItemCreateBatch& _internal_batch() const;
+  ::message::ItemCreateBatch* _internal_mutable_batch();
+
+  public:
+  // int32 error = 1;
+  void clear_error() ;
+  ::int32_t error() const;
+  void set_error(::int32_t value);
+
+  private:
+  ::int32_t _internal_error() const;
+  void _internal_set_error(::int32_t value);
+
+  public:
+  // @@protoc_insertion_point(class_scope:message.ItemCreateBatchRsp)
+ private:
+  class _Internal;
+  friend class ::google::protobuf::internal::TcParser;
+  static const ::google::protobuf::internal::TcParseTable<
+      2, 3, 1,
+      48, 2>
+      _table_;
+
+  friend class ::google::protobuf::MessageLite;
+  friend class ::google::protobuf::Arena;
+  template <typename T>
+  friend class ::google::protobuf::Arena::InternalHelper;
+  using InternalArenaConstructable_ = void;
+  using DestructorSkippable_ = void;
+  struct Impl_ {
+    inline explicit constexpr Impl_(
+        ::google::protobuf::internal::ConstantInitialized) noexcept;
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena);
+    inline explicit Impl_(::google::protobuf::internal::InternalVisibility visibility,
+                          ::google::protobuf::Arena* arena, const Impl_& from,
+                          const ItemCreateBatchRsp& from_msg);
+    ::google::protobuf::internal::HasBits<1> _has_bits_;
+    ::google::protobuf::internal::CachedSize _cached_size_;
+    ::google::protobuf::internal::ArenaStringPtr error_message_;
+    ::message::ItemCreateBatch* batch_;
     ::int32_t error_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
@@ -17955,6 +18699,535 @@ inline void ItemEditOperationRsp::set_allocated_confirmed_state(::message::ItemE
 
   _impl_.confirmed_state_ = reinterpret_cast<::message::ItemEditState*>(value);
   // @@protoc_insertion_point(field_set_allocated:message.ItemEditOperationRsp.confirmed_state)
+}
+
+// -------------------------------------------------------------------
+
+// ItemCreateItem
+
+// string item_id = 1;
+inline void ItemCreateItem::clear_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.ClearToEmpty();
+}
+inline const std::string& ItemCreateItem::item_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateItem.item_id)
+  return _internal_item_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ItemCreateItem::set_item_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ItemCreateItem.item_id)
+}
+inline std::string* ItemCreateItem::mutable_item_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_item_id();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateItem.item_id)
+  return _s;
+}
+inline const std::string& ItemCreateItem::_internal_item_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.item_id_.Get();
+}
+inline void ItemCreateItem::_internal_set_item_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.Set(value, GetArena());
+}
+inline std::string* ItemCreateItem::_internal_mutable_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.item_id_.Mutable( GetArena());
+}
+inline std::string* ItemCreateItem::release_item_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateItem.item_id)
+  return _impl_.item_id_.Release();
+}
+inline void ItemCreateItem::set_allocated_item_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.item_id_.IsDefault()) {
+    _impl_.item_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateItem.item_id)
+}
+
+// .message.ItemKind kind = 2;
+inline void ItemCreateItem::clear_kind() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = 0;
+}
+inline ::message::ItemKind ItemCreateItem::kind() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateItem.kind)
+  return _internal_kind();
+}
+inline void ItemCreateItem::set_kind(::message::ItemKind value) {
+  _internal_set_kind(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateItem.kind)
+}
+inline ::message::ItemKind ItemCreateItem::_internal_kind() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::message::ItemKind>(_impl_.kind_);
+}
+inline void ItemCreateItem::_internal_set_kind(::message::ItemKind value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.kind_ = value;
+}
+
+// string item_json = 3;
+inline void ItemCreateItem::clear_item_json() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_json_.ClearToEmpty();
+}
+inline const std::string& ItemCreateItem::item_json() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateItem.item_json)
+  return _internal_item_json();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ItemCreateItem::set_item_json(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_json_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ItemCreateItem.item_json)
+}
+inline std::string* ItemCreateItem::mutable_item_json() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_item_json();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateItem.item_json)
+  return _s;
+}
+inline const std::string& ItemCreateItem::_internal_item_json() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.item_json_.Get();
+}
+inline void ItemCreateItem::_internal_set_item_json(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_json_.Set(value, GetArena());
+}
+inline std::string* ItemCreateItem::_internal_mutable_item_json() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.item_json_.Mutable( GetArena());
+}
+inline std::string* ItemCreateItem::release_item_json() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateItem.item_json)
+  return _impl_.item_json_.Release();
+}
+inline void ItemCreateItem::set_allocated_item_json(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.item_json_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.item_json_.IsDefault()) {
+    _impl_.item_json_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateItem.item_json)
+}
+
+// uint32 stack_order = 4;
+inline void ItemCreateItem::clear_stack_order() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stack_order_ = 0u;
+}
+inline ::uint32_t ItemCreateItem::stack_order() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateItem.stack_order)
+  return _internal_stack_order();
+}
+inline void ItemCreateItem::set_stack_order(::uint32_t value) {
+  _internal_set_stack_order(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateItem.stack_order)
+}
+inline ::uint32_t ItemCreateItem::_internal_stack_order() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.stack_order_;
+}
+inline void ItemCreateItem::_internal_set_stack_order(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.stack_order_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ItemCreateBatch
+
+// int32 uid = 1;
+inline void ItemCreateBatch::clear_uid() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = 0;
+}
+inline ::int32_t ItemCreateBatch::uid() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.uid)
+  return _internal_uid();
+}
+inline void ItemCreateBatch::set_uid(::int32_t value) {
+  _internal_set_uid(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatch.uid)
+}
+inline ::int32_t ItemCreateBatch::_internal_uid() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.uid_;
+}
+inline void ItemCreateBatch::_internal_set_uid(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.uid_ = value;
+}
+
+// string room_id = 2;
+inline void ItemCreateBatch::clear_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.ClearToEmpty();
+}
+inline const std::string& ItemCreateBatch::room_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.room_id)
+  return _internal_room_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ItemCreateBatch::set_room_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatch.room_id)
+}
+inline std::string* ItemCreateBatch::mutable_room_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_room_id();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateBatch.room_id)
+  return _s;
+}
+inline const std::string& ItemCreateBatch::_internal_room_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.room_id_.Get();
+}
+inline void ItemCreateBatch::_internal_set_room_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.Set(value, GetArena());
+}
+inline std::string* ItemCreateBatch::_internal_mutable_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.room_id_.Mutable( GetArena());
+}
+inline std::string* ItemCreateBatch::release_room_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateBatch.room_id)
+  return _impl_.room_id_.Release();
+}
+inline void ItemCreateBatch::set_allocated_room_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.room_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.room_id_.IsDefault()) {
+    _impl_.room_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateBatch.room_id)
+}
+
+// string operation_id = 3;
+inline void ItemCreateBatch::clear_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_id_.ClearToEmpty();
+}
+inline const std::string& ItemCreateBatch::operation_id() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.operation_id)
+  return _internal_operation_id();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ItemCreateBatch::set_operation_id(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_id_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatch.operation_id)
+}
+inline std::string* ItemCreateBatch::mutable_operation_id() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_operation_id();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateBatch.operation_id)
+  return _s;
+}
+inline const std::string& ItemCreateBatch::_internal_operation_id() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.operation_id_.Get();
+}
+inline void ItemCreateBatch::_internal_set_operation_id(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_id_.Set(value, GetArena());
+}
+inline std::string* ItemCreateBatch::_internal_mutable_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.operation_id_.Mutable( GetArena());
+}
+inline std::string* ItemCreateBatch::release_operation_id() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateBatch.operation_id)
+  return _impl_.operation_id_.Release();
+}
+inline void ItemCreateBatch::set_allocated_operation_id(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_id_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.operation_id_.IsDefault()) {
+    _impl_.operation_id_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateBatch.operation_id)
+}
+
+// uint32 payload_version = 4;
+inline void ItemCreateBatch::clear_payload_version() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_version_ = 0u;
+}
+inline ::uint32_t ItemCreateBatch::payload_version() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.payload_version)
+  return _internal_payload_version();
+}
+inline void ItemCreateBatch::set_payload_version(::uint32_t value) {
+  _internal_set_payload_version(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatch.payload_version)
+}
+inline ::uint32_t ItemCreateBatch::_internal_payload_version() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.payload_version_;
+}
+inline void ItemCreateBatch::_internal_set_payload_version(::uint32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.payload_version_ = value;
+}
+
+// repeated .message.ItemCreateItem items = 5;
+inline int ItemCreateBatch::_internal_items_size() const {
+  return _internal_items().size();
+}
+inline int ItemCreateBatch::items_size() const {
+  return _internal_items_size();
+}
+inline void ItemCreateBatch::clear_items() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.items_.Clear();
+}
+inline ::message::ItemCreateItem* ItemCreateBatch::mutable_items(int index)
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateBatch.items)
+  return _internal_mutable_items()->Mutable(index);
+}
+inline ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>* ItemCreateBatch::mutable_items()
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_mutable_list:message.ItemCreateBatch.items)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _internal_mutable_items();
+}
+inline const ::message::ItemCreateItem& ItemCreateBatch::items(int index) const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.items)
+  return _internal_items().Get(index);
+}
+inline ::message::ItemCreateItem* ItemCreateBatch::add_items() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::message::ItemCreateItem* _add = _internal_mutable_items()->Add();
+  // @@protoc_insertion_point(field_add:message.ItemCreateBatch.items)
+  return _add;
+}
+inline const ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>& ItemCreateBatch::items() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_list:message.ItemCreateBatch.items)
+  return _internal_items();
+}
+inline const ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>&
+ItemCreateBatch::_internal_items() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.items_;
+}
+inline ::google::protobuf::RepeatedPtrField<::message::ItemCreateItem>*
+ItemCreateBatch::_internal_mutable_items() {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return &_impl_.items_;
+}
+
+// uint64 server_sequence = 6;
+inline void ItemCreateBatch::clear_server_sequence() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.server_sequence_ = ::uint64_t{0u};
+}
+inline ::uint64_t ItemCreateBatch::server_sequence() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatch.server_sequence)
+  return _internal_server_sequence();
+}
+inline void ItemCreateBatch::set_server_sequence(::uint64_t value) {
+  _internal_set_server_sequence(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatch.server_sequence)
+}
+inline ::uint64_t ItemCreateBatch::_internal_server_sequence() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.server_sequence_;
+}
+inline void ItemCreateBatch::_internal_set_server_sequence(::uint64_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.server_sequence_ = value;
+}
+
+// -------------------------------------------------------------------
+
+// ItemCreateBatchRsp
+
+// int32 error = 1;
+inline void ItemCreateBatchRsp::clear_error() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = 0;
+}
+inline ::int32_t ItemCreateBatchRsp::error() const {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatchRsp.error)
+  return _internal_error();
+}
+inline void ItemCreateBatchRsp::set_error(::int32_t value) {
+  _internal_set_error(value);
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatchRsp.error)
+}
+inline ::int32_t ItemCreateBatchRsp::_internal_error() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_;
+}
+inline void ItemCreateBatchRsp::_internal_set_error(::int32_t value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_ = value;
+}
+
+// .message.ItemCreateBatch batch = 2;
+inline bool ItemCreateBatchRsp::has_batch() const {
+  bool value = (_impl_._has_bits_[0] & 0x00000001u) != 0;
+  PROTOBUF_ASSUME(!value || _impl_.batch_ != nullptr);
+  return value;
+}
+inline void ItemCreateBatchRsp::clear_batch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.batch_ != nullptr) _impl_.batch_->Clear();
+  _impl_._has_bits_[0] &= ~0x00000001u;
+}
+inline const ::message::ItemCreateBatch& ItemCreateBatchRsp::_internal_batch() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  const ::message::ItemCreateBatch* p = _impl_.batch_;
+  return p != nullptr ? *p : reinterpret_cast<const ::message::ItemCreateBatch&>(::message::_ItemCreateBatch_default_instance_);
+}
+inline const ::message::ItemCreateBatch& ItemCreateBatchRsp::batch() const ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatchRsp.batch)
+  return _internal_batch();
+}
+inline void ItemCreateBatchRsp::unsafe_arena_set_allocated_batch(::message::ItemCreateBatch* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (GetArena() == nullptr) {
+    delete reinterpret_cast<::google::protobuf::MessageLite*>(_impl_.batch_);
+  }
+  _impl_.batch_ = reinterpret_cast<::message::ItemCreateBatch*>(value);
+  if (value != nullptr) {
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+  // @@protoc_insertion_point(field_unsafe_arena_set_allocated:message.ItemCreateBatchRsp.batch)
+}
+inline ::message::ItemCreateBatch* ItemCreateBatchRsp::release_batch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  ::message::ItemCreateBatch* released = _impl_.batch_;
+  _impl_.batch_ = nullptr;
+  if (::google::protobuf::internal::DebugHardenForceCopyInRelease()) {
+    auto* old = reinterpret_cast<::google::protobuf::MessageLite*>(released);
+    released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    if (GetArena() == nullptr) {
+      delete old;
+    }
+  } else {
+    if (GetArena() != nullptr) {
+      released = ::google::protobuf::internal::DuplicateIfNonNull(released);
+    }
+  }
+  return released;
+}
+inline ::message::ItemCreateBatch* ItemCreateBatchRsp::unsafe_arena_release_batch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateBatchRsp.batch)
+
+  _impl_._has_bits_[0] &= ~0x00000001u;
+  ::message::ItemCreateBatch* temp = _impl_.batch_;
+  _impl_.batch_ = nullptr;
+  return temp;
+}
+inline ::message::ItemCreateBatch* ItemCreateBatchRsp::_internal_mutable_batch() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (_impl_.batch_ == nullptr) {
+    auto* p = ::google::protobuf::Message::DefaultConstruct<::message::ItemCreateBatch>(GetArena());
+    _impl_.batch_ = reinterpret_cast<::message::ItemCreateBatch*>(p);
+  }
+  return _impl_.batch_;
+}
+inline ::message::ItemCreateBatch* ItemCreateBatchRsp::mutable_batch() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  _impl_._has_bits_[0] |= 0x00000001u;
+  ::message::ItemCreateBatch* _msg = _internal_mutable_batch();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateBatchRsp.batch)
+  return _msg;
+}
+inline void ItemCreateBatchRsp::set_allocated_batch(::message::ItemCreateBatch* value) {
+  ::google::protobuf::Arena* message_arena = GetArena();
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  if (message_arena == nullptr) {
+    delete (_impl_.batch_);
+  }
+
+  if (value != nullptr) {
+    ::google::protobuf::Arena* submessage_arena = (value)->GetArena();
+    if (message_arena != submessage_arena) {
+      value = ::google::protobuf::internal::GetOwnedMessage(message_arena, value, submessage_arena);
+    }
+    _impl_._has_bits_[0] |= 0x00000001u;
+  } else {
+    _impl_._has_bits_[0] &= ~0x00000001u;
+  }
+
+  _impl_.batch_ = reinterpret_cast<::message::ItemCreateBatch*>(value);
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateBatchRsp.batch)
+}
+
+// string error_message = 3;
+inline void ItemCreateBatchRsp::clear_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.ClearToEmpty();
+}
+inline const std::string& ItemCreateBatchRsp::error_message() const
+    ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  // @@protoc_insertion_point(field_get:message.ItemCreateBatchRsp.error_message)
+  return _internal_error_message();
+}
+template <typename Arg_, typename... Args_>
+inline PROTOBUF_ALWAYS_INLINE void ItemCreateBatchRsp::set_error_message(Arg_&& arg,
+                                                     Args_... args) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.Set(static_cast<Arg_&&>(arg), args..., GetArena());
+  // @@protoc_insertion_point(field_set:message.ItemCreateBatchRsp.error_message)
+}
+inline std::string* ItemCreateBatchRsp::mutable_error_message() ABSL_ATTRIBUTE_LIFETIME_BOUND {
+  std::string* _s = _internal_mutable_error_message();
+  // @@protoc_insertion_point(field_mutable:message.ItemCreateBatchRsp.error_message)
+  return _s;
+}
+inline const std::string& ItemCreateBatchRsp::_internal_error_message() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return _impl_.error_message_.Get();
+}
+inline void ItemCreateBatchRsp::_internal_set_error_message(const std::string& value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.Set(value, GetArena());
+}
+inline std::string* ItemCreateBatchRsp::_internal_mutable_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  return _impl_.error_message_.Mutable( GetArena());
+}
+inline std::string* ItemCreateBatchRsp::release_error_message() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  // @@protoc_insertion_point(field_release:message.ItemCreateBatchRsp.error_message)
+  return _impl_.error_message_.Release();
+}
+inline void ItemCreateBatchRsp::set_allocated_error_message(std::string* value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.error_message_.SetAllocated(value, GetArena());
+  if (::google::protobuf::internal::DebugHardenForceCopyDefaultString() && _impl_.error_message_.IsDefault()) {
+    _impl_.error_message_.Set("", GetArena());
+  }
+  // @@protoc_insertion_point(field_set_allocated:message.ItemCreateBatchRsp.error_message)
 }
 
 #ifdef __GNUC__

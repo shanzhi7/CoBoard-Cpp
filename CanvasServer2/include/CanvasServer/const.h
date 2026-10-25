@@ -59,6 +59,8 @@ enum MSG_IDS {
     ID_PERMISSION_CHANGED_BROADCAST = 1026,    //编辑权限变更广播
     ID_ITEM_EDIT_REQ = 1040, // 通用图元编辑请求。
     ID_ITEM_EDIT_RSP = 1041, // 通用图元编辑确认及广播。
+	ID_ITEM_CREATE_BATCH_REQ = 1042, // 复制粘贴的原子图元批量创建请求。
+	ID_ITEM_CREATE_BATCH_RSP = 1043, // 批量创建确认、广播和历史回放。
     ID_TEXT_OPERATION_REQ = 1031, // 文字操作请求。
     ID_TEXT_OPERATION_RSP = 1032, // 文字操作确认和广播。
     ID_IMAGE_OPERATION_REQ = 1027,              //图片图元操作请求，正文为 ImageOperation

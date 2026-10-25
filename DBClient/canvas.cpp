@@ -10,6 +10,8 @@
 #include "imagepreviewdialog.h"
 #include "canvasfilemanager.h"
 #include "canvasitemeditsync.h"
+#include "canvasclipboardpayload.h"
+#include "canvasitemserializer.h"
 #include "canvastoolregistry.h"
 #include "canvastoolbutton.h"
 #include <QMouseEvent>
@@ -56,6 +58,54 @@ QString ImageSuffixForMimeType(const QString& mime_type)
         return QStringLiteral("webp");
     }
     return QStringLiteral("png");
+}
+
+bool DecodeBatchDocument(const message::ItemCreateBatch& batch, CanvasDocument* document, QString* error_message)
+{
+    // 1. 批量消息复用内部剪贴板 JSON，图片像素仅从 clipboard_png 恢复。
+    if (!document || batch.payload_version() != 1 || batch.items_size() <= 0 || batch.items_size() > 64)
+    {
+        if (error_message) *error_message = QStringLiteral("图元批量创建版本或数量无效");
+        return false;
+    }
+    CanvasDocument result;
+    for (int index = 0; index < batch.items_size(); ++index)
+    {
+        const message::ItemCreateItem& item = batch.items(index);
+        QJsonParseError parse_error;
+        const QJsonDocument json_document = QJsonDocument::fromJson(QByteArray::fromStdString(item.item_json()), &parse_error);
+        QJsonObject item_data = json_document.object();
+        if (parse_error.error != QJsonParseError::NoError || !json_document.isObject() ||
+            item.stack_order() != static_cast<quint32>(index) ||
+            item_data.value(QStringLiteral("item_id")).toString() != QString::fromStdString(item.item_id()))
+        {
+            if (error_message) *error_message = QStringLiteral("图元批量创建内容无效");
+            return false;
+        }
+        if (item_data.value(QStringLiteral("type")).toString() == QStringLiteral("image"))
+        {
+            const QString sha256 = item_data.value(QStringLiteral("asset_sha256")).toString();
+            const QByteArray png = QByteArray::fromBase64(item_data.take(QStringLiteral("clipboard_png")).toString().toLatin1());
+            QImage image;
+            if (sha256.isEmpty() || png.isEmpty() || png.size() > 16 * 1024 * 1024 || !image.loadFromData(png, "PNG"))
+            {
+                if (error_message) *error_message = QStringLiteral("图元批量创建图片资源无效");
+                return false;
+            }
+            CanvasAssetData asset;
+            asset._asset_sha256 = sha256;
+            asset._mime_type = item_data.value(QStringLiteral("mime_type")).toString();
+            asset._original_size = image.size();
+            asset._data = png;
+            asset._image = image;
+            result._asset_dataMap.insert(sha256, asset);
+        }
+        if (!CanvasItemSerializer::ValidateItem(item_data, result._asset_dataMap, error_message)) return false;
+        result._items.append(item_data);
+        result._item_order.append(QString::fromStdString(item.item_id()));
+    }
+    *document = result;
+    return true;
 }
 }
 
@@ -176,6 +226,7 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
 
     connect(TcpMgr::getInstance().get(), &TcpMgr::SigTextOperationReceived, this, &Canvas::OnTextOperationReceived);
     connect(TcpMgr::getInstance().get(), &TcpMgr::SigItemEditReceived, this, &Canvas::OnItemEditReceived);
+    connect(TcpMgr::getInstance().get(), &TcpMgr::SigItemCreateBatchReceived, this, &Canvas::OnItemCreateBatchReceived);
 
     // 图片签名接口复用 HttpMgr 的大厅模块回调；请求严格串行，回包才能对应到当前资源上下文。
     connect(HttpMgr::getInstance().get(), &HttpMgr::sigImageSignatureFinished,
@@ -556,6 +607,8 @@ void Canvas::initCanvasUi()
             this, &Canvas::OnImageFilesDropped);
     connect(ui->graphicsView, &CanvasGraphicsView::sigPasteImageRequested,
             this, &Canvas::OnPasteImageRequested);
+    connect(ui->graphicsView, &CanvasGraphicsView::sigCopyItemsRequested,
+            this, &Canvas::OnCopyItemsRequested);
     //初始化 paintScene(end)
 
     //初始化 _widthPopup(begin)
@@ -1201,6 +1254,14 @@ void Canvas::OnItemEditReceived(const message::ItemEditOperationRsp& response)
     _remote_operation_order.enqueue(ReqId::ID_ITEM_EDIT_RSP);
 }
 
+void Canvas::OnItemCreateBatchReceived(const message::ItemCreateBatchRsp& response)
+{
+    // 1. 批量创建与其他图元操作统一按 TCP 到达顺序应用。
+    if (_room_info && _room_info->offline) return;
+    _remote_item_create_batches.enqueue(response);
+    _remote_operation_order.enqueue(ReqId::ID_ITEM_CREATE_BATCH_RSP);
+}
+
 void Canvas::CompleteLocalCreation(QString item_id)
 {
     // 1. 只有本地完成事件调用本入口；按钮、场景和视图通过同一入口切换。
@@ -1464,6 +1525,13 @@ void Canvas::ClearTextOperations()
     }
     _remote_item_edits.clear();
     _remote_operation_order.removeAll(ReqId::ID_ITEM_EDIT_RSP);
+    for (auto iterator = _pending_item_create_batches.cbegin(); iterator != _pending_item_create_batches.cend(); ++iterator)
+    {
+        for (const QString& item_id : iterator.value()) _paintScene->RemoveCanvasItem(item_id);
+    }
+    _pending_item_create_batches.clear();
+    _remote_item_create_batches.clear();
+    _remote_operation_order.removeAll(ReqId::ID_ITEM_CREATE_BATCH_RSP);
     _pending_text_operationMap.clear();
     _text_sequenceMap.clear();
     _confirmed_textMap.clear();
@@ -1863,23 +1931,48 @@ void Canvas::OnImageFilesDropped(QStringList file_paths, QPointF scene_pos)
     }
 }
 
-void Canvas::OnPasteImageRequested()
+void Canvas::OnPasteImageRequested(QPointF scene_pos)
 {
-    if (!_room_info || !_paintScene || !_imageAssetManager ||
-        (!_room_info->offline && !_room_info->can_edit))
-    {
-        TipWidget::showTip(ui->graphicsView, QStringLiteral("当前没有图片编辑权限"));
-        return;
-    }
-
+    // 1. 内部图元格式优先；存在但损坏时必须停止，不能误把同一剪贴板的截图当作外部图片。
+    if (!_room_info || !_paintScene || !_imageAssetManager) return;
     const QMimeData* mime_data = QApplication::clipboard()->mimeData();
     if (!mime_data)
     {
         TipWidget::showTip(ui->graphicsView, QStringLiteral("剪贴板中没有可插入的图片"));
         return;
     }
+    const QString internal_mime = CanvasClipboardPayload::MimeType();
+    if (mime_data->hasFormat(internal_mime))
+    {
+        if (!_room_info->offline && !_room_info->can_edit)
+        {
+            TipWidget::showTip(ui->graphicsView, QStringLiteral("当前没有图元粘贴权限"));
+            return;
+        }
+        CanvasDocument source;
+        QPointF anchor;
+        QString error_message;
+        if (!CanvasClipboardPayload::Decode(mime_data->data(internal_mime), &source, &anchor, &error_message))
+        {
+            TipWidget::showTip(ui->graphicsView, error_message);
+            return;
+        }
+        // 2. 单个图元和多选集合均以显示包围框中心对齐按键时记录的鼠标落点。
+        CanvasDocument copy;
+        if (!CanvasClipboardPayload::CloneForPaste(source, scene_pos, &copy, &error_message) ||
+            !InsertClipboardBatch(copy, false, &error_message))
+        {
+            TipWidget::showTip(ui->graphicsView, error_message);
+        }
+        return;
+    }
+    if (!_room_info->offline && !_room_info->can_edit)
+    {
+        TipWidget::showTip(ui->graphicsView, QStringLiteral("当前没有图片编辑权限"));
+        return;
+    }
 
-    const QPointF center_pos = CanvasCenterScenePos();
+    // 3. 外部文件和截图共用同一落点，异步导入完成时不再读取鼠标位置。
     if (mime_data->hasUrls())
     {
         QStringList file_paths;
@@ -1899,9 +1992,7 @@ void Canvas::OnPasteImageRequested()
         {
             for (int index = 0; index < file_paths.size(); ++index)
             {
-                const QPointF offset(static_cast<qreal>(index * 20),
-                                     static_cast<qreal>(index * 20));
-                StartFileImageImport(file_paths.at(index), center_pos + offset, true);
+                StartFileImageImport(file_paths.at(index), scene_pos, true);
             }
             return;
         }
@@ -1912,12 +2003,105 @@ void Canvas::OnPasteImageRequested()
         const QImage image = QApplication::clipboard()->image();
         if (!image.isNull())
         {
-            StartImageDataImport(image, center_pos, true);
+            StartImageDataImport(image, scene_pos, true);
             return;
         }
     }
 
     TipWidget::showTip(ui->graphicsView, QStringLiteral("剪贴板中没有可插入的图片"));
+}
+
+void Canvas::OnCopyItemsRequested()
+{
+    // 1. 空选择不覆盖用户已有的系统剪贴板内容。
+    if (!_paintScene) return;
+    const QVector<CanvasItem*> items = _paintScene->SelectedCanvasItems();
+    if (items.isEmpty()) return;
+    QByteArray data;
+    QString error_message;
+    if (!CanvasClipboardPayload::Encode(items, &data, &error_message))
+    {
+        TipWidget::showTip(ui->graphicsView, error_message);
+        return;
+    }
+
+    // 2. 单独写内部 MIME，外部应用不会将图元 JSON 误当作文本或图片。
+    auto* mime_data = new QMimeData;
+    mime_data->setData(CanvasClipboardPayload::MimeType(), data);
+    QApplication::clipboard()->setMimeData(mime_data);
+    TipWidget::showTip(ui->graphicsView, QStringLiteral("已复制 %1 个图元").arg(items.size()));
+}
+
+bool Canvas::InsertClipboardBatch(const CanvasDocument& document, bool record_undo, QString* error_message)
+{
+    // 1. 场景先完整构造副本，在线模式将其标记为 pending，避免确认前再次编辑。
+    if (!_paintScene || !_room_info)
+    {
+        if (error_message) *error_message = QStringLiteral("画布尚未就绪");
+        return false;
+    }
+    QVector<QString> item_ids;
+    if (!_paintScene->InsertClipboardDocument(document, record_undo, &item_ids, error_message)) return false;
+    if (_room_info->offline)
+    {
+        _paintScene->RecordClipboardCreation(item_ids);
+        return true;
+    }
+
+    // 2. 在线请求带完整 JSON；图片的已验证资源引用沿用现有 OSS 访问链路。
+    message::ItemCreateBatch batch;
+    batch.set_uid(UserMgr::getInstance()->getUid());
+    batch.set_room_id(_room_info->id.toStdString());
+    const QString operation_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    batch.set_operation_id(operation_id.toStdString());
+    batch.set_payload_version(1);
+    for (int index = 0; index < document._items.size(); ++index)
+    {
+        QJsonObject item_data = document._items.at(index);
+        const QString type = item_data.value(QStringLiteral("type")).toString();
+        message::ItemKind kind = message::ITEM_UNKNOWN;
+        if (type == QStringLiteral("pen")) kind = message::ITEM_PEN;
+        else if (type == QStringLiteral("rect")) kind = message::ITEM_RECT;
+        else if (type == QStringLiteral("oval")) kind = message::ITEM_OVAL;
+        else if (type == QStringLiteral("line")) kind = message::ITEM_LINE;
+        else if (type == QStringLiteral("arrow")) kind = message::ITEM_ARROW;
+        else if (type == QStringLiteral("diamond")) kind = message::ITEM_DIAMOND;
+        else if (type == QStringLiteral("image")) kind = message::ITEM_IMAGE;
+        else if (type == QStringLiteral("text")) kind = message::ITEM_TEXT;
+        if (kind == message::ITEM_UNKNOWN)
+        {
+            for (const QString& item_id : item_ids) _paintScene->RemoveCanvasItem(item_id);
+            if (error_message) *error_message = QStringLiteral("剪贴板中包含不支持的图元类型");
+            return false;
+        }
+        auto* item = batch.add_items();
+        if (type == QStringLiteral("image"))
+        {
+            const auto asset = document._asset_dataMap.constFind(item_data.value(QStringLiteral("asset_sha256")).toString());
+            if (asset == document._asset_dataMap.cend() || asset->_data.isEmpty())
+            {
+                for (const QString& item_id : item_ids) _paintScene->RemoveCanvasItem(item_id);
+                if (error_message) *error_message = QStringLiteral("图片剪贴板资源缺失");
+                return false;
+            }
+            item_data.insert(QStringLiteral("clipboard_png"), QString::fromLatin1(asset->_data.toBase64()));
+        }
+        item->set_item_id(item_data.value(QStringLiteral("item_id")).toString().toStdString());
+        item->set_kind(kind);
+        item->set_stack_order(static_cast<unsigned int>(index));
+        item->set_item_json(QJsonDocument(item_data).toJson(QJsonDocument::Compact).toStdString());
+    }
+    std::string body;
+    if (!batch.SerializeToString(&body) || body.size() >= 65536)
+    {
+        for (const QString& item_id : item_ids) _paintScene->RemoveCanvasItem(item_id);
+        if (error_message) *error_message = QStringLiteral("图元批量粘贴超过网络包大小限制");
+        return false;
+    }
+    for (const QString& item_id : item_ids) _paintScene->SetItemEditPending(item_id, true);
+    _pending_item_create_batches.insert(operation_id, item_ids);
+    TcpMgr::getInstance()->slot_send_data(ReqId::ID_ITEM_CREATE_BATCH_REQ, QByteArray::fromStdString(body));
+    return true;
 }
 
 void Canvas::StartFileImageImport(const QString& file_path,
@@ -3071,6 +3255,46 @@ void Canvas::flushRemoteDrawQueue()
             } else
             {
                 _remote_item_edits.dequeue();
+            }
+        } else if (message_id == ReqId::ID_ITEM_CREATE_BATCH_RSP)
+        {
+            const message::ItemCreateBatchRsp response = _remote_item_create_batches.dequeue();
+            const QString operation_id = QString::fromStdString(response.batch().operation_id());
+            const bool is_local = _pending_item_create_batches.contains(operation_id);
+            const QVector<QString> local_ids = _pending_item_create_batches.take(operation_id);
+            if (response.error() != message::SUCCESS)
+            {
+                for (const QString& item_id : local_ids) _paintScene->RemoveCanvasItem(item_id);
+                if (is_local) TipWidget::showTip(ui->graphicsView, QString::fromStdString(response.error_message()));
+                continue;
+            }
+            if (is_local)
+            {
+                // 2. 发起者已拥有同 ID 的本地预览，确认后解除锁定并登记一次整体撤销。
+                for (const QString& item_id : local_ids)
+                {
+                    _paintScene->SetItemEditPending(item_id, false);
+                    if (_item_edit_sync) _item_edit_sync->ObserveLegacy(item_id, response.batch().server_sequence(), false, true);
+                }
+                _paintScene->RecordClipboardCreation(local_ids);
+                continue;
+            }
+            CanvasDocument document;
+            QString error_message;
+            if (DecodeBatchDocument(response.batch(), &document, &error_message))
+            {
+                QVector<QString> item_ids;
+                if (!_paintScene->InsertClipboardDocument(document, false, &item_ids, &error_message))
+                    qWarning() << "[Canvas] batch create apply failed:" << error_message;
+                else if (_item_edit_sync)
+                {
+                    for (const QString& item_id : item_ids)
+                        _item_edit_sync->ObserveLegacy(item_id, response.batch().server_sequence(), false, true);
+                }
+            }
+            else
+            {
+                qWarning() << "[Canvas] batch create decode failed:" << error_message;
             }
         } else if (message_id == ReqId::ID_TEXT_OPERATION_RSP)
         {

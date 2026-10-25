@@ -65,6 +65,7 @@ void CSession::Start()
 //发送逻辑，线程安全
 void CSession::Send(const std::string& msg, short msg_id)
 {
+	// 1. 仅在关闭和协议长度校验通过后窄化正文长度，缓冲区容量保持 size_t。
 	if (_b_close) return;
 	if (msg.size() > 0xFFFF)
 	{
@@ -79,8 +80,8 @@ void CSession::Send(const std::string& msg, short msg_id)
 			<< " msg_id=" << msg_id << std::endl;
 	}
 
-	//创建发送节点，自动处理大小端打包
-	auto send_node = std::make_shared<SendNode>(msg.c_str(), msg.length(), msg_id);
+	// 2. 创建完整发送节点并在互斥量保护下入队，帧头继续使用十六位长度。
+	auto send_node = std::make_shared<SendNode>(msg.data(), static_cast<std::uint16_t>(msg.size()), msg_id);
 
 	//加锁入队
 	bool b_need_start_write = false;
@@ -95,7 +96,7 @@ void CSession::Send(const std::string& msg, short msg_id)
 
 	}
 
-	// 触发异步写
+	// 3. 只启动队首的异步写，后续节点由完成回调串行发送。
 	if (b_need_start_write)
 	{
 		// 使用 post 确保 HandleWrite 在 socket 所在的 IO 线程执行
@@ -154,6 +155,7 @@ void CSession::HandleWrite(const boost::system::error_code& error, std::shared_p
 //读取头部
 void CSession::ReadHead()
 {
+	// 1. 关闭后不再分配新的异步读取，回调由共享会话保证生命周期。
 	if (_b_close)
 	{
 		return;
@@ -171,25 +173,25 @@ void CSession::ReadHead()
 				return;
 			}
 
-			// 解析头部 (网络序 -> 主机序)
+			// 2. 正文长度是无符号十六位整数，允许完整的 64 KiB 协议范围。
 			short msg_id = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_id);
-			short msg_len = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_len);
+			const std::uint16_t msg_len = boost::asio::detail::socket_ops::network_to_host_short(_head_buffer.msg_len);
 
 			// 简单校验
-			if (msg_len > MAX_LENGTH || msg_len < 0)
+			if (msg_len > MAX_LENGTH)
 			{
 				std::cout << "【ReadHead】Invalid msg length: " << msg_len << std::endl;
 				Close();
 				return;
 			}
 
-			// 读 Body
+			// 3. 完整校验帧头后再按声明长度读取正文。
 			ReadBody(msg_id, msg_len);
 		});
 }
 
 //读取变长 Body(直接读入 RecvNode)
-void CSession::ReadBody(short msg_id, short msg_len)
+void CSession::ReadBody(short msg_id, std::uint16_t msg_len)
 {
 	if (_b_close) return;
 	auto self = shared_from_this();
@@ -214,7 +216,7 @@ void CSession::ReadBody(short msg_id, short msg_len)
 			if (msg_id != ID_DRAW_REQ && msg_id != ID_ITEM_EDIT_REQ)
 				std::cout << "revc msgid is :" << msg_id << std::endl;
 
-			// 核心分流逻辑：快慢分离
+			// 2. 绘画在房间内验证并提交，其他消息按编辑频率选择处理通道。
 			//
 			// 快通道：高频绘画数据，不进 LogicQueue，直接广播
 			if (msg_id == ID_DRAW_REQ)
@@ -262,19 +264,19 @@ void CSession::ReadBody(short msg_id, short msg_len)
 					return;
 				}
 
-				// 1. 房间在同一锁内接受绘画、写历史并入发送队列，关闭后不会再接受旧操作。
+				// 房间在同一锁内接受绘画、写历史并入发送队列，关闭后不会再接受旧操作。
 				const std::string body(recv_node->_data, recv_node->_cur_len);
 				room->AcceptDraw(self, drawReq, body);
 
 				ReadHead();	//读取下一个消息头
 				return;
 			}
-			// 2. 图元预览和最终提交同走快通道，不能因业务队列排队降低拖动帧率。
+			// 图元预览和最终提交同走快通道，不能因业务队列排队降低拖动帧率。
 			else if (msg_id == ID_ITEM_EDIT_REQ)
 			{
 				ItemEditOperationHandler::Handle(self, msg_id, std::string(recv_node->_data, recv_node->_cur_len));
 			}
-			// 3. 登录、房间、聊天、权限和旧图片等低频业务继续进入 LogicSystem 队列。
+			// 登录、房间、聊天、权限和旧图片等低频业务继续进入 LogicSystem 队列。
 			// 图片包不能在 Asio 读取线程直接修改 Room，否则会绕过队列顺序并与其他房间操作竞争。
 			else
 			{
@@ -283,7 +285,7 @@ void CSession::ReadBody(short msg_id, short msg_len)
 				);
 			}
 
-			// 继续读取下一个包
+			// 3. 本次分发完成后继续读取下一个消息头。
 			ReadHead();
 		});
 }

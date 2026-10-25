@@ -45,6 +45,14 @@ void Room::AppendHistoryLocked(HistoryEntry entry)
             for (std::size_t index = 0; index < kTrim; ++index)
             {
                 if (!_history[index]._draw_item_id.empty()) removed_draw_ids.insert(_history[index]._draw_item_id);
+                if (_history[index]._msg_id == ID_ITEM_CREATE_BATCH_RSP)
+                {
+                    message::ItemCreateBatchRsp batch;
+                    if (batch.ParseFromString(_history[index]._body))
+                    {
+                        for (const auto& item : batch.batch().items()) removed_draw_ids.insert(item.item_id());
+                    }
+                }
             }
             _history.erase(_history.begin(), _history.begin() + static_cast<long>(kTrim));
             _history.erase(std::remove_if(_history.begin(), _history.end(), [&](const HistoryEntry& saved) {
@@ -55,6 +63,8 @@ void Room::AppendHistoryLocked(HistoryEntry entry)
                 _item_edit_states.erase(item_id);
                 _draw_started.erase(item_id);
                 _draw_end_index.erase(item_id);
+                _image_items.erase(item_id);
+                _text_itemMap.erase(item_id);
             }
         }
         // 头部删除会让所有保留条目下标前移，图片创建条目索引必须整体重建，否则变换更新会改写到错误条目。
@@ -80,15 +90,53 @@ void Room::RebuildImageHistoryIndexLocked()
 // 实现：获取历史记录快照
 std::vector<Room::HistoryEntry> Room::GetHistorySnapshot()
 {
-    // 1. 同一房间锁内复制创建记录和附属编辑快照，回放不依赖可变索引。
+    // 1. 公共入口加锁，加入房间时复用同一个持锁快照实现。
     std::lock_guard<std::mutex> lock(_mutex);
-    std::vector<HistoryEntry> snapshot;
-    for (const auto& entry : _history)
-    {
-        snapshot.push_back(entry);
-        if (!entry._edit_body.empty()) snapshot.push_back(HistoryEntry{ID_ITEM_EDIT_RSP, entry._edit_body});
-    }
-    return snapshot; // 创建和完整笔迹先回放，再应用该图元的最新编辑。
+    return GetHistorySnapshotLocked();
+}
+
+std::vector<Room::HistoryEntry> Room::GetHistorySnapshotLocked()
+{
+	// 1. 批量创建保留原几何与顺序；已删除条目过滤后重新编号，不能在重进房间时复活。
+	std::vector<HistoryEntry> snapshot;
+	for (const auto& entry : _history)
+	{
+		if (entry._msg_id == ID_ITEM_CREATE_BATCH_RSP)
+		{
+			message::ItemCreateBatchRsp response;
+			if (!response.ParseFromString(entry._body)) continue;
+			const auto items = response.batch().items();
+			response.mutable_batch()->clear_items();
+			for (const auto& item : items)
+			{
+				if (!_item_edit_states.count(item.item_id())) continue;
+				auto* saved = response.mutable_batch()->add_items();
+				*saved = item;
+				saved->set_stack_order(response.batch().items_size() - 1);
+			}
+			if (response.batch().items_size() == 0) continue;
+			snapshot.push_back(HistoryEntry{ID_ITEM_CREATE_BATCH_RSP, response.SerializeAsString()});
+
+			// 2. 同一批内各图元独立推进版本，逐个回放最终状态，不能只保留最后移动的图元。
+			for (const auto& item : response.batch().items())
+			{
+				const auto& state = _item_edit_states.at(item.item_id());
+				message::ItemEditOperationRsp edit;
+				edit.mutable_operation()->set_room_id(_room_id);
+				edit.mutable_operation()->set_target_item_id(item.item_id());
+				edit.mutable_operation()->set_revision(_item_revisions.at(item.item_id()));
+				const auto kind = state.kind();
+				edit.mutable_operation()->set_fields(kind == message::ITEM_TEXT || kind == message::ITEM_RECT ||
+					kind == message::ITEM_OVAL || kind == message::ITEM_DIAMOND ? 3 : 1);
+				*edit.mutable_current_state() = state;
+				snapshot.push_back(HistoryEntry{ID_ITEM_EDIT_RSP, edit.SerializeAsString()});
+			}
+			continue;
+		}
+		snapshot.push_back(entry);
+		if (!entry._edit_body.empty()) snapshot.push_back(HistoryEntry{ID_ITEM_EDIT_RSP, entry._edit_body});
+	}
+	return snapshot;
 }
 
 // 实现：清空历史记录
@@ -206,7 +254,7 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 	{
 		AppendHistoryLocked(HistoryEntry{ID_TEXT_OPERATION_RSP, body, std::string(), std::string()});
 		_text_create_indexMap.erase(item_id);
-	} else
+	} else if (!_batch_create_index.count(item_id))
 	{
 		auto index_iterator = _text_create_indexMap.find(item_id);
 		if (index_iterator != _text_create_indexMap.end()) _history[index_iterator->second]._body = std::move(snapshot_body);
@@ -349,7 +397,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
                     // 重新序列化失败时保留旧正文：仅影响回放位置精度，不值得为此回滚已生效的在线广播。
                 }
             }
-            else
+            else if (!_batch_create_index.count(target_item_id))
             {
                 // 创建条目已被历史裁剪淘汰时重新注入一条创建记录，避免图元仍存在但新成员永远收不到它。
                 // operation.item() 在更新分支已复制为完整最新状态，直接改写类型即为合法 CREATE。
@@ -401,10 +449,9 @@ bool Room::TryJoin(std::shared_ptr<CSession> session)
 		// 2. 历史先入发送队列再发布成员；这里只入队，网络写入由 executor 执行。
 		if (first_join)
 		{
-			for (const auto& entry : _history)
+			for (const auto& entry : GetHistorySnapshotLocked())
 			{
 				session->Send(entry._body, entry._msg_id);
-				if (!entry._edit_body.empty()) session->Send(entry._edit_body, ID_ITEM_EDIT_RSP);
 			}
 		}
 		_sessions[uid] = session;

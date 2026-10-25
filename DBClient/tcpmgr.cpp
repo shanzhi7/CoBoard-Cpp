@@ -364,6 +364,10 @@ void TcpMgr::initHandlers()
         // 1. 转交已解码载荷，画布统一排队并保持创建与编辑的先后顺序。
         emit SigItemEditReceived(std::get<message::ItemEditOperationRsp>(payload));
     });
+    _handlers.insert(ReqId::ID_ITEM_CREATE_BATCH_RSP, [this](const DecodedTcpMessage::Payload& payload) {
+        // 1. 批量创建保持 TCP 到达顺序，画布统一处理本地确认和远端回放。
+        emit SigItemCreateBatchReceived(std::get<message::ItemCreateBatchRsp>(payload));
+    });
     _handlers.insert(ReqId::ID_TEXT_OPERATION_RSP, [this](const DecodedTcpMessage::Payload& payload) {
         emit SigTextOperationReceived(std::get<message::TextOperationRsp>(payload));
     });

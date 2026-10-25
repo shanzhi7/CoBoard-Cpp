@@ -75,6 +75,7 @@ signals:
     void SigRoomExitResponse(QString room_id, QString request_id, int error); // 普通退出或解散的关联结果。
     void SigRoomDestroyed(QString room_id, QString reason); // 当前房间被服务端解散。
     void SigItemEditReceived(const message::ItemEditOperationRsp& response); // 转发已解码的通用图元编辑确认与历史快照。
+    void SigItemCreateBatchReceived(const message::ItemCreateBatchRsp& response); // 转发复制粘贴批量创建确认与历史快照。
     void SigTextOperationReceived(const message::TextOperationRsp& response); // 转发已解码的文字确认、远端状态和房间历史。
     void sig_con_success(bool);                                         //连接成功发送该信号
     void sig_send_data(ReqId reqid,QByteArray data);                    //发送tcp包信号

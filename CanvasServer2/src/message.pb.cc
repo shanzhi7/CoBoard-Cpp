@@ -752,6 +752,38 @@ struct ItemEditStateDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemEditStateDefaultTypeInternal _ItemEditState_default_instance_;
 
+inline constexpr ItemCreateItem::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : item_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        item_json_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        kind_{static_cast< ::message::ItemKind >(0)},
+        stack_order_{0u},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ItemCreateItem::ItemCreateItem(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ItemCreateItemDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ItemCreateItemDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ItemCreateItemDefaultTypeInternal() {}
+  union {
+    ItemCreateItem _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemCreateItemDefaultTypeInternal _ItemCreateItem_default_instance_;
+
 inline constexpr ImageTransform::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : x_{0},
@@ -1199,6 +1231,40 @@ struct ItemEditOperationDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemEditOperationDefaultTypeInternal _ItemEditOperation_default_instance_;
 
+inline constexpr ItemCreateBatch::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : items_{},
+        room_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        operation_id_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        uid_{0},
+        payload_version_{0u},
+        server_sequence_{::uint64_t{0u}},
+        _cached_size_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ItemCreateBatch::ItemCreateBatch(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ItemCreateBatchDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ItemCreateBatchDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ItemCreateBatchDefaultTypeInternal() {}
+  union {
+    ItemCreateBatch _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemCreateBatchDefaultTypeInternal _ItemCreateBatch_default_instance_;
+
 inline constexpr ImageItem::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
       : _cached_size_{0},
@@ -1340,6 +1406,35 @@ struct ItemEditOperationRspDefaultTypeInternal {
 
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemEditOperationRspDefaultTypeInternal _ItemEditOperationRsp_default_instance_;
+
+inline constexpr ItemCreateBatchRsp::Impl_::Impl_(
+    ::_pbi::ConstantInitialized) noexcept
+      : _cached_size_{0},
+        error_message_(
+            &::google::protobuf::internal::fixed_address_empty_string,
+            ::_pbi::ConstantInitialized()),
+        batch_{nullptr},
+        error_{0} {}
+
+template <typename>
+PROTOBUF_CONSTEXPR ItemCreateBatchRsp::ItemCreateBatchRsp(::_pbi::ConstantInitialized)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(_class_data_.base()),
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(),
+#endif  // PROTOBUF_CUSTOM_VTABLE
+      _impl_(::_pbi::ConstantInitialized()) {
+}
+struct ItemCreateBatchRspDefaultTypeInternal {
+  PROTOBUF_CONSTEXPR ItemCreateBatchRspDefaultTypeInternal() : _instance(::_pbi::ConstantInitialized{}) {}
+  ~ItemCreateBatchRspDefaultTypeInternal() {}
+  union {
+    ItemCreateBatchRsp _instance;
+  };
+};
+
+PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
+    PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ItemCreateBatchRspDefaultTypeInternal _ItemCreateBatchRsp_default_instance_;
 
 inline constexpr ImageOperation::Impl_::Impl_(
     ::_pbi::ConstantInitialized) noexcept
@@ -1951,6 +2046,46 @@ const ::uint32_t
         1,
         ~0u,
         2,
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateItem, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateItem, _impl_.item_id_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateItem, _impl_.kind_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateItem, _impl_.item_json_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateItem, _impl_.stack_order_),
+        ~0u,  // no _has_bits_
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.uid_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.room_id_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.operation_id_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.payload_version_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.items_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatch, _impl_.server_sequence_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatchRsp, _impl_._has_bits_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatchRsp, _internal_metadata_),
+        ~0u,  // no _extensions_
+        ~0u,  // no _oneof_case_
+        ~0u,  // no _weak_field_map_
+        ~0u,  // no _inlined_string_donated_
+        ~0u,  // no _split_
+        ~0u,  // no sizeof(Split)
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatchRsp, _impl_.error_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatchRsp, _impl_.batch_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemCreateBatchRsp, _impl_.error_message_),
+        ~0u,
+        0,
+        ~0u,
 };
 
 static const ::_pbi::MigrationSchema
@@ -1997,6 +2132,9 @@ static const ::_pbi::MigrationSchema
         {498, -1, -1, sizeof(::message::ItemEditState)},
         {521, 539, -1, sizeof(::message::ItemEditOperation)},
         {549, 562, -1, sizeof(::message::ItemEditOperationRsp)},
+        {567, -1, -1, sizeof(::message::ItemCreateItem)},
+        {579, -1, -1, sizeof(::message::ItemCreateBatch)},
+        {593, 604, -1, sizeof(::message::ItemCreateBatchRsp)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserInfo_default_instance_._instance,
@@ -2041,6 +2179,9 @@ static const ::_pb::Message* const file_default_instances[] = {
     &::message::_ItemEditState_default_instance_._instance,
     &::message::_ItemEditOperation_default_instance_._instance,
     &::message::_ItemEditOperationRsp_default_instance_._instance,
+    &::message::_ItemCreateItem_default_instance_._instance,
+    &::message::_ItemCreateBatch_default_instance_._instance,
+    &::message::_ItemCreateBatchRsp_default_instance_._instance,
 };
 const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VARIABLE(
     protodesc_cold) = {
@@ -2153,78 +2294,89 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     "ration\030\002 \001(\0132\032.message.ItemEditOperation"
     "\022-\n\rcurrent_state\030\003 \001(\0132\026.message.ItemEd"
     "itState\022\025\n\rerror_message\030\004 \001(\t\022/\n\017confir"
-    "med_state\030\005 \001(\0132\026.message.ItemEditState*"
-    "\226\006\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\025\n\020ItemEditC"
-    "onflict\020\233\010\022\034\n\027ItemEditInvalidArgument\020\234\010"
-    "\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVar"
-    "ifyExpired\020\353\007\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPas"
-    "swdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007\022\023\n\016PasswdU"
-    "pFailed\020\360\007\022\022\n\rPasswdInvalid\020\361\007\022\021\n\014TokenI"
-    "nvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n\010LoginErr\020\365"
-    "\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010RedisErr\020\367\007"
-    "\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserN"
-    "otExist\020\364\007\022\022\n\rAlreadyFriend\020\374\007\022\022\n\rFriend"
-    "Offline\020\375\007\022\023\n\016TargetUserBusy\020\376\007\022\025\n\020RoomC"
-    "reateFailed\020\220\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020Roo"
-    "mAlreadyExist\020\222\010\022\r\n\010RoomFull\020\223\010\022\020\n\013RoomC"
-    "losing\020\231\010\022\031\n\024OwnerMustDestroyRoom\020\232\010\022\023\n\016"
-    "RoomJoinFailed\020\224\010\022\016\n\tNotInRoom\020\225\010\022\026\n\021Tex"
-    "tStateConflict\020\227\010\022\030\n\023TextInvalidArgument"
-    "\020\230\010\022\r\n\010NotOwner\020\226\010\022\036\n\031VoiceTokenInvalidA"
-    "rgument\020\244\010\022\034\n\027VoiceTokenConfigInvalid\020\245\010"
-    "\022\035\n\030VoiceTokenGenerateFailed\020\246\010\022\024\n\017Voice"
-    "AuthFailed\020\247\010\022\021\n\014NeedRedirect\020\271\027*\255\003\n\005Msg"
-    "ID\022\016\n\nID_UNKNOWN\020\000\022\025\n\020ID_ITEM_EDIT_REQ\020\220"
-    "\010\022\025\n\020ID_ITEM_EDIT_RSP\020\221\010\022\026\n\021ID_LEAVE_ROO"
-    "M_REQ\020\211\010\022\026\n\021ID_LEAVE_ROOM_RSP\020\212\010\022\030\n\023ID_D"
-    "ESTROY_ROOM_REQ\020\213\010\022\030\n\023ID_DESTROY_ROOM_RS"
-    "P\020\214\010\022 \n\033ID_ROOM_DESTROYED_BROADCAST\020\215\010\022\021"
-    "\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022\020\n\013"
-    "ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014ID_C"
-    "LEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007\022\032\n\025ID_TEX"
-    "T_OPERATION_REQ\020\207\010\022\032\n\025ID_TEXT_OPERATION_"
-    "RSP\020\210\010\022\033\n\026ID_IMAGE_OPERATION_REQ\020\203\010\022\033\n\026I"
-    "D_IMAGE_OPERATION_RSP\020\204\010*a\n\007DrawCmd\022\017\n\013C"
-    "MD_UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010CMD_MOVE\020"
-    "\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n\tCMD_CLEA"
-    "R\020\005*\223\001\n\tShapeType\022\021\n\rSHAPE_UNKNOWN\020\000\022\r\n\t"
-    "SHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nSHAPE_OVA"
-    "L\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ERASER\020\005\022\017\n"
-    "\013SHAPE_ARROW\020\006\022\021\n\rSHAPE_DIAMOND\020\007*q\n\022Ima"
-    "geOperationType\022\033\n\027IMAGE_OPERATION_UNKNO"
-    "WN\020\000\022\020\n\014IMAGE_CREATE\020\001\022\032\n\026IMAGE_UPDATE_T"
-    "RANSFORM\020\002\022\020\n\014IMAGE_DELETE\020\003*q\n\021TextOper"
-    "ationType\022\032\n\026TEXT_OPERATION_UNKNOWN\020\000\022\017\n"
-    "\013TEXT_CREATE\020\001\022\017\n\013TEXT_UPDATE\020\002\022\r\n\tTEXT_"
-    "MOVE\020\003\022\017\n\013TEXT_DELETE\020\004*\251\001\n\010ItemKind\022\020\n\014"
-    "ITEM_UNKNOWN\020\000\022\014\n\010ITEM_PEN\020\001\022\r\n\tITEM_REC"
-    "T\020\002\022\r\n\tITEM_OVAL\020\003\022\r\n\tITEM_LINE\020\004\022\017\n\013ITE"
-    "M_ERASER\020\005\022\016\n\nITEM_ARROW\020\006\022\020\n\014ITEM_DIAMO"
-    "ND\020\007\022\016\n\nITEM_IMAGE\020\010\022\r\n\tITEM_TEXT\020\t2P\n\rV"
-    "arifyService\022\?\n\rGetVarifyCode\022\025.message."
-    "GetVarifyReq\032\025.message.GetVarifyRsp\"\0002\377\002"
-    "\n\014LogicService\0222\n\006Logout\022\022.message.Logou"
-    "tReq\032\022.message.LogoutRsp\"\000\022<\n\014RegisterUs"
-    "er\022\024.message.RegisterReq\032\024.message.Regis"
-    "terRsp\"\000\022G\n\rResetPassword\022\031.message.Rese"
-    "tPasswordReq\032\031.message.ResetPasswordRsp\""
-    "\000\022-\n\005Login\022\021.message.LoginReq\032\021.message."
-    "LoginRsp\022A\n\013VerifyToken\022\027.message.Verify"
-    "TokenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014U"
-    "pdateAvatar\022\030.message.UpdateAvatarReq\032\030."
-    "message.UpdateAvatarRspb\006proto3"
+    "med_state\030\005 \001(\0132\026.message.ItemEditState\""
+    "j\n\016ItemCreateItem\022\017\n\007item_id\030\001 \001(\t\022\037\n\004ki"
+    "nd\030\002 \001(\0162\021.message.ItemKind\022\021\n\titem_json"
+    "\030\003 \001(\t\022\023\n\013stack_order\030\004 \001(\r\"\237\001\n\017ItemCrea"
+    "teBatch\022\013\n\003uid\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\024\n"
+    "\014operation_id\030\003 \001(\t\022\027\n\017payload_version\030\004"
+    " \001(\r\022&\n\005items\030\005 \003(\0132\027.message.ItemCreate"
+    "Item\022\027\n\017server_sequence\030\006 \001(\004\"c\n\022ItemCre"
+    "ateBatchRsp\022\r\n\005error\030\001 \001(\005\022\'\n\005batch\030\002 \001("
+    "\0132\030.message.ItemCreateBatch\022\025\n\rerror_mes"
+    "sage\030\003 \001(\t*\226\006\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\025"
+    "\n\020ItemEditConflict\020\233\010\022\034\n\027ItemEditInvalid"
+    "Argument\020\234\010\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFaile"
+    "d\020\352\007\022\022\n\rVarifyExpired\020\353\007\022\022\n\rVarifyCodeEr"
+    "r\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007"
+    "\022\023\n\016PasswdUpFailed\020\360\007\022\022\n\rPasswdInvalid\020\361"
+    "\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n"
+    "\010LoginErr\020\365\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010"
+    "RedisErr\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020"
+    "\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n\rAlreadyFriend\020\374"
+    "\007\022\022\n\rFriendOffline\020\375\007\022\023\n\016TargetUserBusy\020"
+    "\376\007\022\025\n\020RoomCreateFailed\020\220\010\022\021\n\014RoomNotExis"
+    "t\020\221\010\022\025\n\020RoomAlreadyExist\020\222\010\022\r\n\010RoomFull\020"
+    "\223\010\022\020\n\013RoomClosing\020\231\010\022\031\n\024OwnerMustDestroy"
+    "Room\020\232\010\022\023\n\016RoomJoinFailed\020\224\010\022\016\n\tNotInRoo"
+    "m\020\225\010\022\026\n\021TextStateConflict\020\227\010\022\030\n\023TextInva"
+    "lidArgument\020\230\010\022\r\n\010NotOwner\020\226\010\022\036\n\031VoiceTo"
+    "kenInvalidArgument\020\244\010\022\034\n\027VoiceTokenConfi"
+    "gInvalid\020\245\010\022\035\n\030VoiceTokenGenerateFailed\020"
+    "\246\010\022\024\n\017VoiceAuthFailed\020\247\010\022\021\n\014NeedRedirect"
+    "\020\271\027*\353\003\n\005MsgID\022\016\n\nID_UNKNOWN\020\000\022\025\n\020ID_ITEM"
+    "_EDIT_REQ\020\220\010\022\025\n\020ID_ITEM_EDIT_RSP\020\221\010\022\035\n\030I"
+    "D_ITEM_CREATE_BATCH_REQ\020\222\010\022\035\n\030ID_ITEM_CR"
+    "EATE_BATCH_RSP\020\223\010\022\026\n\021ID_LEAVE_ROOM_REQ\020\211"
+    "\010\022\026\n\021ID_LEAVE_ROOM_RSP\020\212\010\022\030\n\023ID_DESTROY_"
+    "ROOM_REQ\020\213\010\022\030\n\023ID_DESTROY_ROOM_RSP\020\214\010\022 \n"
+    "\033ID_ROOM_DESTROYED_BROADCAST\020\215\010\022\021\n\014ID_LO"
+    "GIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW"
+    "_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014ID_CLEAR_RE"
+    "Q\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007\022\032\n\025ID_TEXT_OPERA"
+    "TION_REQ\020\207\010\022\032\n\025ID_TEXT_OPERATION_RSP\020\210\010\022"
+    "\033\n\026ID_IMAGE_OPERATION_REQ\020\203\010\022\033\n\026ID_IMAGE"
+    "_OPERATION_RSP\020\204\010*a\n\007DrawCmd\022\017\n\013CMD_UNKN"
+    "OWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CM"
+    "D_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n"
+    "\tShapeType\022\021\n\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAPE_P"
+    "EN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\n"
+    "SHAPE_LINE\020\004\022\020\n\014SHAPE_ERASER\020\005\022\017\n\013SHAPE_"
+    "ARROW\020\006\022\021\n\rSHAPE_DIAMOND\020\007*q\n\022ImageOpera"
+    "tionType\022\033\n\027IMAGE_OPERATION_UNKNOWN\020\000\022\020\n"
+    "\014IMAGE_CREATE\020\001\022\032\n\026IMAGE_UPDATE_TRANSFOR"
+    "M\020\002\022\020\n\014IMAGE_DELETE\020\003*q\n\021TextOperationTy"
+    "pe\022\032\n\026TEXT_OPERATION_UNKNOWN\020\000\022\017\n\013TEXT_C"
+    "REATE\020\001\022\017\n\013TEXT_UPDATE\020\002\022\r\n\tTEXT_MOVE\020\003\022"
+    "\017\n\013TEXT_DELETE\020\004*\251\001\n\010ItemKind\022\020\n\014ITEM_UN"
+    "KNOWN\020\000\022\014\n\010ITEM_PEN\020\001\022\r\n\tITEM_RECT\020\002\022\r\n\t"
+    "ITEM_OVAL\020\003\022\r\n\tITEM_LINE\020\004\022\017\n\013ITEM_ERASE"
+    "R\020\005\022\016\n\nITEM_ARROW\020\006\022\020\n\014ITEM_DIAMOND\020\007\022\016\n"
+    "\nITEM_IMAGE\020\010\022\r\n\tITEM_TEXT\020\t2P\n\rVarifySe"
+    "rvice\022\?\n\rGetVarifyCode\022\025.message.GetVari"
+    "fyReq\032\025.message.GetVarifyRsp\"\0002\377\002\n\014Logic"
+    "Service\0222\n\006Logout\022\022.message.LogoutReq\032\022."
+    "message.LogoutRsp\"\000\022<\n\014RegisterUser\022\024.me"
+    "ssage.RegisterReq\032\024.message.RegisterRsp\""
+    "\000\022G\n\rResetPassword\022\031.message.ResetPasswo"
+    "rdReq\032\031.message.ResetPasswordRsp\"\000\022-\n\005Lo"
+    "gin\022\021.message.LoginReq\032\021.message.LoginRs"
+    "p\022A\n\013VerifyToken\022\027.message.VerifyTokenRe"
+    "q\032\027.message.VerifyTokenRsp\"\000\022B\n\014UpdateAv"
+    "atar\022\030.message.UpdateAvatarReq\032\030.message"
+    ".UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    6751,
+    7184,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
     nullptr,
     0,
-    42,
+    45,
     schemas,
     file_default_instances,
     TableStruct_message_2eproto::offsets,
@@ -2246,7 +2398,7 @@ const ::google::protobuf::EnumDescriptor* MsgID_descriptor() {
   return file_level_enum_descriptors_message_2eproto[1];
 }
 PROTOBUF_CONSTINIT const uint32_t MsgID_internal_data_[] = {
-    65536u, 1114112u, 1032u, 1006u, 1036u, 1004u, 1028u, 1034u, 1040u, 1002u, 1005u, 1027u, 1031u, 1033u, 1035u, 1037u, 1041u, 1001u, 1003u, };
+    65536u, 1245184u, 1034u, 1028u, 1040u, 1004u, 1032u, 1036u, 1042u, 1002u, 1006u, 1031u, 1033u, 1035u, 1037u, 1041u, 1043u, 1001u, 1003u, 1005u, 1027u, };
 bool MsgID_IsValid(int value) {
   return ::_pbi::ValidateEnum(value, MsgID_internal_data_);
 }
@@ -16126,6 +16278,1042 @@ void ItemEditOperationRsp::InternalSwap(ItemEditOperationRsp* PROTOBUF_RESTRICT 
 }
 
 ::google::protobuf::Metadata ItemEditOperationRsp::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ItemCreateItem::_Internal {
+ public:
+};
+
+ItemCreateItem::ItemCreateItem(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.ItemCreateItem)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateItem::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::ItemCreateItem& from_msg)
+      : item_id_(arena, from.item_id_),
+        item_json_(arena, from.item_json_),
+        _cached_size_{0} {}
+
+ItemCreateItem::ItemCreateItem(
+    ::google::protobuf::Arena* arena,
+    const ItemCreateItem& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ItemCreateItem* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, kind_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, kind_),
+           offsetof(Impl_, stack_order_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::stack_order_));
+
+  // @@protoc_insertion_point(copy_constructor:message.ItemCreateItem)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateItem::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : item_id_(arena),
+        item_json_(arena),
+        _cached_size_{0} {}
+
+inline void ItemCreateItem::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, kind_),
+           0,
+           offsetof(Impl_, stack_order_) -
+               offsetof(Impl_, kind_) +
+               sizeof(Impl_::stack_order_));
+}
+ItemCreateItem::~ItemCreateItem() {
+  // @@protoc_insertion_point(destructor:message.ItemCreateItem)
+  SharedDtor(*this);
+}
+inline void ItemCreateItem::SharedDtor(MessageLite& self) {
+  ItemCreateItem& this_ = static_cast<ItemCreateItem&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.item_id_.Destroy();
+  this_._impl_.item_json_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* ItemCreateItem::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) ItemCreateItem(arena);
+}
+constexpr auto ItemCreateItem::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ItemCreateItem),
+                                            alignof(ItemCreateItem));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull ItemCreateItem::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_ItemCreateItem_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &ItemCreateItem::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<ItemCreateItem>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &ItemCreateItem::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<ItemCreateItem>(), &ItemCreateItem::ByteSizeLong,
+            &ItemCreateItem::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_._cached_size_),
+        false,
+    },
+    &ItemCreateItem::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* ItemCreateItem::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 4, 0, 47, 2> ItemCreateItem::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    4, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967280,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    4,  // num_field_entries
+    0,  // num_aux_entries
+    offsetof(decltype(_table_), field_names),  // no aux_entries
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::ItemCreateItem>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    // uint32 stack_order = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemCreateItem, _impl_.stack_order_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.stack_order_)}},
+    // string item_id = 1;
+    {::_pbi::TcParser::FastUS1,
+     {10, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.item_id_)}},
+    // .message.ItemKind kind = 2;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemCreateItem, _impl_.kind_), 63>(),
+     {16, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.kind_)}},
+    // string item_json = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.item_json_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // string item_id = 1;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.item_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // .message.ItemKind kind = 2;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.kind_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
+    // string item_json = 3;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.item_json_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 stack_order = 4;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.stack_order_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt32)},
+  }},
+  // no aux_entries
+  {{
+    "\26\7\0\11\0\0\0\0"
+    "message.ItemCreateItem"
+    "item_id"
+    "item_json"
+  }},
+};
+
+PROTOBUF_NOINLINE void ItemCreateItem::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.ItemCreateItem)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.item_id_.ClearToEmpty();
+  _impl_.item_json_.ClearToEmpty();
+  ::memset(&_impl_.kind_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.stack_order_) -
+      reinterpret_cast<char*>(&_impl_.kind_)) + sizeof(_impl_.stack_order_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* ItemCreateItem::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const ItemCreateItem& this_ = static_cast<const ItemCreateItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* ItemCreateItem::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const ItemCreateItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.ItemCreateItem)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // string item_id = 1;
+          if (!this_._internal_item_id().empty()) {
+            const std::string& _s = this_._internal_item_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ItemCreateItem.item_id");
+            target = stream->WriteStringMaybeAliased(1, _s, target);
+          }
+
+          // .message.ItemKind kind = 2;
+          if (this_._internal_kind() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteEnumToArray(
+                2, this_._internal_kind(), target);
+          }
+
+          // string item_json = 3;
+          if (!this_._internal_item_json().empty()) {
+            const std::string& _s = this_._internal_item_json();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ItemCreateItem.item_json");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          // uint32 stack_order = 4;
+          if (this_._internal_stack_order() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+                4, this_._internal_stack_order(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.ItemCreateItem)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t ItemCreateItem::ByteSizeLong(const MessageLite& base) {
+          const ItemCreateItem& this_ = static_cast<const ItemCreateItem&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t ItemCreateItem::ByteSizeLong() const {
+          const ItemCreateItem& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.ItemCreateItem)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string item_id = 1;
+            if (!this_._internal_item_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_item_id());
+            }
+            // string item_json = 3;
+            if (!this_._internal_item_json().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_item_json());
+            }
+            // .message.ItemKind kind = 2;
+            if (this_._internal_kind() != 0) {
+              total_size += 1 +
+                            ::_pbi::WireFormatLite::EnumSize(this_._internal_kind());
+            }
+            // uint32 stack_order = 4;
+            if (this_._internal_stack_order() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+                  this_._internal_stack_order());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void ItemCreateItem::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ItemCreateItem*>(&to_msg);
+  auto& from = static_cast<const ItemCreateItem&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.ItemCreateItem)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_item_id().empty()) {
+    _this->_internal_set_item_id(from._internal_item_id());
+  }
+  if (!from._internal_item_json().empty()) {
+    _this->_internal_set_item_json(from._internal_item_json());
+  }
+  if (from._internal_kind() != 0) {
+    _this->_impl_.kind_ = from._impl_.kind_;
+  }
+  if (from._internal_stack_order() != 0) {
+    _this->_impl_.stack_order_ = from._impl_.stack_order_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ItemCreateItem::CopyFrom(const ItemCreateItem& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.ItemCreateItem)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ItemCreateItem::InternalSwap(ItemCreateItem* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.item_id_, &other->_impl_.item_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.item_json_, &other->_impl_.item_json_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.stack_order_)
+      + sizeof(ItemCreateItem::_impl_.stack_order_)
+      - PROTOBUF_FIELD_OFFSET(ItemCreateItem, _impl_.kind_)>(
+          reinterpret_cast<char*>(&_impl_.kind_),
+          reinterpret_cast<char*>(&other->_impl_.kind_));
+}
+
+::google::protobuf::Metadata ItemCreateItem::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ItemCreateBatch::_Internal {
+ public:
+};
+
+ItemCreateBatch::ItemCreateBatch(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.ItemCreateBatch)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateBatch::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::ItemCreateBatch& from_msg)
+      : items_{visibility, arena, from.items_},
+        room_id_(arena, from.room_id_),
+        operation_id_(arena, from.operation_id_),
+        _cached_size_{0} {}
+
+ItemCreateBatch::ItemCreateBatch(
+    ::google::protobuf::Arena* arena,
+    const ItemCreateBatch& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ItemCreateBatch* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::memcpy(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           reinterpret_cast<const char *>(&from._impl_) +
+               offsetof(Impl_, uid_),
+           offsetof(Impl_, server_sequence_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::server_sequence_));
+
+  // @@protoc_insertion_point(copy_constructor:message.ItemCreateBatch)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateBatch::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : items_{visibility, arena},
+        room_id_(arena),
+        operation_id_(arena),
+        _cached_size_{0} {}
+
+inline void ItemCreateBatch::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, uid_),
+           0,
+           offsetof(Impl_, server_sequence_) -
+               offsetof(Impl_, uid_) +
+               sizeof(Impl_::server_sequence_));
+}
+ItemCreateBatch::~ItemCreateBatch() {
+  // @@protoc_insertion_point(destructor:message.ItemCreateBatch)
+  SharedDtor(*this);
+}
+inline void ItemCreateBatch::SharedDtor(MessageLite& self) {
+  ItemCreateBatch& this_ = static_cast<ItemCreateBatch&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.room_id_.Destroy();
+  this_._impl_.operation_id_.Destroy();
+  this_._impl_.~Impl_();
+}
+
+inline void* ItemCreateBatch::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) ItemCreateBatch(arena);
+}
+constexpr auto ItemCreateBatch::InternalNewImpl_() {
+  constexpr auto arena_bits = ::google::protobuf::internal::EncodePlacementArenaOffsets({
+      PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.items_) +
+          decltype(ItemCreateBatch::_impl_.items_)::
+              InternalGetArenaOffset(
+                  ::google::protobuf::Message::internal_visibility()),
+  });
+  if (arena_bits.has_value()) {
+    return ::google::protobuf::internal::MessageCreator::CopyInit(
+        sizeof(ItemCreateBatch), alignof(ItemCreateBatch), *arena_bits);
+  } else {
+    return ::google::protobuf::internal::MessageCreator(&ItemCreateBatch::PlacementNew_,
+                                 sizeof(ItemCreateBatch),
+                                 alignof(ItemCreateBatch));
+  }
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull ItemCreateBatch::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_ItemCreateBatch_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &ItemCreateBatch::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<ItemCreateBatch>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &ItemCreateBatch::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<ItemCreateBatch>(), &ItemCreateBatch::ByteSizeLong,
+            &ItemCreateBatch::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_._cached_size_),
+        false,
+    },
+    &ItemCreateBatch::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* ItemCreateBatch::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<3, 6, 1, 51, 2> ItemCreateBatch::_table_ = {
+  {
+    0,  // no _has_bits_
+    0, // no _extensions_
+    6, 56,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967232,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    6,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::ItemCreateBatch>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 uid = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemCreateBatch, _impl_.uid_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.uid_)}},
+    // string room_id = 2;
+    {::_pbi::TcParser::FastUS1,
+     {18, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.room_id_)}},
+    // string operation_id = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.operation_id_)}},
+    // uint32 payload_version = 4;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemCreateBatch, _impl_.payload_version_), 63>(),
+     {32, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.payload_version_)}},
+    // repeated .message.ItemCreateItem items = 5;
+    {::_pbi::TcParser::FastMtR1,
+     {42, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.items_)}},
+    // uint64 server_sequence = 6;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint64_t, offsetof(ItemCreateBatch, _impl_.server_sequence_), 63>(),
+     {48, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.server_sequence_)}},
+    {::_pbi::TcParser::MiniParse, {}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 uid = 1;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.uid_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // string room_id = 2;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.room_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // string operation_id = 3;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.operation_id_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+    // uint32 payload_version = 4;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.payload_version_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt32)},
+    // repeated .message.ItemCreateItem items = 5;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.items_), 0, 0,
+    (0 | ::_fl::kFcRepeated | ::_fl::kMessage | ::_fl::kTvTable)},
+    // uint64 server_sequence = 6;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.server_sequence_), 0, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUInt64)},
+  }}, {{
+    {::_pbi::TcParser::GetTable<::message::ItemCreateItem>()},
+  }}, {{
+    "\27\0\7\14\0\0\0\0"
+    "message.ItemCreateBatch"
+    "room_id"
+    "operation_id"
+  }},
+};
+
+PROTOBUF_NOINLINE void ItemCreateBatch::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.ItemCreateBatch)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.items_.Clear();
+  _impl_.room_id_.ClearToEmpty();
+  _impl_.operation_id_.ClearToEmpty();
+  ::memset(&_impl_.uid_, 0, static_cast<::size_t>(
+      reinterpret_cast<char*>(&_impl_.server_sequence_) -
+      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.server_sequence_));
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* ItemCreateBatch::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const ItemCreateBatch& this_ = static_cast<const ItemCreateBatch&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* ItemCreateBatch::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const ItemCreateBatch& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.ItemCreateBatch)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 uid = 1;
+          if (this_._internal_uid() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_uid(), target);
+          }
+
+          // string room_id = 2;
+          if (!this_._internal_room_id().empty()) {
+            const std::string& _s = this_._internal_room_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ItemCreateBatch.room_id");
+            target = stream->WriteStringMaybeAliased(2, _s, target);
+          }
+
+          // string operation_id = 3;
+          if (!this_._internal_operation_id().empty()) {
+            const std::string& _s = this_._internal_operation_id();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ItemCreateBatch.operation_id");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          // uint32 payload_version = 4;
+          if (this_._internal_payload_version() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt32ToArray(
+                4, this_._internal_payload_version(), target);
+          }
+
+          // repeated .message.ItemCreateItem items = 5;
+          for (unsigned i = 0, n = static_cast<unsigned>(
+                                   this_._internal_items_size());
+               i < n; i++) {
+            const auto& repfield = this_._internal_items().Get(i);
+            target =
+                ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+                    5, repfield, repfield.GetCachedSize(),
+                    target, stream);
+          }
+
+          // uint64 server_sequence = 6;
+          if (this_._internal_server_sequence() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteUInt64ToArray(
+                6, this_._internal_server_sequence(), target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.ItemCreateBatch)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t ItemCreateBatch::ByteSizeLong(const MessageLite& base) {
+          const ItemCreateBatch& this_ = static_cast<const ItemCreateBatch&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t ItemCreateBatch::ByteSizeLong() const {
+          const ItemCreateBatch& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.ItemCreateBatch)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // repeated .message.ItemCreateItem items = 5;
+            {
+              total_size += 1UL * this_._internal_items_size();
+              for (const auto& msg : this_._internal_items()) {
+                total_size += ::google::protobuf::internal::WireFormatLite::MessageSize(msg);
+              }
+            }
+          }
+           {
+            // string room_id = 2;
+            if (!this_._internal_room_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_room_id());
+            }
+            // string operation_id = 3;
+            if (!this_._internal_operation_id().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_operation_id());
+            }
+            // int32 uid = 1;
+            if (this_._internal_uid() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_uid());
+            }
+            // uint32 payload_version = 4;
+            if (this_._internal_payload_version() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt32SizePlusOne(
+                  this_._internal_payload_version());
+            }
+            // uint64 server_sequence = 6;
+            if (this_._internal_server_sequence() != 0) {
+              total_size += ::_pbi::WireFormatLite::UInt64SizePlusOne(
+                  this_._internal_server_sequence());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void ItemCreateBatch::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ItemCreateBatch*>(&to_msg);
+  auto& from = static_cast<const ItemCreateBatch&>(from_msg);
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.ItemCreateBatch)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  _this->_internal_mutable_items()->MergeFrom(
+      from._internal_items());
+  if (!from._internal_room_id().empty()) {
+    _this->_internal_set_room_id(from._internal_room_id());
+  }
+  if (!from._internal_operation_id().empty()) {
+    _this->_internal_set_operation_id(from._internal_operation_id());
+  }
+  if (from._internal_uid() != 0) {
+    _this->_impl_.uid_ = from._impl_.uid_;
+  }
+  if (from._internal_payload_version() != 0) {
+    _this->_impl_.payload_version_ = from._impl_.payload_version_;
+  }
+  if (from._internal_server_sequence() != 0) {
+    _this->_impl_.server_sequence_ = from._impl_.server_sequence_;
+  }
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ItemCreateBatch::CopyFrom(const ItemCreateBatch& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.ItemCreateBatch)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ItemCreateBatch::InternalSwap(ItemCreateBatch* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  _impl_.items_.InternalSwap(&other->_impl_.items_);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.room_id_, &other->_impl_.room_id_, arena);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_id_, &other->_impl_.operation_id_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.server_sequence_)
+      + sizeof(ItemCreateBatch::_impl_.server_sequence_)
+      - PROTOBUF_FIELD_OFFSET(ItemCreateBatch, _impl_.uid_)>(
+          reinterpret_cast<char*>(&_impl_.uid_),
+          reinterpret_cast<char*>(&other->_impl_.uid_));
+}
+
+::google::protobuf::Metadata ItemCreateBatch::GetMetadata() const {
+  return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
+}
+// ===================================================================
+
+class ItemCreateBatchRsp::_Internal {
+ public:
+  using HasBits =
+      decltype(std::declval<ItemCreateBatchRsp>()._impl_._has_bits_);
+  static constexpr ::int32_t kHasBitsOffset =
+      8 * PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_._has_bits_);
+};
+
+ItemCreateBatchRsp::ItemCreateBatchRsp(::google::protobuf::Arena* arena)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  SharedCtor(arena);
+  // @@protoc_insertion_point(arena_constructor:message.ItemCreateBatchRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateBatchRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility, ::google::protobuf::Arena* arena,
+    const Impl_& from, const ::message::ItemCreateBatchRsp& from_msg)
+      : _has_bits_{from._has_bits_},
+        _cached_size_{0},
+        error_message_(arena, from.error_message_) {}
+
+ItemCreateBatchRsp::ItemCreateBatchRsp(
+    ::google::protobuf::Arena* arena,
+    const ItemCreateBatchRsp& from)
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+    : ::google::protobuf::Message(arena, _class_data_.base()) {
+#else   // PROTOBUF_CUSTOM_VTABLE
+    : ::google::protobuf::Message(arena) {
+#endif  // PROTOBUF_CUSTOM_VTABLE
+  ItemCreateBatchRsp* const _this = this;
+  (void)_this;
+  _internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(
+      from._internal_metadata_);
+  new (&_impl_) Impl_(internal_visibility(), arena, from._impl_, from);
+  ::uint32_t cached_has_bits = _impl_._has_bits_[0];
+  _impl_.batch_ = (cached_has_bits & 0x00000001u) ? ::google::protobuf::Message::CopyConstruct<::message::ItemCreateBatch>(
+                              arena, *from._impl_.batch_)
+                        : nullptr;
+  _impl_.error_ = from._impl_.error_;
+
+  // @@protoc_insertion_point(copy_constructor:message.ItemCreateBatchRsp)
+}
+inline PROTOBUF_NDEBUG_INLINE ItemCreateBatchRsp::Impl_::Impl_(
+    ::google::protobuf::internal::InternalVisibility visibility,
+    ::google::protobuf::Arena* arena)
+      : _cached_size_{0},
+        error_message_(arena) {}
+
+inline void ItemCreateBatchRsp::SharedCtor(::_pb::Arena* arena) {
+  new (&_impl_) Impl_(internal_visibility(), arena);
+  ::memset(reinterpret_cast<char *>(&_impl_) +
+               offsetof(Impl_, batch_),
+           0,
+           offsetof(Impl_, error_) -
+               offsetof(Impl_, batch_) +
+               sizeof(Impl_::error_));
+}
+ItemCreateBatchRsp::~ItemCreateBatchRsp() {
+  // @@protoc_insertion_point(destructor:message.ItemCreateBatchRsp)
+  SharedDtor(*this);
+}
+inline void ItemCreateBatchRsp::SharedDtor(MessageLite& self) {
+  ItemCreateBatchRsp& this_ = static_cast<ItemCreateBatchRsp&>(self);
+  this_._internal_metadata_.Delete<::google::protobuf::UnknownFieldSet>();
+  ABSL_DCHECK(this_.GetArena() == nullptr);
+  this_._impl_.error_message_.Destroy();
+  delete this_._impl_.batch_;
+  this_._impl_.~Impl_();
+}
+
+inline void* ItemCreateBatchRsp::PlacementNew_(const void*, void* mem,
+                                        ::google::protobuf::Arena* arena) {
+  return ::new (mem) ItemCreateBatchRsp(arena);
+}
+constexpr auto ItemCreateBatchRsp::InternalNewImpl_() {
+  return ::google::protobuf::internal::MessageCreator::CopyInit(sizeof(ItemCreateBatchRsp),
+                                            alignof(ItemCreateBatchRsp));
+}
+PROTOBUF_CONSTINIT
+PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::google::protobuf::internal::ClassDataFull ItemCreateBatchRsp::_class_data_ = {
+    ::google::protobuf::internal::ClassData{
+        &_ItemCreateBatchRsp_default_instance_._instance,
+        &_table_.header,
+        nullptr,  // OnDemandRegisterArenaDtor
+        nullptr,  // IsInitialized
+        &ItemCreateBatchRsp::MergeImpl,
+        ::google::protobuf::Message::GetNewImpl<ItemCreateBatchRsp>(),
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        &ItemCreateBatchRsp::SharedDtor,
+        ::google::protobuf::Message::GetClearImpl<ItemCreateBatchRsp>(), &ItemCreateBatchRsp::ByteSizeLong,
+            &ItemCreateBatchRsp::_InternalSerialize,
+#endif  // PROTOBUF_CUSTOM_VTABLE
+        PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_._cached_size_),
+        false,
+    },
+    &ItemCreateBatchRsp::kDescriptorMethods,
+    &descriptor_table_message_2eproto,
+    nullptr,  // tracker
+};
+const ::google::protobuf::internal::ClassData* ItemCreateBatchRsp::GetClassData() const {
+  ::google::protobuf::internal::PrefetchToLocalCache(&_class_data_);
+  ::google::protobuf::internal::PrefetchToLocalCache(_class_data_.tc_table);
+  return _class_data_.base();
+}
+PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
+const ::_pbi::TcParseTable<2, 3, 1, 48, 2> ItemCreateBatchRsp::_table_ = {
+  {
+    PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_._has_bits_),
+    0, // no _extensions_
+    3, 24,  // max_field_number, fast_idx_mask
+    offsetof(decltype(_table_), field_lookup_table),
+    4294967288,  // skipmap
+    offsetof(decltype(_table_), field_entries),
+    3,  // num_field_entries
+    1,  // num_aux_entries
+    offsetof(decltype(_table_), aux_entries),
+    _class_data_.base(),
+    nullptr,  // post_loop_handler
+    ::_pbi::TcParser::GenericFallback,  // fallback
+    #ifdef PROTOBUF_PREFETCH_PARSE_TABLE
+    ::_pbi::TcParser::GetTable<::message::ItemCreateBatchRsp>(),  // to_prefetch
+    #endif  // PROTOBUF_PREFETCH_PARSE_TABLE
+  }, {{
+    {::_pbi::TcParser::MiniParse, {}},
+    // int32 error = 1;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemCreateBatchRsp, _impl_.error_), 63>(),
+     {8, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.error_)}},
+    // .message.ItemCreateBatch batch = 2;
+    {::_pbi::TcParser::FastMtS1,
+     {18, 0, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.batch_)}},
+    // string error_message = 3;
+    {::_pbi::TcParser::FastUS1,
+     {26, 63, 0, PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.error_message_)}},
+  }}, {{
+    65535, 65535
+  }}, {{
+    // int32 error = 1;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.error_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kInt32)},
+    // .message.ItemCreateBatch batch = 2;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.batch_), _Internal::kHasBitsOffset + 0, 0,
+    (0 | ::_fl::kFcOptional | ::_fl::kMessage | ::_fl::kTvTable)},
+    // string error_message = 3;
+    {PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.error_message_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kUtf8String | ::_fl::kRepAString)},
+  }}, {{
+    {::_pbi::TcParser::GetTable<::message::ItemCreateBatch>()},
+  }}, {{
+    "\32\0\0\15\0\0\0\0"
+    "message.ItemCreateBatchRsp"
+    "error_message"
+  }},
+};
+
+PROTOBUF_NOINLINE void ItemCreateBatchRsp::Clear() {
+// @@protoc_insertion_point(message_clear_start:message.ItemCreateBatchRsp)
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  ::uint32_t cached_has_bits = 0;
+  // Prevent compiler warnings about cached_has_bits being unused
+  (void) cached_has_bits;
+
+  _impl_.error_message_.ClearToEmpty();
+  cached_has_bits = _impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    ABSL_DCHECK(_impl_.batch_ != nullptr);
+    _impl_.batch_->Clear();
+  }
+  _impl_.error_ = 0;
+  _impl_._has_bits_.Clear();
+  _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
+}
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::uint8_t* ItemCreateBatchRsp::_InternalSerialize(
+            const MessageLite& base, ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) {
+          const ItemCreateBatchRsp& this_ = static_cast<const ItemCreateBatchRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::uint8_t* ItemCreateBatchRsp::_InternalSerialize(
+            ::uint8_t* target,
+            ::google::protobuf::io::EpsCopyOutputStream* stream) const {
+          const ItemCreateBatchRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(serialize_to_array_start:message.ItemCreateBatchRsp)
+          ::uint32_t cached_has_bits = 0;
+          (void)cached_has_bits;
+
+          // int32 error = 1;
+          if (this_._internal_error() != 0) {
+            target = ::google::protobuf::internal::WireFormatLite::
+                WriteInt32ToArrayWithField<1>(
+                    stream, this_._internal_error(), target);
+          }
+
+          cached_has_bits = this_._impl_._has_bits_[0];
+          // .message.ItemCreateBatch batch = 2;
+          if (cached_has_bits & 0x00000001u) {
+            target = ::google::protobuf::internal::WireFormatLite::InternalWriteMessage(
+                2, *this_._impl_.batch_, this_._impl_.batch_->GetCachedSize(), target,
+                stream);
+          }
+
+          // string error_message = 3;
+          if (!this_._internal_error_message().empty()) {
+            const std::string& _s = this_._internal_error_message();
+            ::google::protobuf::internal::WireFormatLite::VerifyUtf8String(
+                _s.data(), static_cast<int>(_s.length()), ::google::protobuf::internal::WireFormatLite::SERIALIZE, "message.ItemCreateBatchRsp.error_message");
+            target = stream->WriteStringMaybeAliased(3, _s, target);
+          }
+
+          if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
+            target =
+                ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
+                    this_._internal_metadata_.unknown_fields<::google::protobuf::UnknownFieldSet>(::google::protobuf::UnknownFieldSet::default_instance), target, stream);
+          }
+          // @@protoc_insertion_point(serialize_to_array_end:message.ItemCreateBatchRsp)
+          return target;
+        }
+
+#if defined(PROTOBUF_CUSTOM_VTABLE)
+        ::size_t ItemCreateBatchRsp::ByteSizeLong(const MessageLite& base) {
+          const ItemCreateBatchRsp& this_ = static_cast<const ItemCreateBatchRsp&>(base);
+#else   // PROTOBUF_CUSTOM_VTABLE
+        ::size_t ItemCreateBatchRsp::ByteSizeLong() const {
+          const ItemCreateBatchRsp& this_ = *this;
+#endif  // PROTOBUF_CUSTOM_VTABLE
+          // @@protoc_insertion_point(message_byte_size_start:message.ItemCreateBatchRsp)
+          ::size_t total_size = 0;
+
+          ::uint32_t cached_has_bits = 0;
+          // Prevent compiler warnings about cached_has_bits being unused
+          (void)cached_has_bits;
+
+          ::_pbi::Prefetch5LinesFrom7Lines(&this_);
+           {
+            // string error_message = 3;
+            if (!this_._internal_error_message().empty()) {
+              total_size += 1 + ::google::protobuf::internal::WireFormatLite::StringSize(
+                                              this_._internal_error_message());
+            }
+          }
+           {
+            // .message.ItemCreateBatch batch = 2;
+            cached_has_bits = this_._impl_._has_bits_[0];
+            if (cached_has_bits & 0x00000001u) {
+              total_size += 1 +
+                            ::google::protobuf::internal::WireFormatLite::MessageSize(*this_._impl_.batch_);
+            }
+          }
+           {
+            // int32 error = 1;
+            if (this_._internal_error() != 0) {
+              total_size += ::_pbi::WireFormatLite::Int32SizePlusOne(
+                  this_._internal_error());
+            }
+          }
+          return this_.MaybeComputeUnknownFieldsSize(total_size,
+                                                     &this_._impl_._cached_size_);
+        }
+
+void ItemCreateBatchRsp::MergeImpl(::google::protobuf::MessageLite& to_msg, const ::google::protobuf::MessageLite& from_msg) {
+  auto* const _this = static_cast<ItemCreateBatchRsp*>(&to_msg);
+  auto& from = static_cast<const ItemCreateBatchRsp&>(from_msg);
+  ::google::protobuf::Arena* arena = _this->GetArena();
+  // @@protoc_insertion_point(class_specific_merge_from_start:message.ItemCreateBatchRsp)
+  ABSL_DCHECK_NE(&from, _this);
+  ::uint32_t cached_has_bits = 0;
+  (void) cached_has_bits;
+
+  if (!from._internal_error_message().empty()) {
+    _this->_internal_set_error_message(from._internal_error_message());
+  }
+  cached_has_bits = from._impl_._has_bits_[0];
+  if (cached_has_bits & 0x00000001u) {
+    ABSL_DCHECK(from._impl_.batch_ != nullptr);
+    if (_this->_impl_.batch_ == nullptr) {
+      _this->_impl_.batch_ =
+          ::google::protobuf::Message::CopyConstruct<::message::ItemCreateBatch>(arena, *from._impl_.batch_);
+    } else {
+      _this->_impl_.batch_->MergeFrom(*from._impl_.batch_);
+    }
+  }
+  if (from._internal_error() != 0) {
+    _this->_impl_.error_ = from._impl_.error_;
+  }
+  _this->_impl_._has_bits_[0] |= cached_has_bits;
+  _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
+}
+
+void ItemCreateBatchRsp::CopyFrom(const ItemCreateBatchRsp& from) {
+// @@protoc_insertion_point(class_specific_copy_from_start:message.ItemCreateBatchRsp)
+  if (&from == this) return;
+  Clear();
+  MergeFrom(from);
+}
+
+
+void ItemCreateBatchRsp::InternalSwap(ItemCreateBatchRsp* PROTOBUF_RESTRICT other) {
+  using std::swap;
+  auto* arena = GetArena();
+  ABSL_DCHECK_EQ(arena, other->GetArena());
+  _internal_metadata_.InternalSwap(&other->_internal_metadata_);
+  swap(_impl_._has_bits_[0], other->_impl_._has_bits_[0]);
+  ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.error_message_, &other->_impl_.error_message_, arena);
+  ::google::protobuf::internal::memswap<
+      PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.error_)
+      + sizeof(ItemCreateBatchRsp::_impl_.error_)
+      - PROTOBUF_FIELD_OFFSET(ItemCreateBatchRsp, _impl_.batch_)>(
+          reinterpret_cast<char*>(&_impl_.batch_),
+          reinterpret_cast<char*>(&other->_impl_.batch_));
+}
+
+::google::protobuf::Metadata ItemCreateBatchRsp::GetMetadata() const {
   return ::google::protobuf::Message::GetMetadataImpl(GetClassData()->full());
 }
 // @@protoc_insertion_point(namespace_scope)

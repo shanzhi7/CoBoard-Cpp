@@ -3,6 +3,7 @@
 #include "canvastoolregistry.h"
 #include "paintscene.h"
 
+#include <QCursor>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -174,12 +175,20 @@ void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
         }
     }
 
-    // 3. 普通画布状态的粘贴仍交给图片入口，其他组合键继续由场景处理。
-    if (event && event->matches(QKeySequence::Paste) &&
-        (!scene() || !dynamic_cast<QGraphicsTextItem*>(scene()->focusItem())))
+    // 3. 普通画布状态的复制和粘贴交给 Canvas，文本和其他输入控件不会进入本分支。
+    if (event && event->matches(QKeySequence::Copy) && (hasFocus() || viewport()->hasFocus()))
     {
-        // 只在画布视图拥有焦点时触发，避免抢占聊天输入框等其他控件的粘贴行为。
-        emit sigPasteImageRequested();
+        emit sigCopyItemsRequested();
+        event->accept();
+        return;
+    }
+    if (event && event->matches(QKeySequence::Paste) &&
+        (!scene() || !dynamic_cast<QGraphicsTextItem*>(scene()->focusItem())) &&
+        (hasFocus() || viewport()->hasFocus()))
+    {
+        // 在按键时记录鼠标落点，使用 viewport 坐标映射以兼容画布缩放和滚动。
+        const QPointF scene_pos = mapToScene(viewport()->mapFromGlobal(QCursor::pos()));
+        emit sigPasteImageRequested(scene_pos);
         event->accept();
         return;
     }

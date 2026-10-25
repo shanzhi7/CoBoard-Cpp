@@ -187,6 +187,10 @@ void CanvasTcpWorker::DecodeMessage(quint16 message_id, const QByteArray& body)
         is_valid = DecodeProtobuf<message::ItemEditOperationRsp>(body, decoded._payload) &&
                    std::get<message::ItemEditOperationRsp>(decoded._payload).has_operation();
         break;
+    case ID_ITEM_CREATE_BATCH_RSP:
+        is_valid = DecodeProtobuf<message::ItemCreateBatchRsp>(body, decoded._payload) &&
+                   std::get<message::ItemCreateBatchRsp>(decoded._payload).has_batch();
+        break;
     case ID_TEXT_OPERATION_RSP:
         is_valid = DecodeProtobuf<message::TextOperationRsp>(body, decoded._payload) &&
                    std::get<message::TextOperationRsp>(decoded._payload).has_operation();

@@ -61,6 +61,8 @@ enum MsgID {
     ID_UNKNOWN = 0;
     ID_ITEM_EDIT_REQ = 1040; // 通用图元编辑请求。
     ID_ITEM_EDIT_RSP = 1041; // 通用图元编辑确认及广播。
+    ID_ITEM_CREATE_BATCH_REQ = 1042; // 复制粘贴的原子图元批量创建请求。
+    ID_ITEM_CREATE_BATCH_RSP = 1043; // 批量创建确认、广播和历史回放。
     ID_LEAVE_ROOM_REQ = 1033; // 普通成员退出请求。
     ID_LEAVE_ROOM_RSP = 1034; // 普通成员退出完成。
     ID_DESTROY_ROOM_REQ = 1035; // 房主解散请求。
@@ -512,4 +514,25 @@ message ItemEditOperationRsp {
     ItemEditState current_state = 3; // 目标最新完整状态，不存在时省略。
     string error_message = 4; // 可显示的失败原因。
     ItemEditState confirmed_state = 5; // 预览对应的已提交状态，用于取消或断线超时恢复。
+}
+
+// 复制粘贴使用完整版本化 JSON，避免旧 Draw/Text/Image 创建消息丢失路径、附属文字或完整变换。
+message ItemCreateItem {
+    string item_id = 1; // 房间内唯一的新图元 ID。
+    ItemKind kind = 2; // 图元类型，与 JSON 中 type 交叉校验。
+    string item_json = 3; // UTF-8 CanvasItemSerializer JSON。
+    uint32 stack_order = 4; // 批次内从底到顶的稳定顺序。
+}
+message ItemCreateBatch {
+    int32 uid = 1; // 发起者 UID，必须匹配 TCP 会话。
+    string room_id = 2; // 当前房间 ID，禁止跨房间提交。
+    string operation_id = 3; // 客户端 UUID，重试时保持不变。
+    uint32 payload_version = 4; // 当前完整图元载荷版本。
+    repeated ItemCreateItem items = 5; // 一个原子粘贴批次中的全部图元。
+    uint64 server_sequence = 6; // 服务端分配的批次顺序，客户端提交时为零。
+}
+message ItemCreateBatchRsp {
+    int32 error = 1; // 公共错误码。
+    ItemCreateBatch batch = 2; // 成功时为规范化批次，失败时保留关联字段。
+    string error_message = 3; // 可显示的拒绝原因。
 }

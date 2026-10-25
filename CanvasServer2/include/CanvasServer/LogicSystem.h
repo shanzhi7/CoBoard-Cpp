@@ -10,6 +10,7 @@
 #include "CSession.h" // 包含 LogicNode 和 CSession 定义
 #include "ImageOperationHandler.h"
 #include "TextOperationHandler.h"
+#include "ItemCreateBatchHandler.h"
 #include "RoomLifecycleHandler.h"
 #include <map>
 #include <thread>

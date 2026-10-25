@@ -4,7 +4,9 @@
 #include "Logger/Logger.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <json/json.h>
 
 namespace
 {
@@ -151,15 +153,291 @@ void Room::ClearItemEditStateLocked()
 	_draw_end_index.clear();
 	_edit_responses.clear();
 	_edit_response_order.clear();
+	_batch_responses.clear();
+	_batch_response_order.clear();
+	_batch_create_index.clear();
+}
+
+namespace
+{
+bool ReadFiniteJsonNumber(const Json::Value& value, double* result)
+{
+	// 1. 只接受 JSON 数值和有限场景坐标，避免客户端 JSON 把 NaN 隐式转换为零。
+	if (!value.isNumeric() || !std::isfinite(value.asDouble()) || std::fabs(value.asDouble()) > 1000000.0)
+	{
+		return false;
+	}
+	*result = value.asDouble();
+	return true;
+}
+
+bool ReadJsonPair(const Json::Value& value, double* x, double* y)
+{
+	// 1. 图元位置和局部尺寸统一使用明确的二维数组。
+	return value.isArray() && value.size() == 2 &&
+		ReadFiniteJsonNumber(value[0], x) && ReadFiniteJsonNumber(value[1], y);
+}
+
+bool ReadJsonComponents(const Json::Value& value, int count, std::vector<double>* values)
+{
+	// 1. 变换数组必须是固定长度，缺项不能按 protobuf 默认值补齐。
+	if (!value.isArray() || static_cast<int>(value.size()) != count)
+	{
+		return false;
+	}
+	values->clear();
+	for (int index = 0; index < count; ++index)
+	{
+		double component = 0.0;
+		if (!ReadFiniteJsonNumber(value[index], &component)) return false;
+		values->push_back(component);
+	}
+	return true;
+}
+
+bool KindForJsonType(const std::string& type, message::ItemKind* kind)
+{
+	// 1. 服务端类型映射与客户端 CanvasItemSerializer 的稳定字符串保持一致。
+	if (type == "pen") *kind = message::ITEM_PEN;
+	else if (type == "rect") *kind = message::ITEM_RECT;
+	else if (type == "oval") *kind = message::ITEM_OVAL;
+	else if (type == "line") *kind = message::ITEM_LINE;
+	else if (type == "arrow") *kind = message::ITEM_ARROW;
+	else if (type == "diamond") *kind = message::ITEM_DIAMOND;
+	else if (type == "image") *kind = message::ITEM_IMAGE;
+	else if (type == "text") *kind = message::ITEM_TEXT;
+	else return false;
+	return true;
+}
+
+bool ReadBatchText(const Json::Value& value, message::ItemEditState* state)
+{
+	// 1. 文字和附属文字保留同一套样式，颜色只接受序列化器输出的 ARGB 格式。
+	if (!value["text"].isString() || !value["font_family"].isString() || !value["font_size"].isUInt() ||
+		!value["text_color"].isString() || !value["bold"].isBool()) return false;
+	const std::string color = value["text_color"].asString();
+	if (color.size() != 9 || color.front() != '#' ||
+		!std::all_of(color.begin() + 1, color.end(), [](unsigned char ch) { return std::isxdigit(ch) != 0; })) return false;
+	state->set_text(value["text"].asString());
+	state->set_font_family(value["font_family"].asString());
+	state->set_font_size(value["font_size"].asUInt());
+	state->set_color(static_cast<std::uint32_t>(std::stoul(color.substr(1), nullptr, 16)));
+	state->set_bold(value["bold"].asBool());
+	return ValidateEditState(*state, 2U);
+}
+
+bool MakeBatchItemState(const message::ItemCreateItem& item, message::ItemEditState* state, Json::Value* item_data)
+{
+	// 1. 完整 JSON 仍是历史权威；服务端仅抽取通用编辑所需的公共变换状态。
+	Json::CharReaderBuilder builder;
+	Json::Value root;
+	std::string errors;
+	std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+	if (!reader->parse(item.item_json().data(), item.item_json().data() + item.item_json().size(), &root, &errors) || !root.isObject())
+	{
+		return false;
+	}
+	message::ItemKind kind = message::ITEM_UNKNOWN;
+	if (!root["item_id"].isString() || root["item_id"].asString() != item.item_id() ||
+		!root["type"].isString() || !KindForJsonType(root["type"].asString(), &kind) || kind != item.kind())
+	{
+		return false;
+	}
+	double x = 0.0;
+	double y = 0.0;
+	double origin_x = 0.0;
+	double origin_y = 0.0;
+	double rotation = 0.0;
+	double scale = 0.0;
+	std::vector<double> matrix;
+	if (!ReadJsonPair(root["position"], &x, &y) || !ReadJsonPair(root["transform_origin"], &origin_x, &origin_y) ||
+		!ReadFiniteJsonNumber(root["rotation"], &rotation) || !ReadFiniteJsonNumber(root["scale"], &scale) || scale <= 0.0 ||
+		!ReadJsonComponents(root["transform"], 9, &matrix))
+	{
+		return false;
+	}
+	*state = MakeInitialState(item.item_id(), kind);
+	state->set_x(x);
+	state->set_y(y);
+	state->set_origin_x(origin_x);
+	state->set_origin_y(origin_y);
+	state->set_rotation(rotation);
+	state->set_scale(scale);
+	state->clear_matrix();
+	for (double component : matrix) state->add_matrix(component);
+	// 2. 编辑几何必须与客户端原始路径映射和文字布局一致，移动不能重置这些扩展。
+	if (kind == message::ITEM_IMAGE)
+	{
+		double width = 0.0;
+		double height = 0.0;
+		if (!ReadJsonPair(root["display_size"], &width, &height) || width <= 0.0 || height <= 0.0 ||
+			!root["asset_id"].isString() || !root["asset_ref"].isString() || !root["asset_sha256"].isString() ||
+			root["asset_ref"].asString().empty() || root["asset_ref"].asString().size() > 1024 ||
+			!root["mime_type"].isString() || !root["original_size"].isArray() || root["original_size"].size() != 2 ||
+			!root["original_size"][0].isUInt() || !root["original_size"][1].isUInt() ||
+			root["original_size"][0].asUInt() == 0 || root["original_size"][1].asUInt() == 0) return false;
+		state->add_geometry(width);
+		state->add_geometry(height);
+	}
+	else if (kind == message::ITEM_TEXT)
+	{
+		std::vector<double> values{0.0, 0.0};
+		if (!ReadBatchText(root, state) || (root.isMember("text_layout") && !ReadJsonComponents(root["text_layout"], 2, &values))) return false;
+		for (double value : values) state->add_geometry(value);
+	}
+	else if (kind == message::ITEM_PEN)
+	{
+		if (!root["path"].isArray() || root["path"].size() > 1000000U) return false;
+		std::vector<double> values{1.0, 0.0, 0.0, 1.0, 0.0, 0.0};
+		if (root.isMember("path_transform") && !ReadJsonComponents(root["path_transform"], 6, &values)) return false;
+		for (double value : values) state->add_geometry(value);
+	}
+	else
+	{
+		const Json::Value& geometry = (kind == message::ITEM_LINE || kind == message::ITEM_ARROW) ? root["line"] : root["rect"];
+		std::vector<double> values;
+		if (!ReadJsonComponents(geometry, 4, &values)) return false;
+		for (double value : values) state->add_geometry(value);
+	}
+	// 3. 附属文字随父图元提交，后续纯几何编辑继续保留复制时的文本。
+	if (root.isMember("bound_text") && (!root["bound_text"].isObject() || !ReadBatchText(root["bound_text"], state))) return false;
+	*item_data = std::move(root);
+	return ValidateEditState(*state, 1U);
+}
+}
+
+bool Room::AcceptItemCreateBatch(std::shared_ptr<CSession> session, const message::ItemCreateBatch& batch)
+{
+	// 1. 在同一把房间锁中验证整批载荷，任一条失败均不修改状态或历史。
+	if (!session || session->IsClosed() || batch.uid() != session->GetUserId()) return false;
+	std::lock_guard<std::mutex> lock(_mutex);
+	message::ItemCreateBatchRsp response;
+	*response.mutable_batch() = batch;
+	auto reject = [&](int error, const char* reason) {
+		response.set_error(error);
+		response.set_error_message(reason);
+		std::string body;
+		if (response.SerializeToString(&body)) session->Send(body, ID_ITEM_CREATE_BATCH_RSP);
+		return false;
+	};
+	if (!IsActiveMemberLocked(batch.uid()) || batch.room_id() != _room_id ||
+		_sessions.at(batch.uid()).get() != session.get()) return reject(_is_closing ? message::RoomClosing : message::NotInRoom, "当前不在活动房间中");
+	if (batch.uid() != _owner_uid && !_editable_users.count(batch.uid())) return reject(message::NotOwner, "当前没有编辑权限");
+	if (batch.operation_id().empty() || batch.operation_id().size() > 128 || batch.payload_version() != 1 ||
+		batch.server_sequence() != 0 || batch.items_size() <= 0 || batch.items_size() > 64 || batch.ByteSizeLong() > MAX_LENGTH) return reject(message::ItemEditInvalidArgument, "图元批量创建字段无效");
+	const std::string cache_key = std::to_string(batch.uid()) + ":" + batch.operation_id();
+	const auto duplicate = _batch_responses.find(cache_key);
+	if (duplicate != _batch_responses.end())
+	{
+		message::ItemCreateBatch previous = duplicate->second.batch();
+		previous.set_server_sequence(0);
+		if (previous.SerializeAsString() != batch.SerializeAsString()) return reject(message::ItemEditInvalidArgument, "重复操作标识对应不同内容");
+		std::string body;
+		if (duplicate->second.SerializeToString(&body)) session->Send(body, ID_ITEM_CREATE_BATCH_RSP);
+		return true;
+	}
+	std::unordered_set<std::string> ids;
+	std::vector<message::ItemEditState> states;
+	std::vector<Json::Value> item_data;
+	states.reserve(batch.items_size());
+	for (int index = 0; index < batch.items_size(); ++index)
+	{
+		const auto& item = batch.items(index);
+		message::ItemEditState state;
+		Json::Value data;
+		if (item.item_id().empty() || item.item_id().size() > 128 || item.item_json().empty() || item.item_json().size() > 60000 ||
+			item.stack_order() != static_cast<unsigned int>(index) || !ids.insert(item.item_id()).second ||
+			_item_revisions.count(item.item_id()) || _draw_started.count(item.item_id()) || !MakeBatchItemState(item, &state, &data))
+		{
+			return reject(message::ItemEditInvalidArgument, "图元批量创建包含无效或重复图元");
+		}
+		states.push_back(std::move(state));
+		item_data.push_back(std::move(data));
+	}
+	const auto image_count = std::count_if(states.begin(), states.end(), [](const message::ItemEditState& state) { return state.kind() == message::ITEM_IMAGE; });
+	if (_image_items.size() + image_count > MAX_IMAGE_ITEMS) return reject(message::ItemEditInvalidArgument, "房间图片数量超过限制");
+
+	// 2. 全部校验通过后一次分配顺序，写入可编辑状态并保存单条回放记录。
+	const std::uint64_t sequence = _edit_sequence + 1;
+	response.set_error(message::SUCCESS);
+	response.mutable_batch()->set_server_sequence(sequence);
+	std::string body;
+	if (!response.SerializeToString(&body) || body.size() >= MAX_LENGTH) return reject(message::ItemEditInvalidArgument, "图元批量创建响应超过协议包长");
+	for (std::size_t index = 0; index < states.size(); ++index)
+	{
+		const auto& state = states[index];
+		const auto& data = item_data[index];
+		_item_edit_states[state.item_id()] = state;
+		_item_revisions[state.item_id()] = sequence;
+		_batch_create_index[state.item_id()] = _history.size();
+		// 旧图片和文字入口也要能找到副本，通用移动不能对缺失索引调用 at。
+		if (state.kind() == message::ITEM_TEXT)
+		{
+			auto& text = _text_itemMap[state.item_id()];
+			text.set_item_id(state.item_id());
+			text.set_x(state.x());
+			text.set_y(state.y());
+			text.set_text(state.text());
+			text.set_font_family(state.font_family());
+			text.set_font_size(state.font_size());
+			text.set_color(state.color());
+			text.set_bold(state.bold());
+			_text_sequenceMap[state.item_id()] = sequence;
+		} else if (state.kind() == message::ITEM_IMAGE)
+		{
+			auto& image = _image_items[state.item_id()];
+			image.set_item_id(state.item_id());
+			image.set_asset_id(data["asset_id"].asString());
+			image.set_asset_ref(data["asset_ref"].asString());
+			image.set_asset_sha256(data["asset_sha256"].asString());
+			image.set_mime_type(data["mime_type"].asString());
+			image.set_original_width(data["original_size"][0].asUInt());
+			image.set_original_height(data["original_size"][1].asUInt());
+			auto* transform = image.mutable_transform();
+			transform->set_x(static_cast<float>(state.x()));
+			transform->set_y(static_cast<float>(state.y()));
+			transform->set_width(static_cast<float>(state.geometry(0)));
+			transform->set_height(static_cast<float>(state.geometry(1)));
+			transform->set_rotation(static_cast<float>(state.rotation()));
+			transform->set_scale_x(1.0F);
+			transform->set_scale_y(1.0F);
+		}
+	}
+	_edit_sequence = sequence;
+	AppendHistoryLocked(HistoryEntry{ID_ITEM_CREATE_BATCH_RSP, body});
+	_batch_responses[cache_key] = response;
+	_batch_response_order.push_back(cache_key);
+	if (_batch_response_order.size() > 512)
+	{
+		_batch_responses.erase(_batch_response_order.front());
+		_batch_response_order.pop_front();
+	}
+
+	// 3. 在房间锁内按提交顺序入队，发起者也必须收到确认以解除本地 pending 状态。
+	for (const auto& member : _sessions)
+	{
+		if (member.second && !member.second->IsClosed()) member.second->Send(body, ID_ITEM_CREATE_BATCH_RSP);
+	}
+	return true;
 }
 
 void Room::RebuildDrawHistoryIndexLocked()
 {
 	// 1. 只索引完整笔迹的结束消息；尚未完成的路径不能被编辑。
 	_draw_end_index.clear();
+	_batch_create_index.clear();
 	for (std::size_t index = 0; index < _history.size(); ++index)
 	{
 		const auto& entry = _history[index];
+		if (entry._msg_id == ID_ITEM_CREATE_BATCH_RSP)
+		{
+			message::ItemCreateBatchRsp batch;
+			if (batch.ParseFromString(entry._body))
+			{
+				for (const auto& item : batch.batch().items()) _batch_create_index[item.item_id()] = index;
+			}
+			continue;
+		}
 		if (entry._draw_item_id.empty())
 		{
 			continue;
@@ -249,6 +527,8 @@ bool Room::RegisterDrawLocked(const message::DrawReq& request)
 void Room::UpdateItemEditHistoryLocked(const std::string& item_id)
 {
 	// 1. 编辑快照附着于图元原创建位置，历史不会为每个拖动采样持续增长。
+	// 批量图元在回放快照中逐个附加最终状态，不能生成第二条旧类型创建记录。
+	if (_batch_create_index.count(item_id)) return;
 	const auto state = _item_edit_states.find(item_id);
 	if (state == _item_edit_states.end())
 	{

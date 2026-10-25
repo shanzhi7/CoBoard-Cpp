@@ -32,10 +32,10 @@ public:
     void SetOverlayVisible(bool visible); // 导出和场景替换期间显式隐藏交互反馈。
     void BeforeSceneClear(); // 场景清空前移除覆盖层，避免重复释放。
     void AfterSceneClear(); // 场景清空后重新安装覆盖层。
+    QVector<CanvasItem*> SelectedItems() const; // 返回可交互的顶层选中图元，供复制等场景操作复用。
 
 private:
     QGraphicsView* ViewForWidget(QWidget* widget) const; // 查找产生事件的视口，保持固定像素命中。
-    QVector<CanvasItem*> SelectedItems() const; // 返回可交互的顶层选中图元。
     void StartGesture(const QVector<CanvasItem*>& items, int handle, QGraphicsSceneMouseEvent* event); // 记录手势开始快照和坐标基准。
     void UpdateSingleItem(const QPointF& scene_pos); // 按局部轴执行单个图元伸缩或旋转。
     void NotifyChanges(bool finished); // 按同一手势标识提交实际变化。

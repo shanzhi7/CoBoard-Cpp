@@ -46,6 +46,7 @@ public:
         ItemEdit // 图元变换或附属文字的完整状态操作。
     };
     CanvasItem* FindCanvasItem(const QString& item_id) const; // 按稳定 ID 查找本地、远端或导入的顶层图元。
+    QVector<CanvasItem*> SelectedCanvasItems() const; // 返回当前可复制的顶层选中图元。
     CanvasItemEditState CaptureItemEditState(const QString& item_id) const; // 读取图元完整编辑快照。
     bool ApplyItemEditState(const CanvasItemEditState& state); // 恢复完整状态并刷新本地选择框。
     void CancelItemInteraction(const QString& item_id); // 远端覆盖或删除前取消目标正在进行的编辑。
@@ -75,6 +76,8 @@ public:
     void undoLastLocalItem(); // 删除最后一个本地图元，不影响远端图元。
     bool BuildCanvasDocument(CanvasDocument* document, QString* error_message) const; // 按场景绘制顺序构建独立快照。
     bool LoadCanvasDocument(const CanvasDocument& document, QString* error_message); // 仅向尚未接入视图的新场景恢复图元。
+    bool InsertClipboardDocument(const CanvasDocument& document, bool record_undo, QVector<QString>* item_ids, QString* error_message); // 原子插入剪贴板副本并配置场景交互。
+    void RecordClipboardCreation(const QVector<QString>& item_ids); // 将一次粘贴登记为可整体撤销的本地创建。
     QImage RenderCanvasImage(QString* error_message); // 按画布原尺寸渲染并恢复交互反馈。
     TextItem* AddTextItem(const TextItemData& data); // 创建文字并登记稳定 ID，不生成撤销记录。
     TextItem* FindTextItem(const QString& item_id) const; // 查找场景拥有的文字图元。
@@ -176,6 +179,8 @@ private:
         TextItemData after_text; // 完整操作完成后的文字值。
         bool is_item_edit = false; // 标记变换或附属文字的完整快照记录。
         CanvasItemEditUndoOperation item_edit; // 同一手势中的一个或多个图元快照。
+        bool is_clipboard_batch = false; // 标记一次复制粘贴创建的多个独立图元。
+        QVector<QString> clipboard_item_ids; // 批量撤销时需一起删除的稳定 ID。
     };
 
     ShapeType _currShapeType = Shape_Pen; // 当前绘图类型，不包含交互模式。

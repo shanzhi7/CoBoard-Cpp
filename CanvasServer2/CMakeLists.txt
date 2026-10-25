@@ -90,6 +90,8 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 "src/TextOperationHandler.cpp"
 "include/CanvasServer/ItemEditOperationHandler.h"
 "src/ItemEditOperationHandler.cpp"
+"include/CanvasServer/ItemCreateBatchHandler.h"
+"src/ItemCreateBatchHandler.cpp"
 "src/RoomItemEdit.cpp"
 "include/CanvasServer/RoomLifecycleHandler.h"
 "src/RoomLifecycleHandler.cpp"
@@ -99,6 +101,20 @@ add_executable (CanvasServer "src/CanvasServer.cpp"
 "src/Room.cpp" 
 "include/CanvasServer/RoomMgr.h" 
 "src/RoomMgr.cpp" )
+
+# 兼容旧 Ninja 缓存丢失本地化 MSVC 头文件依赖的情况，显式跟踪项目头文件。
+get_target_property(CANVAS_SERVER_SOURCES CanvasServer SOURCES)
+set(CANVAS_SERVER_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/include/CanvasServer/message.pb.h")
+foreach(CANVAS_SERVER_SOURCE IN LISTS CANVAS_SERVER_SOURCES)
+    if(CANVAS_SERVER_SOURCE MATCHES "\\.(h|hpp)$")
+        list(APPEND CANVAS_SERVER_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/${CANVAS_SERVER_SOURCE}")
+    endif()
+endforeach()
+foreach(CANVAS_SERVER_SOURCE IN LISTS CANVAS_SERVER_SOURCES)
+    if(CANVAS_SERVER_SOURCE MATCHES "\\.(cpp|cc)$")
+        set_property(SOURCE "${CANVAS_SERVER_SOURCE}" APPEND PROPERTY OBJECT_DEPENDS ${CANVAS_SERVER_HEADERS})
+    endif()
+endforeach()
 
 # 5.1 头文件路径
 target_include_directories(CanvasServer PRIVATE

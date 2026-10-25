@@ -66,6 +66,8 @@ private slots:
     void OnTextStyleChanged(); // 在编辑中更新草稿，普通状态提交一次样式操作。
     void OnUndoTriggered(); // 按离线或在线规则执行统一撤销。
     void OnTextOperationReceived(const message::TextOperationRsp& response); // 接收确认、远端修改及历史文字状态。
+    void OnItemCreateBatchReceived(const message::ItemCreateBatchRsp& response); // 接收复制粘贴批量创建确认和历史回放。
+    void OnCopyItemsRequested(); // 将当前选中图元写入系统内部剪贴板。
     void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
     void CompleteLocalCreation(QString item_id); // 本地图元创建完成后回到鼠标模式并选中刚创建的图元。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
@@ -79,7 +81,7 @@ private slots:
     void OnExportCanvasTriggered(); // 导出当前客户端的完整画布快照。
     void OnExportImageTriggered(); // 将完整画布导出为 PNG 或 JPG。
     void OnImageFilesDropped(QStringList file_paths, QPointF scene_pos); // 处理从资源管理器拖入画板的图片文件。
-    void OnPasteImageRequested(); // 处理画布获得焦点后的 Ctrl+V 图片粘贴请求。
+    void OnPasteImageRequested(QPointF scene_pos); // 将内部图元或外部图片以鼠标场景坐标为中心粘贴。
 
     // --收到paintSence发送的绘画信号对应的槽函数--
     void slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width); // 发送本地笔画 START。
@@ -113,6 +115,7 @@ private slots:
 private:
     void ConfigureItemEditSync(); // 按当前房间、身份和权限更新图元同步上下文。
     void OnItemEditReceived(const message::ItemEditOperationRsp& response); // 将通用编辑按接收顺序加入远端队列。
+    bool InsertClipboardBatch(const CanvasDocument& document, bool record_undo, QString* error_message); // 原子插入完整图元副本并同步在线批次。
     void UpdateReturnActions(bool can_retry = false); // 按房主身份及退出状态更新返回菜单。
     void UpdateTextControls(); // 按工具和选中文字同步字号及加粗控件。
     void SubmitTextOperation(message::TextOperationType type, const TextItemData& before,
@@ -137,6 +140,8 @@ private:
     QLabel* statusDot; // 状态栏标签
     CanvasItemEditSync* _item_edit_sync = nullptr; // 当前场景对应的合并发送和确认管理器。
     QQueue<message::ItemEditOperationRsp> _remote_item_edits; // 与绘画创建保持同一到达顺序的编辑回包。
+    QQueue<message::ItemCreateBatchRsp> _remote_item_create_batches; // 与其他图元操作保持同一顺序的批量创建回包。
+    QHash<QString, QVector<QString>> _pending_item_create_batches; // 本地预览批次等待服务端确认的图元 ID。
     PaintScene* _paintScene; // 画布场景
     WidthPopup* _widthPopup; // 画笔粗细预览窗口
     std::shared_ptr<RoomInfo> _room_info; // 当前房间信息

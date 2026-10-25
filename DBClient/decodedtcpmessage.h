@@ -19,7 +19,7 @@ struct DecodedTcpMessage
     using Payload = std::variant<QJsonObject, message::JoinRoomRsp, message::LeaveRoomRsp,
         message::DestroyRoomRsp, message::RoomDestroyedBroadcast, message::UserJoinRoomBroadcast,
         message::UserLeaveRoomBroadcast, message::DrawReq, message::ImageOperation,
-        message::ItemEditOperationRsp, message::TextOperationRsp, message::GrantEditRsp,
+        message::ItemEditOperationRsp, message::ItemCreateBatchRsp, message::TextOperationRsp, message::GrantEditRsp,
         message::RevokeEditRsp, message::PermissionChangedBroadcast, message::ChatRsp>;
 
     quint16 _message_id = 0; // 原始 TCP 消息编号，与载荷类型对应。
