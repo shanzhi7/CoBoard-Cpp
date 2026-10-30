@@ -1,6 +1,10 @@
 #include "canvasclipboardpayload.h"
 
 #include <QBuffer>
+#include <QFileInfo>
+#include <QImageReader>
+#include <QMimeData>
+#include <QUrl>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -11,13 +15,13 @@
 #include <memory>
 
 #include "canvasitemserializer.h"
+#include "imageassetmanager.h"
 #include "canvasitems/canvasitem.h"
 #include "canvasitems/imageitem.h"
 
 namespace
 {
 constexpr int CLIPBOARD_VERSION = 1;
-constexpr int MAX_ITEMS = 64;
 constexpr qint64 MAX_IMAGE_BYTES = 16LL * 1024 * 1024;
 
 bool EncodePng(const QImage& image, QByteArray* data)
@@ -26,6 +30,64 @@ bool EncodePng(const QImage& image, QByteArray* data)
     QBuffer buffer(data);
     return !image.isNull() && buffer.open(QIODevice::WriteOnly) && image.save(&buffer, "PNG");
 }
+}
+
+CanvasClipboardContent CanvasClipboardPayload::Resolve(const QMimeData* mime_data)
+{
+    // 1. 内部 MIME 存在时只接受有效内部载荷，损坏数据不能误走外部图片回退。
+    CanvasClipboardContent content;
+    content._error_message = QStringLiteral("剪贴板中没有支持的图元或图片");
+    if (!mime_data)
+    {
+        return content;
+    }
+    if (mime_data->hasFormat(MimeType()))
+    {
+        QPointF anchor;
+        if (Decode(mime_data->data(MimeType()), &content._document, &anchor, &content._error_message))
+        {
+            content._kind = CanvasClipboardContent::Kind::Internal;
+        }
+        return content;
+    }
+
+    // 2. 仅探测本地图片格式，完整读取和资源限额仍由异步导入流程校验。
+    for (const QUrl& url : mime_data->urls())
+    {
+        if (!url.isLocalFile())
+        {
+            continue;
+        }
+        const QFileInfo file_info(url.toLocalFile());
+        QImageReader reader(file_info.absoluteFilePath());
+        reader.setDecideFormatFromContent(true);
+        const QByteArray format = reader.format().toLower();
+        const QSize size = reader.size();
+        const bool supported_format = format == "png" || format == "jpg" || format == "jpeg" || format == "webp";
+        if (file_info.isFile() && file_info.size() <= ImageAssetManager::MAX_FILE_SIZE && supported_format &&
+            size.isValid() && size.width() <= ImageAssetManager::MAX_IMAGE_WIDTH &&
+            size.height() <= ImageAssetManager::MAX_IMAGE_HEIGHT && reader.canRead())
+        {
+            content._file_paths.append(file_info.absoluteFilePath());
+        }
+    }
+    if (!content._file_paths.isEmpty())
+    {
+        content._kind = CanvasClipboardContent::Kind::ImageFiles;
+        return content;
+    }
+
+    // 3. 外部像素保留值语义，菜单查询不会创建图元或启动资源导入。
+    if (mime_data->hasImage())
+    {
+        content._image = qvariant_cast<QImage>(mime_data->imageData());
+    }
+    if (!content._image.isNull() && content._image.width() <= ImageAssetManager::MAX_IMAGE_WIDTH &&
+        content._image.height() <= ImageAssetManager::MAX_IMAGE_HEIGHT)
+    {
+        content._kind = CanvasClipboardContent::Kind::ImagePixels;
+    }
+    return content;
 }
 
 QString CanvasClipboardPayload::MimeType()
@@ -169,7 +231,7 @@ bool CanvasClipboardPayload::Decode(const QByteArray& data, CanvasDocument* docu
     return true;
 }
 
-bool CanvasClipboardPayload::CloneForPaste(const CanvasDocument& source, const QPointF& scene_pos, CanvasDocument* document, QString* error_message)
+bool CanvasClipboardPayload::CloneForPaste(const CanvasDocument& source, const QPointF& scene_pos, CanvasDocument* document, QString* error_message, CanvasPasteAnchor anchor)
 {
     // 1. 先完整恢复临时图元以计算真实显示范围，旋转、缩放、路径及文字布局均参与定位。
     if (!document || source._items.isEmpty() || source._items.size() != source._item_order.size())
@@ -187,8 +249,8 @@ bool CanvasClipboardPayload::CloneForPaste(const CanvasDocument& source, const Q
         has_bounds = true;
     }
 
-    // 2. 整组使用同一个平移量，将显示中心对齐鼠标，保留内部相对位置和原始几何。
-    const QPointF offset = scene_pos - bounds.center();
+    // 2. 整组只使用同一个平移量，菜单与快捷键通过锚点策略共享创建流程。
+    const QPointF offset = scene_pos - (anchor == CanvasPasteAnchor::TopLeft ? bounds.topLeft() : bounds.center());
     CanvasDocument result = source;
     result._items.clear();
     result._item_order.clear();

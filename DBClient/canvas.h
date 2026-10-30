@@ -8,6 +8,7 @@
 #pragma once
 
 #include "paintscene.h"
+#include "canvasclipboardpayload.h"
 #include "drawtool.h"
 #include "global.h"
 #include "userlisttree.h"
@@ -29,6 +30,7 @@
 class ImageAssetManager;
 class CanvasFileManager;
 class CanvasItemEditSync;
+class CanvasEditController;
 class QImage;
 
 namespace Ui {
@@ -67,7 +69,9 @@ private slots:
     void OnUndoTriggered(); // 按离线或在线规则执行统一撤销。
     void OnTextOperationReceived(const message::TextOperationRsp& response); // 接收确认、远端修改及历史文字状态。
     void OnItemCreateBatchReceived(const message::ItemCreateBatchRsp& response); // 接收复制粘贴批量创建确认和历史回放。
-    void OnCopyItemsRequested(); // 将当前选中图元写入系统内部剪贴板。
+    void OnCopyItemsRequested(QStringList item_ids); // 将当前选中图元写入系统内部剪贴板。
+    void OnDeleteItemsRequested(QStringList item_ids); // 统一删除完整目标集合，在线等待通用删除确认。
+    void OnItemDeleted(const QString& item_id, quint64 revision); // 清理删除后的文字缓存和图片关联任务。
     void SetCanvasTool(int tool_id); // 统一更新互斥按钮、场景模式和视口模式。
     void CompleteLocalCreation(QString item_id); // 本地图元创建完成后回到鼠标模式并选中刚创建的图元。
     void slot_user_joined(UserInfo new_info);                                   //加入新用户槽函数 (广播)
@@ -81,7 +85,7 @@ private slots:
     void OnExportCanvasTriggered(); // 导出当前客户端的完整画布快照。
     void OnExportImageTriggered(); // 将完整画布导出为 PNG 或 JPG。
     void OnImageFilesDropped(QStringList file_paths, QPointF scene_pos); // 处理从资源管理器拖入画板的图片文件。
-    void OnPasteImageRequested(QPointF scene_pos); // 将内部图元或外部图片以鼠标场景坐标为中心粘贴。
+    void OnPasteImageRequested(QPointF scene_pos, CanvasPasteAnchor anchor); // 共用内部和外部粘贴流程，按触发入口指定锚点。
 
     // --收到paintSence发送的绘画信号对应的槽函数--
     void slot_onStrokeStart(QString uuid, int type, QPointF startPos, QColor color, int width); // 发送本地笔画 START。
@@ -98,7 +102,7 @@ private slots:
     void slot_onImageAssetUploaded(QString asset_id, QString sha256, QString mime_type); // 上传完成后发送图片元数据操作
     void slot_onImageAssetUploadFailed(QString asset_id, QString error_message); // 上传失败时删除尚未广播的本地图元
     void slot_onImageGeometryChanged(QString item_id, QRectF scene_rect, qreal rotation, qreal scale); // 本地移动图片后发送变换操作
-    void slot_onImageDeleteRequested(QString item_id); // 处理本地删除键并发送图片删除操作
+    void slot_onImageDeleteRequested(QString item_id); // 兼容旧图片删除意图，转交统一删除入口。
     void slot_onImageRetryRequested(QString item_id); // 双击失败占位图后重新排队下载签名请求
     void slot_onImagePreviewRequested(QString item_id); // 双击已加载图片后打开原图预览窗口
 
@@ -138,6 +142,7 @@ private:
     QQueue<message::TextOperationRsp> _remote_text_operations; // 房间初始化前暂存的文字历史。
     Ui::Canvas* ui; // 界面对象
     QLabel* statusDot; // 状态栏标签
+    CanvasEditController* _edit_controller = nullptr; // 当前场景的右键菜单与键盘编辑命令。
     CanvasItemEditSync* _item_edit_sync = nullptr; // 当前场景对应的合并发送和确认管理器。
     QQueue<message::ItemEditOperationRsp> _remote_item_edits; // 与绘画创建保持同一到达顺序的编辑回包。
     QQueue<message::ItemCreateBatchRsp> _remote_item_create_batches; // 与其他图元操作保持同一顺序的批量创建回包。
@@ -200,6 +205,7 @@ private:
     struct PendingImageImport
     {
         QString _source_file_path; // 拖放或文件选择的原始路径，剪贴板图片没有原始路径。
+        CanvasPasteAnchor _anchor = CanvasPasteAnchor::Center; // 菜单导入使用左上角，其他入口保持中心。
         QPointF _anchor_scene_pos; // 用户触发导入时记录的场景锚点。
         quint64 _tool_generation = 0; // 导入开始时的工具代次，迟到结果不能抢走新工具。
         bool _has_anchor_scene_pos = false; // 是否使用已记录的锚点而不是异步完成时的画布中心。
@@ -248,11 +254,10 @@ private:
     void HandleImageSignatureFinished(QString request_id, ReqId reqid, QString response, ErrorCodes error); // 校验签名 UUID 后交付已有处理函数。
     void sendImageCreateOperation(const QString& item_id); // 序列化已上传图片的创建操作并发送到 CanvasServer
     void sendImageTransformOperation(const QString& item_id, const QRectF& scene_rect, qreal rotation, qreal scale); // 序列化本地变换并发送到 CanvasServer
-    void sendImageDeleteOperation(const QString& item_id); // 序列化图片删除操作并发送到 CanvasServer
     void applyRemoteImageOperation(const message::ImageOperation& operation); // 在本地场景应用服务端广播的图片操作
     void updateImageItemsForAsset(const QString& asset_id, const QPixmap& pixmap, const QSize& original_size); // 同时更新引用同一资源的多个图元
-    void StartFileImageImport(const QString& file_path, const QPointF& anchor_scene_pos, bool has_anchor_scene_pos); // 启动本地文件图片的异步校验和导入。
-    void StartImageDataImport(const QImage& image, const QPointF& anchor_scene_pos, bool has_anchor_scene_pos); // 启动剪贴板图片的异步编码、校验和导入。
+    void StartFileImageImport(const QString& file_path, const QPointF& anchor_scene_pos, bool has_anchor_scene_pos, CanvasPasteAnchor anchor = CanvasPasteAnchor::Center); // 启动本地文件图片的异步校验和导入。
+    void StartImageDataImport(const QImage& image, const QPointF& anchor_scene_pos, bool has_anchor_scene_pos, CanvasPasteAnchor anchor = CanvasPasteAnchor::Center); // 启动剪贴板图片的异步编码、校验和导入。
     QPointF CanvasCenterScenePos() const; // 返回当前可视画布中心对应的场景坐标。
 
     LatencyTestController* _latencyTestController = nullptr; // 延迟测试控制器

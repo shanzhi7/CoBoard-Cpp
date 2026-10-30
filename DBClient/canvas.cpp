@@ -10,6 +10,7 @@
 #include "imagepreviewdialog.h"
 #include "canvasfilemanager.h"
 #include "canvasitemeditsync.h"
+#include "canvaseditcontroller.h"
 #include "canvasclipboardpayload.h"
 #include "canvasitemserializer.h"
 #include "canvastoolregistry.h"
@@ -259,7 +260,9 @@ Canvas::Canvas(const LatencyTestOptions& test_options, QWidget *parent)
 
 Canvas::~Canvas()
 {
-    // 1. 先回收文件任务，再释放它依赖的图片资源门面和界面。
+    // 1. 先回收编辑命令和文件任务，再释放它们依赖的图片资源门面和界面。
+    delete _edit_controller;
+    _edit_controller = nullptr;
     if (_paintScene) disconnect(_paintScene, nullptr, this, nullptr);
     delete _canvas_file_manager;
     _canvas_file_manager = nullptr;
@@ -273,7 +276,11 @@ Canvas::~Canvas()
 
 void Canvas::setRoomInfo(std::shared_ptr<RoomInfo> room_info)
 {
-    // 1. 换房使旧文件任务失效，保留首次加入时已收到的远端队列。
+    // 1. 换房使旧菜单和文件任务失效，保留首次加入时已收到的远端队列。
+    if (_edit_controller)
+    {
+        _edit_controller->CloseMenu();
+    }
     CancelCanvasFileOperation();
     // 首次进入房间时，JoinRoomRsp 后面的历史绘画包可能已经先到达并进入队列。
     // 此时 _room_info 为空，不能清队列，否则会丢掉房主已有的绘画内容。
@@ -483,6 +490,10 @@ void Canvas::SetExitState(bool busy, bool can_retry)
     _exit_busy = busy;
     if (busy)
     {
+        if (_edit_controller)
+        {
+            _edit_controller->CloseMenu();
+        }
         CancelCanvasFileOperation();
         CancelImageRequests();
         _paintScene->FinishTextEditing(true);
@@ -605,10 +616,6 @@ void Canvas::initCanvasUi()
     ui->graphicsView->resetZoom();                              // 初始化视图缩放状态，状态栏从 100% 开始显示
     connect(ui->graphicsView, &CanvasGraphicsView::sigImageFilesDropped,
             this, &Canvas::OnImageFilesDropped);
-    connect(ui->graphicsView, &CanvasGraphicsView::sigPasteImageRequested,
-            this, &Canvas::OnPasteImageRequested);
-    connect(ui->graphicsView, &CanvasGraphicsView::sigCopyItemsRequested,
-            this, &Canvas::OnCopyItemsRequested);
     //初始化 paintScene(end)
 
     //初始化 _widthPopup(begin)
@@ -679,9 +686,18 @@ void Canvas::initCanvasUi()
 
 void Canvas::ConnectPaintSceneSignals()
 {
-    // 1. 每个场景使用独立确认队列，替换场景时旧状态不进入新画布。
+    // 1. 每个场景使用独立命令和确认队列，替换后旧菜单不能进入新画布。
+    delete _edit_controller;
+    _edit_controller = new CanvasEditController(_paintScene, ui->graphicsView, this);
+    connect(_edit_controller, &CanvasEditController::SigCopyRequested, this, &Canvas::OnCopyItemsRequested);
+    connect(_edit_controller, &CanvasEditController::SigPasteRequested, this, &Canvas::OnPasteImageRequested);
+    connect(_edit_controller, &CanvasEditController::SigDeleteRequested, this, &Canvas::OnDeleteItemsRequested);
+    connect(_edit_controller, &CanvasEditController::SigError, this, [this](const QString& message) {
+        TipWidget::showTip(ui->graphicsView, message);
+    });
     delete _item_edit_sync;
     _item_edit_sync = new CanvasItemEditSync(_paintScene, this);
+    connect(_item_edit_sync, &CanvasItemEditSync::SigItemDeleted, this, &Canvas::OnItemDeleted);
     connect(_item_edit_sync, &CanvasItemEditSync::SigSendOperation, this, [](const QByteArray& body) {
         // 1. 同步队列已完成序列化和包长检查，此处只交付现有 TCP 发送入口。
         TcpMgr::getInstance()->slot_send_data(ReqId::ID_ITEM_EDIT_REQ, body);
@@ -1502,7 +1518,11 @@ void Canvas::OnUndoTriggered()
 
 void Canvas::ClearTextOperations()
 {
-    // 1. 生命周期切换取消草稿，恢复等待确认前的状态并废弃关联请求。
+    // 1. 生命周期切换取消菜单和草稿，恢复等待确认前的状态并废弃关联请求。
+    if (_edit_controller)
+    {
+        _edit_controller->CloseMenu();
+    }
     if (_paintScene)
     {
         _paintScene->FinishTextEditing(true);
@@ -1931,91 +1951,58 @@ void Canvas::OnImageFilesDropped(QStringList file_paths, QPointF scene_pos)
     }
 }
 
-void Canvas::OnPasteImageRequested(QPointF scene_pos)
+void Canvas::OnPasteImageRequested(QPointF scene_pos, CanvasPasteAnchor anchor)
 {
-    // 1. 内部图元格式优先；存在但损坏时必须停止，不能误把同一剪贴板的截图当作外部图片。
-    if (!_room_info || !_paintScene || !_imageAssetManager) return;
-    const QMimeData* mime_data = QApplication::clipboard()->mimeData();
-    if (!mime_data)
+    // 1. 菜单与快捷键共用剪贴板识别，执行时复查当前房间和权限。
+    if (!_room_info || !_paintScene || !_imageAssetManager || !_paintScene->isEditable() ||
+        (!_room_info->offline && (!_room_info->can_edit || !_room_info->connected)))
     {
-        TipWidget::showTip(ui->graphicsView, QStringLiteral("剪贴板中没有可插入的图片"));
         return;
     }
-    const QString internal_mime = CanvasClipboardPayload::MimeType();
-    if (mime_data->hasFormat(internal_mime))
+    const CanvasClipboardContent content = CanvasClipboardPayload::Resolve(QApplication::clipboard()->mimeData());
+    if (content._kind == CanvasClipboardContent::Kind::None)
     {
-        if (!_room_info->offline && !_room_info->can_edit)
-        {
-            TipWidget::showTip(ui->graphicsView, QStringLiteral("当前没有图元粘贴权限"));
-            return;
-        }
-        CanvasDocument source;
-        QPointF anchor;
-        QString error_message;
-        if (!CanvasClipboardPayload::Decode(mime_data->data(internal_mime), &source, &anchor, &error_message))
-        {
-            TipWidget::showTip(ui->graphicsView, error_message);
-            return;
-        }
-        // 2. 单个图元和多选集合均以显示包围框中心对齐按键时记录的鼠标落点。
+        TipWidget::showTip(ui->graphicsView, content._error_message);
+        return;
+    }
+
+    // 2. 内部图元完整克隆，锚点只改变共同平移量，类型、层叠及样式保持原样。
+    if (content._kind == CanvasClipboardContent::Kind::Internal)
+    {
         CanvasDocument copy;
-        if (!CanvasClipboardPayload::CloneForPaste(source, scene_pos, &copy, &error_message) ||
+        QString error_message;
+        if (!CanvasClipboardPayload::CloneForPaste(content._document, scene_pos, &copy, &error_message, anchor) ||
             !InsertClipboardBatch(copy, false, &error_message))
         {
             TipWidget::showTip(ui->graphicsView, error_message);
         }
         return;
     }
-    if (!_room_info->offline && !_room_info->can_edit)
+
+    // 3. 外部文件和像素继续异步导入，完成时不重新读取鼠标位置或菜单状态。
+    if (content._kind == CanvasClipboardContent::Kind::ImageFiles)
     {
-        TipWidget::showTip(ui->graphicsView, QStringLiteral("当前没有图片编辑权限"));
+        for (const QString& file_path : content._file_paths)
+        {
+            StartFileImageImport(file_path, scene_pos, true, anchor);
+        }
         return;
     }
-
-    // 3. 外部文件和截图共用同一落点，异步导入完成时不再读取鼠标位置。
-    if (mime_data->hasUrls())
-    {
-        QStringList file_paths;
-        for (const QUrl& url : mime_data->urls())
-        {
-            if (!url.isLocalFile())
-            {
-                continue;
-            }
-            const QFileInfo file_info(url.toLocalFile());
-            if (file_info.exists() && file_info.isFile())
-            {
-                file_paths.append(file_info.absoluteFilePath());
-            }
-        }
-        if (!file_paths.isEmpty())
-        {
-            for (int index = 0; index < file_paths.size(); ++index)
-            {
-                StartFileImageImport(file_paths.at(index), scene_pos, true);
-            }
-            return;
-        }
-    }
-
-    if (mime_data->hasImage())
-    {
-        const QImage image = QApplication::clipboard()->image();
-        if (!image.isNull())
-        {
-            StartImageDataImport(image, scene_pos, true);
-            return;
-        }
-    }
-
-    TipWidget::showTip(ui->graphicsView, QStringLiteral("剪贴板中没有可插入的图片"));
+    StartImageDataImport(content._image, scene_pos, true, anchor);
 }
 
-void Canvas::OnCopyItemsRequested()
+void Canvas::OnCopyItemsRequested(QStringList item_ids)
 {
     // 1. 空选择不覆盖用户已有的系统剪贴板内容。
     if (!_paintScene) return;
-    const QVector<CanvasItem*> items = _paintScene->SelectedCanvasItems();
+    QVector<CanvasItem*> items;
+    for (const QString& id : item_ids)
+    {
+        if (CanvasItem* item = _paintScene->FindCanvasItem(id))
+        {
+            items.append(item);
+        }
+    }
     if (items.isEmpty()) return;
     QByteArray data;
     QString error_message;
@@ -2030,6 +2017,88 @@ void Canvas::OnCopyItemsRequested()
     mime_data->setData(CanvasClipboardPayload::MimeType(), data);
     QApplication::clipboard()->setMimeData(mime_data);
     TipWidget::showTip(ui->graphicsView, QStringLiteral("已复制 %1 个图元").arg(items.size()));
+}
+
+void Canvas::OnDeleteItemsRequested(QStringList item_ids)
+{
+    // 1. 对整组复核权限和待确认状态，不能只删除其中当前可用的一部分。
+    if (!_paintScene || !_room_info || !_paintScene->isEditable() || _paintScene->IsTextEditing() || item_ids.isEmpty() ||
+        (!_room_info->offline && (!_room_info->connected || !_room_info->can_edit)))
+    {
+        return;
+    }
+    for (const QString& id : item_ids)
+    {
+        CanvasItem* item = _paintScene->FindCanvasItem(id);
+        if (!item || (item->property("canvas_edit_pending").toBool() && !item->property("canvas_upload_local").toBool()))
+        {
+            return;
+        }
+    }
+
+    // 2. 离线和未提交的图片预览只在本地清理；已存在的在线图元统一等待删除确认。
+    QStringList online_ids;
+    for (const QString& id : item_ids)
+    {
+        CanvasItem* item = _paintScene->FindCanvasItem(id);
+        if (_room_info->offline || item->property("canvas_upload_local").toBool())
+        {
+            if (_pendingImageUploads.contains(id))
+            {
+                _imageAssetManager->CancelAssetUpload(_pendingImageUploads.take(id).asset_info._asset_handle);
+                _imageUploadQueue.removeAll(id);
+                if (_activeImageUploadId == id)
+                {
+                    HttpMgr::getInstance()->CancelImageSignature(_upload_signature_request_id);
+                    _upload_signature_request_id.clear();
+                    _activeImageUploadId.clear();
+                }
+            }
+            if (_item_edit_sync)
+            {
+                _item_edit_sync->SetCreationPending(id, false);
+            }
+            _paintScene->RemoveCanvasItem(id);
+            OnItemDeleted(id, 0);
+        } else
+        {
+            online_ids.append(id);
+        }
+    }
+    if (!online_ids.isEmpty() && _item_edit_sync)
+    {
+        _item_edit_sync->SubmitDelete(online_ids);
+    }
+    requestNextImageUploadToken();
+}
+
+void Canvas::OnItemDeleted(const QString& item_id, quint64 revision)
+{
+    // 1. 文字删除保留版本缓存，迟到的旧创建或修改不能使图元复活。
+    _confirmed_textMap.remove(item_id);
+    _pending_text_operationMap.remove(item_id);
+    if (revision > _text_sequenceMap.value(item_id))
+    {
+        _text_sequenceMap.insert(item_id, revision);
+    }
+
+    // 2. 只移除目标关联的下载任务，共享图片缓存及其他副本继续保留。
+    for (int index = _imageDownloadQueue.size() - 1; index >= 0; --index)
+    {
+        if (_imageDownloadQueue[index].item_id == item_id)
+        {
+            _imageDownloadQueue.removeAt(index);
+        }
+    }
+    if (_imageDownloadRequestActive && _activeImageDownload.item_id == item_id)
+    {
+        HttpMgr::getInstance()->CancelImageSignature(_download_signature_request_id);
+        _download_signature_request_id.clear();
+        _imageDownloadRequestActive = false;
+        _activeImageDownload = PendingImageDownload();
+        requestNextImageDownloadToken();
+    }
+    UpdateTextControls();
 }
 
 bool Canvas::InsertClipboardBatch(const CanvasDocument& document, bool record_undo, QString* error_message)
@@ -2106,7 +2175,7 @@ bool Canvas::InsertClipboardBatch(const CanvasDocument& document, bool record_un
 
 void Canvas::StartFileImageImport(const QString& file_path,
                                   const QPointF& anchor_scene_pos,
-                                  bool has_anchor_scene_pos)
+                                  bool has_anchor_scene_pos, CanvasPasteAnchor anchor)
 {
     // 1. 校验文件入口，防止无效请求占用导入上下文。
     if (file_path.isEmpty() || !_imageAssetManager)
@@ -2118,6 +2187,7 @@ void Canvas::StartFileImageImport(const QString& file_path,
     const QString request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     PendingImageImport pending_import;
     pending_import._source_file_path = file_path;
+    pending_import._anchor = anchor;
     pending_import._anchor_scene_pos = anchor_scene_pos;
     pending_import._has_anchor_scene_pos = has_anchor_scene_pos;
     pending_import._tool_generation = _tool_generation;
@@ -2129,7 +2199,7 @@ void Canvas::StartFileImageImport(const QString& file_path,
 
 void Canvas::StartImageDataImport(const QImage& image,
                                   const QPointF& anchor_scene_pos,
-                                  bool has_anchor_scene_pos)
+                                  bool has_anchor_scene_pos, CanvasPasteAnchor anchor)
 {
     // 1. 校验剪贴板像素和代理状态，不登记空图片请求。
     if (image.isNull() || !_imageAssetManager)
@@ -2140,6 +2210,7 @@ void Canvas::StartImageDataImport(const QImage& image,
     // 2. 剪贴板没有稳定路径，使用同一请求表保存锚点、工具代次和换房失效上下文。
     const QString request_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     PendingImageImport pending_import;
+    pending_import._anchor = anchor;
     pending_import._anchor_scene_pos = anchor_scene_pos;
     pending_import._has_anchor_scene_pos = has_anchor_scene_pos;
     pending_import._tool_generation = _tool_generation;
@@ -2178,7 +2249,15 @@ void Canvas::slot_onLocalAssetReady(QString request_id,
         return;
     }
 
-    // 2. 用 UUID 区分同一资源的多次放置。
+    // 2. 异步读取期间权限可能已撤销，完成回调再次校验后才允许创建图元。
+    if (!_paintScene->isEditable() || _exit_busy ||
+        (!_room_info->offline && (!_room_info->can_edit || !_room_info->connected)))
+    {
+        _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
+        return;
+    }
+
+    // 3. 用 UUID 区分同一资源的多次放置。
     const QString item_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
     const QSizeF max_display_size(800.0, 600.0);
     const QSizeF display_size = QSizeF(asset_info.original_size)
@@ -2187,8 +2266,8 @@ void Canvas::slot_onLocalAssetReady(QString request_id,
     const QPointF anchor_pos = pending_import._has_anchor_scene_pos
                                    ? pending_import._anchor_scene_pos
                                    : CanvasCenterScenePos();
-    const QPointF scene_pos(anchor_pos.x() - display_size.width() / 2.0,
-                            anchor_pos.y() - display_size.height() / 2.0);
+    const QPointF scene_pos = pending_import._anchor == CanvasPasteAnchor::TopLeft
+        ? anchor_pos : anchor_pos - QPointF(display_size.width() / 2.0, display_size.height() / 2.0);
 
     // PaintScene 负责图元所有权和撤销记录；Canvas 只传递资源元数据与初始几何。
     if (!_paintScene->addImageItem(item_id,
@@ -2215,17 +2294,18 @@ void Canvas::slot_onLocalAssetReady(QString request_id,
     {
         // 创建协议尚未确认前保留预览，避免旋转中心等扩展状态早于服务器目标。
         _item_edit_sync->SetCreationPending(item_id, true);
+        _paintScene->FindCanvasItem(item_id)->setProperty("canvas_upload_local", true);
         _paintScene->SetItemEditPending(item_id, true);
     }
     if (_room_info->offline)
     {
-        // 3. 离线图片像素已驻留 UI，立即解除文件保护。
+        // 4. 离线图片像素已驻留 UI，立即解除文件保护。
         _imageAssetManager->ReleaseAsset(asset_info._asset_handle);
         TipWidget::showTip(ui->graphicsView, QStringLiteral("图片已插入离线画布"));
         return;
     }
 
-    // 4. 在线上传从签名等待到 PUT 完成持续持有句柄。
+    // 5. 在线上传从签名等待到 PUT 完成持续持有句柄。
     PendingImageUpload pending_upload;
     pending_upload.item_id = item_id;
     pending_upload.suffix = ImageSuffixForMimeType(asset_info.mime_type);
@@ -2403,6 +2483,7 @@ void Canvas::sendImageCreateOperation(const QString& item_id)
         // 序列化失败时不从本地场景删除预览，让用户仍能看到图片并可重新触发上传。
         return;
     }
+    image_item->setProperty("canvas_upload_local", false);
     _paintScene->SetItemEditPending(item_id, true);
     TcpMgr::getInstance()->slot_send_data(
         ReqId::ID_IMAGE_OPERATION_REQ,
@@ -2465,38 +2546,6 @@ void Canvas::sendImageTransformOperation(const QString& item_id,
     std::string serialized_operation;
     if (!operation.SerializeToString(&serialized_operation))
     {
-        return;
-    }
-    TcpMgr::getInstance()->slot_send_data(
-        ReqId::ID_IMAGE_OPERATION_REQ,
-        QByteArray::fromStdString(serialized_operation));
-}
-
-void Canvas::sendImageDeleteOperation(const QString& item_id)
-{
-    if (!_room_info || _room_info->offline || item_id.isEmpty())
-    {
-        return;
-    }
-
-    const auto user_info = UserMgr::getInstance()->getMyInfo();
-    if (!user_info)
-    {
-        return;
-    }
-
-    // 删除操作只提交稳定 item_id；服务端从房间索引取出资源元数据，避免客户端伪造资源引用。
-    message::ImageOperation operation;
-    operation.set_uid(user_info->_id);
-    operation.set_room_id(_room_info->id.toStdString());
-    operation.set_operation_id(QUuid::createUuid().toString(QUuid::WithoutBraces).toStdString());
-    operation.set_operation_type(message::IMAGE_DELETE);
-    operation.set_target_item_id(item_id.toStdString());
-
-    std::string serialized_operation;
-    if (!operation.SerializeToString(&serialized_operation))
-    {
-        // 序列化失败时保留本地图元，避免用户界面先消失而服务端仍保留图片。
         return;
     }
     TcpMgr::getInstance()->slot_send_data(
@@ -2887,36 +2936,8 @@ void Canvas::slot_onImageAssetUploadFailed(QString asset_id, QString error_messa
 
 void Canvas::slot_onImageDeleteRequested(QString item_id)
 {
-    if (!_paintScene || item_id.isEmpty() || !_room_info || !_room_info->can_edit)
-    {
-        return;
-    }
-
-    // 上传尚未完成的本地预览没有进入房间历史，只清理队列和图元，不发送无效删除包。
-    if (_pendingImageUploads.contains(item_id))
-    {
-        _imageAssetManager->CancelAssetUpload(_pendingImageUploads.value(item_id).asset_info._asset_handle);
-        _pendingImageUploads.remove(item_id);
-        if (_activeImageUploadId == item_id)
-        {
-            HttpMgr::getInstance()->CancelImageSignature(_upload_signature_request_id);
-            _upload_signature_request_id.clear();
-            _activeImageUploadId.clear();
-            requestNextImageUploadToken();
-        }
-        _paintScene->removeImageItem(item_id);
-        return;
-    }
-
-    if (_room_info->offline)
-    {
-        _paintScene->removeImageItem(item_id);
-        return;
-    }
-
-    // 先发送稳定删除操作再移除本地图元，保持失败时的诊断依据和服务端状态一致性。
-    sendImageDeleteOperation(item_id);
-    _paintScene->removeImageItem(item_id);
+    // 1. 兼容原图片信号，删除权限、资源清理与在线确认统一交给共用入口。
+    OnDeleteItemsRequested({item_id});
 }
 
 void Canvas::slot_onImageGeometryChanged(QString item_id,
@@ -3258,7 +3279,19 @@ void Canvas::flushRemoteDrawQueue()
             }
         } else if (message_id == ReqId::ID_ITEM_CREATE_BATCH_RSP)
         {
-            const message::ItemCreateBatchRsp response = _remote_item_create_batches.dequeue();
+            message::ItemCreateBatchRsp response = _remote_item_create_batches.dequeue();
+            const auto incoming = response.batch().items();
+            response.mutable_batch()->clear_items();
+            for (const auto& item : incoming)
+            {
+                if (_item_edit_sync && _item_edit_sync->IsDeleted(QString::fromStdString(item.item_id())))
+                {
+                    continue;
+                }
+                auto* retained = response.mutable_batch()->add_items();
+                *retained = item;
+                retained->set_stack_order(response.batch().items_size() - 1);
+            }
             const QString operation_id = QString::fromStdString(response.batch().operation_id());
             const bool is_local = _pending_item_create_batches.contains(operation_id);
             const QVector<QString> local_ids = _pending_item_create_batches.take(operation_id);
@@ -3277,6 +3310,10 @@ void Canvas::flushRemoteDrawQueue()
                     if (_item_edit_sync) _item_edit_sync->ObserveLegacy(item_id, response.batch().server_sequence(), false, true);
                 }
                 _paintScene->RecordClipboardCreation(local_ids);
+                continue;
+            }
+            if (response.batch().items_size() == 0)
+            {
                 continue;
             }
             CanvasDocument document;

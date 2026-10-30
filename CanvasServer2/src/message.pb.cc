@@ -1209,7 +1209,8 @@ inline constexpr ItemEditOperation::Impl_::Impl_(
         expected_revision_{::uint64_t{0u}},
         revision_{::uint64_t{0u}},
         preview_{false},
-        cancel_preview_{false} {}
+        cancel_preview_{false},
+        operation_type_{static_cast< ::message::ItemEditOperationType >(0)} {}
 
 template <typename>
 PROTOBUF_CONSTEXPR ItemEditOperation::ItemEditOperation(::_pbi::ConstantInitialized)
@@ -1473,7 +1474,7 @@ struct ImageOperationDefaultTypeInternal {
 PROTOBUF_ATTRIBUTE_NO_DESTROY PROTOBUF_CONSTINIT
     PROTOBUF_ATTRIBUTE_INIT_PRIORITY1 ImageOperationDefaultTypeInternal _ImageOperation_default_instance_;
 }  // namespace message
-static const ::_pb::EnumDescriptor* file_level_enum_descriptors_message_2eproto[7];
+static const ::_pb::EnumDescriptor* file_level_enum_descriptors_message_2eproto[8];
 static constexpr const ::_pb::ServiceDescriptor**
     file_level_service_descriptors_message_2eproto = nullptr;
 const ::uint32_t
@@ -2018,12 +2019,14 @@ const ::uint32_t
         PROTOBUF_FIELD_OFFSET(::message::ItemEditOperation, _impl_.revision_),
         PROTOBUF_FIELD_OFFSET(::message::ItemEditOperation, _impl_.preview_),
         PROTOBUF_FIELD_OFFSET(::message::ItemEditOperation, _impl_.cancel_preview_),
+        PROTOBUF_FIELD_OFFSET(::message::ItemEditOperation, _impl_.operation_type_),
         ~0u,
         ~0u,
         ~0u,
         ~0u,
         ~0u,
         0,
+        ~0u,
         ~0u,
         ~0u,
         ~0u,
@@ -2130,11 +2133,11 @@ static const ::_pbi::MigrationSchema
         {476, -1, -1, sizeof(::message::LogoutReq)},
         {487, -1, -1, sizeof(::message::LogoutRsp)},
         {498, -1, -1, sizeof(::message::ItemEditState)},
-        {521, 539, -1, sizeof(::message::ItemEditOperation)},
-        {549, 562, -1, sizeof(::message::ItemEditOperationRsp)},
-        {567, -1, -1, sizeof(::message::ItemCreateItem)},
-        {579, -1, -1, sizeof(::message::ItemCreateBatch)},
-        {593, 604, -1, sizeof(::message::ItemCreateBatchRsp)},
+        {521, 540, -1, sizeof(::message::ItemEditOperation)},
+        {551, 564, -1, sizeof(::message::ItemEditOperationRsp)},
+        {569, -1, -1, sizeof(::message::ItemCreateItem)},
+        {581, -1, -1, sizeof(::message::ItemCreateBatch)},
+        {595, 606, -1, sizeof(::message::ItemCreateBatchRsp)},
 };
 static const ::_pb::Message* const file_default_instances[] = {
     &::message::_UserInfo_default_instance_._instance,
@@ -2283,94 +2286,97 @@ const char descriptor_table_protodef_message_2eproto[] ABSL_ATTRIBUTE_SECTION_VA
     " \001(\001\022\020\n\010rotation\030\007 \001(\001\022\r\n\005scale\030\010 \001(\001\022\016\n"
     "\006matrix\030\t \003(\001\022\020\n\010geometry\030\n \003(\001\022\014\n\004text\030"
     "\013 \001(\t\022\023\n\013font_family\030\014 \001(\t\022\021\n\tfont_size\030"
-    "\r \001(\r\022\r\n\005color\030\016 \001(\r\022\014\n\004bold\030\017 \001(\010\"\354\001\n\021I"
+    "\r \001(\r\022\r\n\005color\030\016 \001(\r\022\014\n\004bold\030\017 \001(\010\"\244\002\n\021I"
     "temEditOperation\022\013\n\003uid\030\001 \001(\005\022\017\n\007room_id"
     "\030\002 \001(\t\022\024\n\014operation_id\030\003 \001(\t\022\026\n\016target_i"
     "tem_id\030\004 \001(\t\022\031\n\021expected_revision\030\005 \001(\004\022"
     "%\n\005state\030\006 \001(\0132\026.message.ItemEditState\022\016"
     "\n\006fields\030\007 \001(\r\022\020\n\010revision\030\010 \001(\004\022\017\n\007prev"
-    "iew\030\t \001(\010\022\026\n\016cancel_preview\030\n \001(\010\"\313\001\n\024It"
-    "emEditOperationRsp\022\r\n\005error\030\001 \001(\005\022-\n\tope"
-    "ration\030\002 \001(\0132\032.message.ItemEditOperation"
-    "\022-\n\rcurrent_state\030\003 \001(\0132\026.message.ItemEd"
-    "itState\022\025\n\rerror_message\030\004 \001(\t\022/\n\017confir"
-    "med_state\030\005 \001(\0132\026.message.ItemEditState\""
-    "j\n\016ItemCreateItem\022\017\n\007item_id\030\001 \001(\t\022\037\n\004ki"
-    "nd\030\002 \001(\0162\021.message.ItemKind\022\021\n\titem_json"
-    "\030\003 \001(\t\022\023\n\013stack_order\030\004 \001(\r\"\237\001\n\017ItemCrea"
-    "teBatch\022\013\n\003uid\030\001 \001(\005\022\017\n\007room_id\030\002 \001(\t\022\024\n"
-    "\014operation_id\030\003 \001(\t\022\027\n\017payload_version\030\004"
-    " \001(\r\022&\n\005items\030\005 \003(\0132\027.message.ItemCreate"
-    "Item\022\027\n\017server_sequence\030\006 \001(\004\"c\n\022ItemCre"
-    "ateBatchRsp\022\r\n\005error\030\001 \001(\005\022\'\n\005batch\030\002 \001("
-    "\0132\030.message.ItemCreateBatch\022\025\n\rerror_mes"
-    "sage\030\003 \001(\t*\226\006\n\nErrorCodes\022\013\n\007SUCCESS\020\000\022\025"
-    "\n\020ItemEditConflict\020\233\010\022\034\n\027ItemEditInvalid"
-    "Argument\020\234\010\022\017\n\nError_Json\020\351\007\022\016\n\tRPCFaile"
-    "d\020\352\007\022\022\n\rVarifyExpired\020\353\007\022\022\n\rVarifyCodeEr"
-    "r\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\rEmailNotMatch\020\357\007"
-    "\022\023\n\016PasswdUpFailed\020\360\007\022\022\n\rPasswdInvalid\020\361"
-    "\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\nUidInvalid\020\363\007\022\r\n"
-    "\010LoginErr\020\365\007\022\026\n\021ServerInternalErr\020\366\007\022\r\n\010"
-    "RedisErr\020\367\007\022\r\n\010MysqlErr\020\370\007\022\016\n\tUserExist\020"
-    "\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n\rAlreadyFriend\020\374"
-    "\007\022\022\n\rFriendOffline\020\375\007\022\023\n\016TargetUserBusy\020"
-    "\376\007\022\025\n\020RoomCreateFailed\020\220\010\022\021\n\014RoomNotExis"
-    "t\020\221\010\022\025\n\020RoomAlreadyExist\020\222\010\022\r\n\010RoomFull\020"
-    "\223\010\022\020\n\013RoomClosing\020\231\010\022\031\n\024OwnerMustDestroy"
-    "Room\020\232\010\022\023\n\016RoomJoinFailed\020\224\010\022\016\n\tNotInRoo"
-    "m\020\225\010\022\026\n\021TextStateConflict\020\227\010\022\030\n\023TextInva"
-    "lidArgument\020\230\010\022\r\n\010NotOwner\020\226\010\022\036\n\031VoiceTo"
-    "kenInvalidArgument\020\244\010\022\034\n\027VoiceTokenConfi"
-    "gInvalid\020\245\010\022\035\n\030VoiceTokenGenerateFailed\020"
-    "\246\010\022\024\n\017VoiceAuthFailed\020\247\010\022\021\n\014NeedRedirect"
-    "\020\271\027*\353\003\n\005MsgID\022\016\n\nID_UNKNOWN\020\000\022\025\n\020ID_ITEM"
-    "_EDIT_REQ\020\220\010\022\025\n\020ID_ITEM_EDIT_RSP\020\221\010\022\035\n\030I"
-    "D_ITEM_CREATE_BATCH_REQ\020\222\010\022\035\n\030ID_ITEM_CR"
-    "EATE_BATCH_RSP\020\223\010\022\026\n\021ID_LEAVE_ROOM_REQ\020\211"
-    "\010\022\026\n\021ID_LEAVE_ROOM_RSP\020\212\010\022\030\n\023ID_DESTROY_"
-    "ROOM_REQ\020\213\010\022\030\n\023ID_DESTROY_ROOM_RSP\020\214\010\022 \n"
-    "\033ID_ROOM_DESTROYED_BROADCAST\020\215\010\022\021\n\014ID_LO"
-    "GIN_REQ\020\351\007\022\021\n\014ID_LOGIN_RSP\020\352\007\022\020\n\013ID_DRAW"
-    "_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354\007\022\021\n\014ID_CLEAR_RE"
-    "Q\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007\022\032\n\025ID_TEXT_OPERA"
-    "TION_REQ\020\207\010\022\032\n\025ID_TEXT_OPERATION_RSP\020\210\010\022"
-    "\033\n\026ID_IMAGE_OPERATION_REQ\020\203\010\022\033\n\026ID_IMAGE"
-    "_OPERATION_RSP\020\204\010*a\n\007DrawCmd\022\017\n\013CMD_UNKN"
-    "OWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010CMD_MOVE\020\002\022\013\n\007CM"
-    "D_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n\tCMD_CLEAR\020\005*\223\001\n"
-    "\tShapeType\022\021\n\rSHAPE_UNKNOWN\020\000\022\r\n\tSHAPE_P"
-    "EN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\nSHAPE_OVAL\020\003\022\016\n\n"
-    "SHAPE_LINE\020\004\022\020\n\014SHAPE_ERASER\020\005\022\017\n\013SHAPE_"
-    "ARROW\020\006\022\021\n\rSHAPE_DIAMOND\020\007*q\n\022ImageOpera"
-    "tionType\022\033\n\027IMAGE_OPERATION_UNKNOWN\020\000\022\020\n"
-    "\014IMAGE_CREATE\020\001\022\032\n\026IMAGE_UPDATE_TRANSFOR"
-    "M\020\002\022\020\n\014IMAGE_DELETE\020\003*q\n\021TextOperationTy"
-    "pe\022\032\n\026TEXT_OPERATION_UNKNOWN\020\000\022\017\n\013TEXT_C"
-    "REATE\020\001\022\017\n\013TEXT_UPDATE\020\002\022\r\n\tTEXT_MOVE\020\003\022"
-    "\017\n\013TEXT_DELETE\020\004*\251\001\n\010ItemKind\022\020\n\014ITEM_UN"
-    "KNOWN\020\000\022\014\n\010ITEM_PEN\020\001\022\r\n\tITEM_RECT\020\002\022\r\n\t"
-    "ITEM_OVAL\020\003\022\r\n\tITEM_LINE\020\004\022\017\n\013ITEM_ERASE"
-    "R\020\005\022\016\n\nITEM_ARROW\020\006\022\020\n\014ITEM_DIAMOND\020\007\022\016\n"
-    "\nITEM_IMAGE\020\010\022\r\n\tITEM_TEXT\020\t2P\n\rVarifySe"
-    "rvice\022\?\n\rGetVarifyCode\022\025.message.GetVari"
-    "fyReq\032\025.message.GetVarifyRsp\"\0002\377\002\n\014Logic"
-    "Service\0222\n\006Logout\022\022.message.LogoutReq\032\022."
-    "message.LogoutRsp\"\000\022<\n\014RegisterUser\022\024.me"
-    "ssage.RegisterReq\032\024.message.RegisterRsp\""
-    "\000\022G\n\rResetPassword\022\031.message.ResetPasswo"
-    "rdReq\032\031.message.ResetPasswordRsp\"\000\022-\n\005Lo"
-    "gin\022\021.message.LoginReq\032\021.message.LoginRs"
-    "p\022A\n\013VerifyToken\022\027.message.VerifyTokenRe"
-    "q\032\027.message.VerifyTokenRsp\"\000\022B\n\014UpdateAv"
-    "atar\022\030.message.UpdateAvatarReq\032\030.message"
-    ".UpdateAvatarRspb\006proto3"
+    "iew\030\t \001(\010\022\026\n\016cancel_preview\030\n \001(\010\0226\n\016ope"
+    "ration_type\030\013 \001(\0162\036.message.ItemEditOper"
+    "ationType\"\313\001\n\024ItemEditOperationRsp\022\r\n\005er"
+    "ror\030\001 \001(\005\022-\n\toperation\030\002 \001(\0132\032.message.I"
+    "temEditOperation\022-\n\rcurrent_state\030\003 \001(\0132"
+    "\026.message.ItemEditState\022\025\n\rerror_message"
+    "\030\004 \001(\t\022/\n\017confirmed_state\030\005 \001(\0132\026.messag"
+    "e.ItemEditState\"j\n\016ItemCreateItem\022\017\n\007ite"
+    "m_id\030\001 \001(\t\022\037\n\004kind\030\002 \001(\0162\021.message.ItemK"
+    "ind\022\021\n\titem_json\030\003 \001(\t\022\023\n\013stack_order\030\004 "
+    "\001(\r\"\237\001\n\017ItemCreateBatch\022\013\n\003uid\030\001 \001(\005\022\017\n\007"
+    "room_id\030\002 \001(\t\022\024\n\014operation_id\030\003 \001(\t\022\027\n\017p"
+    "ayload_version\030\004 \001(\r\022&\n\005items\030\005 \003(\0132\027.me"
+    "ssage.ItemCreateItem\022\027\n\017server_sequence\030"
+    "\006 \001(\004\"c\n\022ItemCreateBatchRsp\022\r\n\005error\030\001 \001"
+    "(\005\022\'\n\005batch\030\002 \001(\0132\030.message.ItemCreateBa"
+    "tch\022\025\n\rerror_message\030\003 \001(\t*\226\006\n\nErrorCode"
+    "s\022\013\n\007SUCCESS\020\000\022\025\n\020ItemEditConflict\020\233\010\022\034\n"
+    "\027ItemEditInvalidArgument\020\234\010\022\017\n\nError_Jso"
+    "n\020\351\007\022\016\n\tRPCFailed\020\352\007\022\022\n\rVarifyExpired\020\353\007"
+    "\022\022\n\rVarifyCodeErr\020\354\007\022\016\n\tPasswdErr\020\356\007\022\022\n\r"
+    "EmailNotMatch\020\357\007\022\023\n\016PasswdUpFailed\020\360\007\022\022\n"
+    "\rPasswdInvalid\020\361\007\022\021\n\014TokenInvalid\020\362\007\022\017\n\n"
+    "UidInvalid\020\363\007\022\r\n\010LoginErr\020\365\007\022\026\n\021ServerIn"
+    "ternalErr\020\366\007\022\r\n\010RedisErr\020\367\007\022\r\n\010MysqlErr\020"
+    "\370\007\022\016\n\tUserExist\020\355\007\022\021\n\014UserNotExist\020\364\007\022\022\n"
+    "\rAlreadyFriend\020\374\007\022\022\n\rFriendOffline\020\375\007\022\023\n"
+    "\016TargetUserBusy\020\376\007\022\025\n\020RoomCreateFailed\020\220"
+    "\010\022\021\n\014RoomNotExist\020\221\010\022\025\n\020RoomAlreadyExist"
+    "\020\222\010\022\r\n\010RoomFull\020\223\010\022\020\n\013RoomClosing\020\231\010\022\031\n\024"
+    "OwnerMustDestroyRoom\020\232\010\022\023\n\016RoomJoinFaile"
+    "d\020\224\010\022\016\n\tNotInRoom\020\225\010\022\026\n\021TextStateConflic"
+    "t\020\227\010\022\030\n\023TextInvalidArgument\020\230\010\022\r\n\010NotOwn"
+    "er\020\226\010\022\036\n\031VoiceTokenInvalidArgument\020\244\010\022\034\n"
+    "\027VoiceTokenConfigInvalid\020\245\010\022\035\n\030VoiceToke"
+    "nGenerateFailed\020\246\010\022\024\n\017VoiceAuthFailed\020\247\010"
+    "\022\021\n\014NeedRedirect\020\271\027*\353\003\n\005MsgID\022\016\n\nID_UNKN"
+    "OWN\020\000\022\025\n\020ID_ITEM_EDIT_REQ\020\220\010\022\025\n\020ID_ITEM_"
+    "EDIT_RSP\020\221\010\022\035\n\030ID_ITEM_CREATE_BATCH_REQ\020"
+    "\222\010\022\035\n\030ID_ITEM_CREATE_BATCH_RSP\020\223\010\022\026\n\021ID_"
+    "LEAVE_ROOM_REQ\020\211\010\022\026\n\021ID_LEAVE_ROOM_RSP\020\212"
+    "\010\022\030\n\023ID_DESTROY_ROOM_REQ\020\213\010\022\030\n\023ID_DESTRO"
+    "Y_ROOM_RSP\020\214\010\022 \n\033ID_ROOM_DESTROYED_BROAD"
+    "CAST\020\215\010\022\021\n\014ID_LOGIN_REQ\020\351\007\022\021\n\014ID_LOGIN_R"
+    "SP\020\352\007\022\020\n\013ID_DRAW_REQ\020\353\007\022\020\n\013ID_DRAW_RSP\020\354"
+    "\007\022\021\n\014ID_CLEAR_REQ\020\355\007\022\021\n\014ID_CLEAR_RSP\020\356\007\022"
+    "\032\n\025ID_TEXT_OPERATION_REQ\020\207\010\022\032\n\025ID_TEXT_O"
+    "PERATION_RSP\020\210\010\022\033\n\026ID_IMAGE_OPERATION_RE"
+    "Q\020\203\010\022\033\n\026ID_IMAGE_OPERATION_RSP\020\204\010*a\n\007Dra"
+    "wCmd\022\017\n\013CMD_UNKNOWN\020\000\022\r\n\tCMD_START\020\001\022\014\n\010"
+    "CMD_MOVE\020\002\022\013\n\007CMD_END\020\003\022\014\n\010CMD_UNDO\020\004\022\r\n"
+    "\tCMD_CLEAR\020\005*\223\001\n\tShapeType\022\021\n\rSHAPE_UNKN"
+    "OWN\020\000\022\r\n\tSHAPE_PEN\020\001\022\016\n\nSHAPE_RECT\020\002\022\016\n\n"
+    "SHAPE_OVAL\020\003\022\016\n\nSHAPE_LINE\020\004\022\020\n\014SHAPE_ER"
+    "ASER\020\005\022\017\n\013SHAPE_ARROW\020\006\022\021\n\rSHAPE_DIAMOND"
+    "\020\007*q\n\022ImageOperationType\022\033\n\027IMAGE_OPERAT"
+    "ION_UNKNOWN\020\000\022\020\n\014IMAGE_CREATE\020\001\022\032\n\026IMAGE"
+    "_UPDATE_TRANSFORM\020\002\022\020\n\014IMAGE_DELETE\020\003*q\n"
+    "\021TextOperationType\022\032\n\026TEXT_OPERATION_UNK"
+    "NOWN\020\000\022\017\n\013TEXT_CREATE\020\001\022\017\n\013TEXT_UPDATE\020\002"
+    "\022\r\n\tTEXT_MOVE\020\003\022\017\n\013TEXT_DELETE\020\004*\251\001\n\010Ite"
+    "mKind\022\020\n\014ITEM_UNKNOWN\020\000\022\014\n\010ITEM_PEN\020\001\022\r\n"
+    "\tITEM_RECT\020\002\022\r\n\tITEM_OVAL\020\003\022\r\n\tITEM_LINE"
+    "\020\004\022\017\n\013ITEM_ERASER\020\005\022\016\n\nITEM_ARROW\020\006\022\020\n\014I"
+    "TEM_DIAMOND\020\007\022\016\n\nITEM_IMAGE\020\010\022\r\n\tITEM_TE"
+    "XT\020\t*C\n\025ItemEditOperationType\022\024\n\020ITEM_ED"
+    "IT_UPDATE\020\000\022\024\n\020ITEM_EDIT_DELETE\020\0012P\n\rVar"
+    "ifyService\022\?\n\rGetVarifyCode\022\025.message.Ge"
+    "tVarifyReq\032\025.message.GetVarifyRsp\"\0002\377\002\n\014"
+    "LogicService\0222\n\006Logout\022\022.message.LogoutR"
+    "eq\032\022.message.LogoutRsp\"\000\022<\n\014RegisterUser"
+    "\022\024.message.RegisterReq\032\024.message.Registe"
+    "rRsp\"\000\022G\n\rResetPassword\022\031.message.ResetP"
+    "asswordReq\032\031.message.ResetPasswordRsp\"\000\022"
+    "-\n\005Login\022\021.message.LoginReq\032\021.message.Lo"
+    "ginRsp\022A\n\013VerifyToken\022\027.message.VerifyTo"
+    "kenReq\032\027.message.VerifyTokenRsp\"\000\022B\n\014Upd"
+    "ateAvatar\022\030.message.UpdateAvatarReq\032\030.me"
+    "ssage.UpdateAvatarRspb\006proto3"
 };
 static ::absl::once_flag descriptor_table_message_2eproto_once;
 PROTOBUF_CONSTINIT const ::_pbi::DescriptorTable descriptor_table_message_2eproto = {
     false,
     false,
-    7184,
+    7309,
     descriptor_table_protodef_message_2eproto,
     "message.proto",
     &descriptor_table_message_2eproto_once,
@@ -2446,6 +2452,15 @@ PROTOBUF_CONSTINIT const uint32_t ItemKind_internal_data_[] = {
     655360u, 0u, };
 bool ItemKind_IsValid(int value) {
   return 0 <= value && value <= 9;
+}
+const ::google::protobuf::EnumDescriptor* ItemEditOperationType_descriptor() {
+  ::google::protobuf::internal::AssignDescriptors(&descriptor_table_message_2eproto);
+  return file_level_enum_descriptors_message_2eproto[7];
+}
+PROTOBUF_CONSTINIT const uint32_t ItemEditOperationType_internal_data_[] = {
+    131072u, 0u, };
+bool ItemEditOperationType_IsValid(int value) {
+  return 0 <= value && value <= 1;
 }
 // ===================================================================
 
@@ -15437,9 +15452,9 @@ ItemEditOperation::ItemEditOperation(
                offsetof(Impl_, uid_),
            reinterpret_cast<const char *>(&from._impl_) +
                offsetof(Impl_, uid_),
-           offsetof(Impl_, cancel_preview_) -
+           offsetof(Impl_, operation_type_) -
                offsetof(Impl_, uid_) +
-               sizeof(Impl_::cancel_preview_));
+               sizeof(Impl_::operation_type_));
 
   // @@protoc_insertion_point(copy_constructor:message.ItemEditOperation)
 }
@@ -15456,9 +15471,9 @@ inline void ItemEditOperation::SharedCtor(::_pb::Arena* arena) {
   ::memset(reinterpret_cast<char *>(&_impl_) +
                offsetof(Impl_, state_),
            0,
-           offsetof(Impl_, cancel_preview_) -
+           offsetof(Impl_, operation_type_) -
                offsetof(Impl_, state_) +
-               sizeof(Impl_::cancel_preview_));
+               sizeof(Impl_::operation_type_));
 }
 ItemEditOperation::~ItemEditOperation() {
   // @@protoc_insertion_point(destructor:message.ItemEditOperation)
@@ -15511,15 +15526,15 @@ const ::google::protobuf::internal::ClassData* ItemEditOperation::GetClassData()
   return _class_data_.base();
 }
 PROTOBUF_CONSTINIT PROTOBUF_ATTRIBUTE_INIT_PRIORITY1
-const ::_pbi::TcParseTable<4, 10, 1, 75, 2> ItemEditOperation::_table_ = {
+const ::_pbi::TcParseTable<4, 11, 1, 75, 2> ItemEditOperation::_table_ = {
   {
     PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_._has_bits_),
     0, // no _extensions_
-    10, 120,  // max_field_number, fast_idx_mask
+    11, 120,  // max_field_number, fast_idx_mask
     offsetof(decltype(_table_), field_lookup_table),
-    4294966272,  // skipmap
+    4294965248,  // skipmap
     offsetof(decltype(_table_), field_entries),
-    10,  // num_field_entries
+    11,  // num_field_entries
     1,  // num_aux_entries
     offsetof(decltype(_table_), aux_entries),
     _class_data_.base(),
@@ -15560,7 +15575,9 @@ const ::_pbi::TcParseTable<4, 10, 1, 75, 2> ItemEditOperation::_table_ = {
     // bool cancel_preview = 10;
     {::_pbi::TcParser::SingularVarintNoZag1<bool, offsetof(ItemEditOperation, _impl_.cancel_preview_), 63>(),
      {80, 63, 0, PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.cancel_preview_)}},
-    {::_pbi::TcParser::MiniParse, {}},
+    // .message.ItemEditOperationType operation_type = 11;
+    {::_pbi::TcParser::SingularVarintNoZag1<::uint32_t, offsetof(ItemEditOperation, _impl_.operation_type_), 63>(),
+     {88, 63, 0, PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.operation_type_)}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
     {::_pbi::TcParser::MiniParse, {}},
@@ -15598,6 +15615,9 @@ const ::_pbi::TcParseTable<4, 10, 1, 75, 2> ItemEditOperation::_table_ = {
     // bool cancel_preview = 10;
     {PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.cancel_preview_), -1, 0,
     (0 | ::_fl::kFcSingular | ::_fl::kBool)},
+    // .message.ItemEditOperationType operation_type = 11;
+    {PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.operation_type_), -1, 0,
+    (0 | ::_fl::kFcSingular | ::_fl::kOpenEnum)},
   }}, {{
     {::_pbi::TcParser::GetTable<::message::ItemEditState>()},
   }}, {{
@@ -15625,8 +15645,8 @@ PROTOBUF_NOINLINE void ItemEditOperation::Clear() {
     _impl_.state_->Clear();
   }
   ::memset(&_impl_.uid_, 0, static_cast<::size_t>(
-      reinterpret_cast<char*>(&_impl_.cancel_preview_) -
-      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.cancel_preview_));
+      reinterpret_cast<char*>(&_impl_.operation_type_) -
+      reinterpret_cast<char*>(&_impl_.uid_)) + sizeof(_impl_.operation_type_));
   _impl_._has_bits_.Clear();
   _internal_metadata_.Clear<::google::protobuf::UnknownFieldSet>();
 }
@@ -15720,6 +15740,13 @@ PROTOBUF_NOINLINE void ItemEditOperation::Clear() {
                 10, this_._internal_cancel_preview(), target);
           }
 
+          // .message.ItemEditOperationType operation_type = 11;
+          if (this_._internal_operation_type() != 0) {
+            target = stream->EnsureSpace(target);
+            target = ::_pbi::WireFormatLite::WriteEnumToArray(
+                11, this_._internal_operation_type(), target);
+          }
+
           if (PROTOBUF_PREDICT_FALSE(this_._internal_metadata_.have_unknown_fields())) {
             target =
                 ::_pbi::WireFormat::InternalSerializeUnknownFieldsToArray(
@@ -15798,6 +15825,11 @@ PROTOBUF_NOINLINE void ItemEditOperation::Clear() {
             if (this_._internal_cancel_preview() != 0) {
               total_size += 2;
             }
+            // .message.ItemEditOperationType operation_type = 11;
+            if (this_._internal_operation_type() != 0) {
+              total_size += 1 +
+                            ::_pbi::WireFormatLite::EnumSize(this_._internal_operation_type());
+            }
           }
           return this_.MaybeComputeUnknownFieldsSize(total_size,
                                                      &this_._impl_._cached_size_);
@@ -15849,6 +15881,9 @@ void ItemEditOperation::MergeImpl(::google::protobuf::MessageLite& to_msg, const
   if (from._internal_cancel_preview() != 0) {
     _this->_impl_.cancel_preview_ = from._impl_.cancel_preview_;
   }
+  if (from._internal_operation_type() != 0) {
+    _this->_impl_.operation_type_ = from._impl_.operation_type_;
+  }
   _this->_impl_._has_bits_[0] |= cached_has_bits;
   _this->_internal_metadata_.MergeFrom<::google::protobuf::UnknownFieldSet>(from._internal_metadata_);
 }
@@ -15871,8 +15906,8 @@ void ItemEditOperation::InternalSwap(ItemEditOperation* PROTOBUF_RESTRICT other)
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.operation_id_, &other->_impl_.operation_id_, arena);
   ::_pbi::ArenaStringPtr::InternalSwap(&_impl_.target_item_id_, &other->_impl_.target_item_id_, arena);
   ::google::protobuf::internal::memswap<
-      PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.cancel_preview_)
-      + sizeof(ItemEditOperation::_impl_.cancel_preview_)
+      PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.operation_type_)
+      + sizeof(ItemEditOperation::_impl_.operation_type_)
       - PROTOBUF_FIELD_OFFSET(ItemEditOperation, _impl_.state_)>(
           reinterpret_cast<char*>(&_impl_.state_),
           reinterpret_cast<char*>(&other->_impl_.state_));

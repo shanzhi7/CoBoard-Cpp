@@ -91,6 +91,8 @@ private:
 	bool ApplyItemEditOperationLocked(const message::ItemEditOperation& operation, message::ItemEditOperationRsp& response, const CSession* expected_session); // 持有房间锁时校验、生成预览或提交最终状态。
 	void FillItemEditStateLocked(message::ItemEditOperationRsp& response); // 持锁填写规范状态，删除后仍返回最后版本。
 	void ClearItemEditStateLocked(); // 清空编辑索引、笔迹状态和请求幂等缓存。
+	void RememberItemEditResponseLocked(const std::string& key, const message::ItemEditOperationRsp& response); // 有界缓存成功编辑及删除请求的幂等结果。
+	void DeleteItemLocked(const std::string& item_id, std::uint64_t revision); // 清理目标、历史及关联索引，保留删除版本。
 	void RebuildDrawHistoryIndexLocked(); // 历史裁剪后重建已完成笔迹的结束下标。
 	void UpdateItemEditHistoryLocked(const std::string& item_id); // 将最新编辑状态附着于既有创建记录。
 	void SyncLegacyTextLocked(const message::TextOperation& operation, const message::TextItem& state, std::uint64_t revision); // 旧文字入口维护共享版本和扩展布局。

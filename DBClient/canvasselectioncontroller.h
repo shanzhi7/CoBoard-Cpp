@@ -26,6 +26,7 @@ public:
     bool Move(QGraphicsSceneMouseEvent* event); // 依据开始快照实时计算一次手势的结果。
     bool Release(QGraphicsSceneMouseEvent* event); // 松开后提交最终状态及一条撤销记录。
     CanvasItem* HitItem(const QPointF& scene_pos, bool include_closed_interior, QWidget* widget = nullptr) const; // 按堆叠顺序命中顶层内容。
+    CanvasItem* ContextItemAt(const QPointF& scene_pos, QWidget* widget = nullptr) const; // 按统一控制区和轮廓命中右键目标，不启动手势。
     void Cancel(const QString& item_id = QString(), bool notify = false); // 恢复活动手势，远端覆盖时静默取消。
     bool IsActive() const; // 返回是否存在鼠标按下后的编辑手势。
     void Refresh(); // 刷新选择覆盖层，不改变选择状态。

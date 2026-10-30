@@ -84,6 +84,7 @@ void PaintScene::SetItemEditPending(const QString& item_id, bool pending)
     if (CanvasItem* item = FindCanvasItem(item_id))
     {
         item->setProperty("canvas_edit_pending", pending);
+        emit SigEditAvailabilityChanged();
     }
 }
 
@@ -234,13 +235,7 @@ bool PaintScene::RemoveCanvasItem(const QString& item_id)
     _canvas_itemMap.remove(item_id);
     _localItems.remove(item_id);
     _remoteItems.remove(item_id);
-    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
-    {
-        if (!_localUndoStack[index].is_item_edit && _localUndoStack[index].item_id == item_id)
-        {
-            _localUndoStack.removeAt(index);
-        }
-    }
+    PruneCreationUndo(item_id);
     if (_currUuid == item_id)
     {
         clearCurrentOperation();
@@ -250,6 +245,38 @@ bool PaintScene::RemoveCanvasItem(const QString& item_id)
     item->deleteLater();
     _selection_controller->Refresh();
     return true;
+}
+
+CanvasItem* PaintScene::ContextItemAt(const QPointF& scene_pos, QWidget* widget) const
+{
+    // 1. 选择控制器统一处理轮廓、已选内部和控制柄，不在菜单层复制几何算法。
+    return _selection_controller->ContextItemAt(scene_pos, widget);
+}
+
+bool PaintScene::HasPointerInteraction() const
+{
+    // 1. 绘图和变换共享菜单互斥条件，手形的左键状态由视图检查。
+    return _selection_controller->IsActive() || (_currentOperation && _currentOperation->isStarted());
+}
+
+void PaintScene::PruneCreationUndo(const QString& item_id)
+{
+    // 1. 批量创建只剔除已删除成员，避免后续撤销访问失效 ID。
+    for (int index = _localUndoStack.size() - 1; index >= 0; --index)
+    {
+        auto& record = _localUndoStack[index];
+        if (record.is_clipboard_batch)
+        {
+            record.clipboard_item_ids.removeAll(item_id);
+            if (record.clipboard_item_ids.isEmpty())
+            {
+                _localUndoStack.removeAt(index);
+            }
+        } else if (!record.is_item_edit && record.item_id == item_id)
+        {
+            _localUndoStack.removeAt(index);
+        }
+    }
 }
 
 QVector<CanvasItem*> PaintScene::SelectedCanvasItems() const
@@ -295,6 +322,9 @@ void PaintScene::ConfigureCanvasItem(CanvasItem* item)
     item->setFlag(QGraphicsItem::ItemIsSelectable, selectable);
     item->setFlag(QGraphicsItem::ItemIsMovable, false);
     item->setAcceptedMouseButtons(selectable ? Qt::LeftButton : Qt::NoButton);
+
+    // 2. 兼容图元基类的删除意图，所有键盘路径最终都操作同一选中集合。
+    connect(item, &CanvasItem::sigDeleteRequested, this, &PaintScene::SigDeleteItemsRequested, Qt::UniqueConnection);
 }
 
 bool PaintScene::BuildCanvasDocument(CanvasDocument* document, QString* error_message) const
@@ -760,18 +790,11 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
         event->accept();
         return;
     }
-    if (_editable && (_interaction_mode == CanvasInteractionMode::Select || _interaction_mode == CanvasInteractionMode::Text) &&
-        (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace))
+    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
     {
-        const auto selected_items = selectedItems();
-        for (QGraphicsItem* item : selected_items)
-        {
-            auto* text_item = dynamic_cast<TextItem*>(item);
-            if (text_item && !_pending_text_ids.contains(text_item->itemId()))
-            {
-                emit SigTextDeleteRequested(text_item->itemId());
-            }
-        }
+        emit SigDeleteItemsRequested();
+        event->accept();
+        return;
     }
 
     // 2. 禁止旧焦点图元在绘图、手形或只读状态下通过默认按键处理修改图片。
@@ -798,14 +821,6 @@ void PaintScene::keyPressEvent(QKeyEvent* event)
     }
     if (selectedItems().size() != 1 || selected_image->property("canvas_edit_pending").toBool())
     {
-        event->accept();
-        return;
-    }
-
-    if (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace)
-    {
-        // 删除只传递稳定 ID，资源引用和本地缓存不进入房间操作正文。
-        emit sigImageDeleteRequested(selected_image->itemId());
         event->accept();
         return;
     }
@@ -981,6 +996,7 @@ void PaintScene::setEditable(bool editable)
     }
 
     // 2. 新权限同步到所有已有图片，只读成员仍可选择和预览。
+    emit SigEditAvailabilityChanged();
     for (ImageItem* image_item : _imageItems)
     {
         UpdateImageInteraction(image_item);
@@ -1196,6 +1212,7 @@ bool PaintScene::UpdateTextItem(const TextItemData& data)
 bool PaintScene::RemoveTextItem(const QString& item_id)
 {
     // 1. 删除先结束活动编辑，再移除索引和场景对象。
+    PruneCreationUndo(item_id);
     TextItem* item = FindTextItem(item_id);
     _selection_controller->Cancel(item_id);
     InvalidateItemEditUndo(item_id);
@@ -1612,20 +1629,12 @@ bool PaintScene::removeImageItemInternal(const QString& item_id, bool remove_und
 
     ImageItem* image_item = iterator.value();
     _imageItems.erase(iterator);
-    // 3. 仅清理对应撤销条目，保留其他图元的创建顺序。
+    // 3. 清理对应创建及批量创建记录，保留其他图元的撤销顺序。
     if (remove_undo_record)
     {
-        // 只删除对应记录，保留其他图片和传统图元的撤销顺序。
-        for (int index = _localUndoStack.size() - 1; index >= 0; --index)
-        {
-            if (_localUndoStack[index].is_image &&
-                _localUndoStack[index].item_id == item_id)
-            {
-                _localUndoStack.removeAt(index);
-                break;
-            }
-        }
+        PruneCreationUndo(item_id);
     }
+    _canvas_itemMap.remove(item_id);
 
     // 4. 场景不再拥有图片时由本入口显式销毁，Qt 自动解除该图元的鼠标抓取。
     if (image_item->scene() == this)

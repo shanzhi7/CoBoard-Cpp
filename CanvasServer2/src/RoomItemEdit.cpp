@@ -707,6 +707,65 @@ bool Room::AcceptItemEdit(std::shared_ptr<CSession> session, const message::Item
 	return true;
 }
 
+void Room::RememberItemEditResponseLocked(const std::string& key, const message::ItemEditOperationRsp& response)
+{
+	// 1. 更新和删除共用有界成功缓存，重复请求不能再次分配版本。
+	_edit_responses[key] = response;
+	_edit_response_order.push_back(key);
+	if (_edit_response_order.size() > 512)
+	{
+		_edit_responses.erase(_edit_response_order.front());
+		_edit_response_order.pop_front();
+	}
+}
+
+void Room::DeleteItemLocked(const std::string& item_id, std::uint64_t revision)
+{
+	// 1. 删除各来源共享的状态，版本墓碑阻止旧请求重新创建同一图元。
+	_item_edit_states.erase(item_id);
+	_image_items.erase(item_id);
+	_text_itemMap.erase(item_id);
+	_text_sequenceMap[item_id] = revision;
+	_draw_started.erase(item_id);
+	_item_revisions[item_id] = revision;
+	_edit_sequence = revision;
+	_image_sequence = std::max(_image_sequence, revision);
+	_text_sequence = std::max(_text_sequence, revision);
+
+	// 2. 普通创建历史完整移除；批次只移除该成员，保留其余层叠顺序。
+	const auto batch_index = _batch_create_index.find(item_id);
+	if (batch_index != _batch_create_index.end())
+	{
+		auto& entry = _history[batch_index->second];
+		message::ItemCreateBatchRsp batch;
+		if (batch.ParseFromString(entry._body))
+		{
+			const auto saved = batch.batch().items();
+			batch.mutable_batch()->clear_items();
+			for (const auto& item : saved)
+			{
+				if (item.item_id() == item_id)
+				{
+					continue;
+				}
+				auto* retained = batch.mutable_batch()->add_items();
+				*retained = item;
+				retained->set_stack_order(batch.batch().items_size() - 1);
+			}
+			entry._body = batch.batch().items_size() == 0 ? std::string() : batch.SerializeAsString();
+		}
+	}
+	_history.erase(std::remove_if(_history.begin(), _history.end(), [&](const HistoryEntry& entry) {
+		return entry._image_item_id == item_id || entry._text_item_id == item_id ||
+			entry._draw_item_id == item_id || (entry._msg_id == ID_ITEM_CREATE_BATCH_RSP && entry._body.empty());
+	}), _history.end());
+
+	// 3. 删除使历史下标前移，所有类型统一重建，避免后续编辑覆盖错误条目。
+	RebuildImageHistoryIndexLocked();
+	RebuildTextHistoryIndexLocked();
+	RebuildDrawHistoryIndexLocked();
+}
+
 bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operation, message::ItemEditOperationRsp& response, const CSession* expected_session)
 {
 	// 1. 房间关闭、旧会话或已退出成员不能发送任何编辑消息。
@@ -727,7 +786,7 @@ bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operat
 	// 2. 取消消息只广播服务端已提交状态，不接受客户端几何；撤权后仍能清除自己的预览。
 	if (operation.cancel_preview())
 	{
-		if (!operation.preview() || operation.operation_id().empty() || operation.operation_id().size() > 128 ||
+		if (operation.operation_type() != message::ITEM_EDIT_UPDATE || !operation.preview() || operation.operation_id().empty() || operation.operation_id().size() > 128 ||
 			operation.target_item_id().empty() || operation.target_item_id().size() > 128 ||
 			operation.has_state() || operation.fields() != 0 || operation.revision() != 0 || operation.ByteSizeLong() > 65535)
 		{
@@ -740,11 +799,14 @@ bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operat
 	{
 		return reject(message::NotOwner, "当前没有编辑权限");
 	}
+	const bool is_delete = operation.operation_type() == message::ITEM_EDIT_DELETE;
+	const bool valid_payload = is_delete
+		? !operation.has_state() && operation.fields() == 0 && !operation.preview()
+		: operation.operation_type() == message::ITEM_EDIT_UPDATE && operation.has_state() &&
+			operation.state().item_id() == operation.target_item_id() && operation.fields() != 0 && (operation.fields() & ~3U) == 0;
 	if (operation.operation_id().empty() || operation.operation_id().size() > 128 ||
 		operation.target_item_id().empty() || operation.target_item_id().size() > 128 ||
-		!operation.has_state() || operation.state().item_id() != operation.target_item_id() ||
-		operation.revision() != 0 || operation.fields() == 0 || (operation.fields() & ~3U) != 0 ||
-		operation.ByteSizeLong() > 65535)
+		!valid_payload || operation.revision() != 0 || operation.ByteSizeLong() > 65535)
 	{
 		return reject(message::ItemEditInvalidArgument, "图元编辑字段无效");
 	}
@@ -767,12 +829,21 @@ bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operat
 	{
 		return reject(message::ItemEditConflict, "图元已由其他成员修改或已不存在");
 	}
+	// 3. 删除与更新共享版本和幂等校验，仅在成功事务中清理内容与历史。
+	if (is_delete)
+	{
+		const std::uint64_t revision = _edit_sequence + 1;
+		DeleteItemLocked(item_id, revision);
+		response.mutable_operation()->set_revision(revision);
+		RememberItemEditResponseLocked(cache_key, response);
+		return true;
+	}
 	if (operation.state().kind() != current->second.kind() || current->second.kind() == message::ITEM_ERASER ||
 		!ValidateEditState(operation.state(), operation.fields()))
 	{
 		return reject(message::ItemEditInvalidArgument, "图元几何、文字或样式无效");
 	}
-	// 3. 将明确修改的字段合并至最新状态，文字及自动增高在同一次请求原子生效。
+	// 4. 将明确修改的字段合并至最新状态，文字及自动增高在同一次请求原子生效。
 	message::ItemEditState state = current->second;
 	if ((operation.fields() & 1U) != 0)
 	{
@@ -794,13 +865,13 @@ bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operat
 	{
 		return reject(message::ItemEditInvalidArgument, "图元编辑响应超过协议包长");
 	}
-	// 4. 预览仅供远端显示，不修改版本、历史或幂等缓存，也不要求逐帧确认。
+	// 5. 预览仅供远端显示，不修改版本、历史或幂等缓存，也不要求逐帧确认。
 	if (operation.preview())
 	{
 		return true;
 	}
 
-	// 5. 最终提交同步旧类型字段并只分配一次版本，撤销基于该确认结果。
+	// 6. 最终提交同步旧类型字段并只分配一次版本，撤销基于该确认结果。
 	if (state.kind() == message::ITEM_TEXT)
 	{
 		auto& text = _text_itemMap.at(item_id);
@@ -826,13 +897,7 @@ bool Room::ApplyItemEditOperationLocked(const message::ItemEditOperation& operat
 	_item_revisions[item_id] = revision;
 	_item_edit_states[item_id] = state;
 	UpdateItemEditHistoryLocked(item_id);
-	// 6. 有界缓存仅记录最终成功请求，重试不会再次推进版本或覆盖后续编辑。
-	_edit_responses[cache_key] = response;
-	_edit_response_order.push_back(cache_key);
-	if (_edit_response_order.size() > 512)
-	{
-		_edit_responses.erase(_edit_response_order.front());
-		_edit_response_order.pop_front();
-	}
+	// 7. 有界缓存仅记录最终成功请求，重试不会再次推进版本或覆盖后续编辑。
+	RememberItemEditResponseLocked(cache_key, response);
 	return true;
 }

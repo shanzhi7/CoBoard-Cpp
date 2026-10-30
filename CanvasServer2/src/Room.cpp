@@ -203,7 +203,7 @@ bool Room::ApplyTextOperation(const message::TextOperation& operation, message::
 	(operation.uid() != _owner_uid && _editable_users.count(operation.uid()) == 0) ||
 	(operation.expected_sequence() != 0 && operation.expected_sequence() != known_sequence) ||
 	(operation.operation_type() == message::TEXT_CREATE ? iterator != _text_itemMap.end() || _text_itemMap.size() >= 10000 ||
-	_item_edit_states.count(item_id) || _draw_started.count(item_id) : iterator == _text_itemMap.end()))
+	_item_revisions.count(item_id) || _item_edit_states.count(item_id) || _draw_started.count(item_id) : iterator == _text_itemMap.end()))
 	{
 		response.set_error(message::TextStateConflict);
 		response.set_error_message("文字状态已改变、已删除或没有编辑权限");
@@ -306,7 +306,7 @@ bool Room::ApplyImageOperation(message::ImageOperation& operation, std::string* 
         if (_image_items.size() >= max_image_items
         || requested_item_id.empty()
         || _image_items.find(requested_item_id) != _image_items.end()
-        || _item_edit_states.count(requested_item_id) || _draw_started.count(requested_item_id))
+        || _item_revisions.count(requested_item_id) || _item_edit_states.count(requested_item_id) || _draw_started.count(requested_item_id))
         {
             return false;
         }

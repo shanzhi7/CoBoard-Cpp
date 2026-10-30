@@ -83,6 +83,90 @@ void CanvasItemEditSync::Clear()
     _generic_revisions.clear();
     _creation_pending.clear();
     _room_id.clear();
+    _deleted.clear();
+    _delete_groups.clear();
+}
+
+void CanvasItemEditSync::SubmitDelete(const QStringList& item_ids)
+{
+    // 1. 删除仅接受完整、可提交的目标集合，不能绕过待确认编辑或创建。
+    if (!_scene || _offline || !_editable || item_ids.isEmpty())
+    {
+        return;
+    }
+    for (const QString& id : item_ids)
+    {
+        if (!_scene->FindCanvasItem(id) || _pending.contains(id) || _creation_pending.contains(id))
+        {
+            return;
+        }
+    }
+    const QString group_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    _delete_groups.insert(group_id, {static_cast<int>(item_ids.size()), 0});
+
+    // 2. 提交前保留图元，服务端确认后才移除；统一定时器负责发送和超时。
+    for (const QString& id : item_ids)
+    {
+        PendingEdit pending;
+        pending._before = _scene->CaptureItemEditState(id);
+        pending._desired = pending._before;
+        pending._operation_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+        pending._expected_revision = _revisions.value(id);
+        pending._finished = true;
+        pending._delete_group_id = group_id;
+        _pending.insert(id, pending);
+        _confirmed.insert(id, pending._before);
+        _scene->SetItemEditPending(id, true);
+    }
+}
+
+void CanvasItemEditSync::ApplyDeletedState(const QString& item_id, quint64 revision)
+{
+    // 1. 删除成功与目标已不存在使用相同墓碑，旧创建、编辑和预览均不能恢复内容。
+    _remote_previews.remove(item_id);
+    _confirmed.remove(item_id);
+    _creation_pending.remove(item_id);
+    _revisions.insert(item_id, revision);
+    _generic_revisions.insert(item_id, revision);
+    _deleted.insert(item_id);
+    if (_scene)
+    {
+        _scene->SetItemEditPending(item_id, false);
+        _scene->RemoveCanvasItem(item_id);
+    }
+
+    // 2. 窗口清理目标关联任务，共享资源缓存仍由资源管理器拥有。
+    emit SigItemDeleted(item_id, revision);
+}
+
+void CanvasItemEditSync::FinishDeleteGroup(const QString& group_id, bool success)
+{
+    // 1. 每个目标只结束一次，多选冲突汇总为一条反馈。
+    auto iterator = _delete_groups.find(group_id);
+    if (iterator == _delete_groups.end())
+    {
+        return;
+    }
+    if (!success)
+    {
+        ++iterator->_failed;
+    }
+    if (--iterator->_remaining != 0)
+    {
+        return;
+    }
+    const int failed = iterator->_failed;
+    _delete_groups.erase(iterator);
+    if (failed > 0)
+    {
+        emit SigError(QStringLiteral("%1 个图元删除失败或确认超时，请检查权限、连接及目标状态").arg(failed));
+    }
+}
+
+bool CanvasItemEditSync::IsDeleted(const QString& item_id) const
+{
+    // 1. 删除版本在当前房间内有效，换房或清理上下文后重置。
+    return _deleted.contains(item_id);
 }
 
 void CanvasItemEditSync::Submit(const CanvasItemEditState& before, const CanvasItemEditState& after,
@@ -149,8 +233,12 @@ void CanvasItemEditSync::Flush()
         {
             if (now_ms - iterator->_sent_at_ms >= EDIT_CONFIRM_TIMEOUT_MS)
             {
+                const bool is_delete = !iterator->_delete_group_id.isEmpty();
                 CancelTarget(id, true);
-                ++timeout_count;
+                if (!is_delete)
+                {
+                    ++timeout_count;
+                }
             }
             continue;
         }
@@ -161,8 +249,9 @@ void CanvasItemEditSync::Flush()
         }
         PendingEdit& pending = iterator.value();
         const CanvasItemEditState current = _confirmed.value(id, pending._before);
+        const bool is_delete = !pending._delete_group_id.isEmpty();
         quint32 fields = CanvasItemEditCodec::ChangedFields(current, pending._desired);
-        if (pending._finished && fields == 0 && !pending._preview_sent)
+        if (!is_delete && pending._finished && fields == 0 && !pending._preview_sent)
         {
             Complete(id);
             continue;
@@ -188,8 +277,14 @@ void CanvasItemEditSync::Flush()
         operation.set_operation_id(pending._operation_id.toStdString());
         operation.set_target_item_id(id.toStdString());
         operation.set_expected_revision(pending._expected_revision);
-        operation.set_fields(fields);
-        *operation.mutable_state() = CanvasItemEditCodec::Encode(pending._desired);
+        if (is_delete)
+        {
+            operation.set_operation_type(message::ITEM_EDIT_DELETE);
+        } else
+        {
+            operation.set_fields(fields);
+            *operation.mutable_state() = CanvasItemEditCodec::Encode(pending._desired);
+        }
         std::string body;
         if (!operation.SerializeToString(&body) || body.size() > 65535)
         {
@@ -234,6 +329,7 @@ void CanvasItemEditSync::CancelTarget(const QString& item_id, bool restore)
 {
     // 1. 先移除待提交值，结束手势时产生的本地信号不能复活该请求。
     const PendingEdit pending = _pending.take(item_id);
+    FinishDeleteGroup(pending._delete_group_id, false);
     if (pending._preview_sent && !_offline && !_room_id.isEmpty())
     {
         message::ItemEditOperation cancel;
@@ -298,6 +394,18 @@ void CanvasItemEditSync::ApplyResponse(const message::ItemEditOperationRsp& resp
     {
         return;
     }
+    // 2. 删除成功使用无状态确认，统一保留墓碑并停止该目标的预览与旧请求。
+    if (response.error() == 0 && operation.operation_type() == message::ITEM_EDIT_DELETE)
+    {
+        if (response.has_current_state() || operation.preview() || operation.fields() != 0)
+        {
+            return;
+        }
+        const PendingEdit pending = _pending.take(id);
+        FinishDeleteGroup(pending._delete_group_id, true);
+        ApplyDeletedState(id, revision);
+        return;
+    }
     CanvasItemEditState state;
     const bool has_state = response.has_current_state() && CanvasItemEditCodec::Decode(response.current_state(), &state) && state._item_id == id;
     if ((response.has_current_state() && !has_state) || (response.error() == 0 && !has_state))
@@ -319,23 +427,26 @@ void CanvasItemEditSync::ApplyResponse(const message::ItemEditOperationRsp& resp
     {
         _generic_revisions.insert(id, revision);
     }
-    // 2. 他人的真实编辑使旧文字创建撤销失效，不能借新版本删除别人改过的文字。
+    // 3. 他人的真实编辑使旧文字创建撤销失效，不能借新版本删除别人改过的文字。
     if (!own && operation.uid() != _uid && !operation.operation_id().empty())
     {
         _scene->InvalidateTextUndo(id);
     }
-    // 3. 失败及远端竞争取消手势，缺失目标同步删除，避免留下乐观状态的幽灵图元。
+    // 4. 失败及远端竞争取消手势，缺失目标同步删除，避免留下乐观状态的幽灵图元。
     if (response.error() != 0 || (!own && iterator != _pending.end()))
     {
+        const bool was_delete = iterator != _pending.end() && !iterator->_delete_group_id.isEmpty();
         CancelTarget(id, has_state);
         if (!has_state)
         {
-            _confirmed.remove(id);
-            _scene->RemoveCanvasItem(id);
+            ApplyDeletedState(id, revision);
         }
-        emit SigError(response.error_message().empty()
-            ? QStringLiteral("图元已由其他成员修改，本次编辑已停止")
-            : QString::fromStdString(response.error_message()));
+        if (!was_delete)
+        {
+            emit SigError(response.error_message().empty()
+                ? QStringLiteral("图元已由其他成员修改，本次编辑已停止")
+                : QString::fromStdString(response.error_message()));
+        }
     } else if (own)
     {
         PendingEdit& pending = iterator.value();
@@ -443,8 +554,7 @@ void CanvasItemEditSync::ObserveLegacy(const QString& item_id, quint64 revision,
     if (deleted)
     {
         CancelTarget(item_id, false);
-        _confirmed.remove(item_id);
-        _creation_pending.remove(item_id);
+        ApplyDeletedState(item_id, revision);
         return;
     }
     // 2. 调用者已经应用旧协议的规范状态，先保存再取消，防止取消草稿覆盖远端更新。

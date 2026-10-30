@@ -10,12 +10,13 @@ QPointer<TipWidget> TipWidget::s_currentTip = nullptr;
 // 构造函数实现
 TipWidget::TipWidget(QWidget *parent) : QWidget(parent)
 {
-    // 设置窗口属性：无边框、置顶、透明背景、关闭即销毁
-    setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint);
+    // 1. 提示只展示反馈，不能抢走菜单关闭后画布或文字输入的键盘焦点。
+    setWindowFlags(Qt::FramelessWindowHint | Qt::Tool | Qt::WindowStaysOnTopHint | Qt::WindowDoesNotAcceptFocus);
+    setAttribute(Qt::WA_ShowWithoutActivating);
     setAttribute(Qt::WA_TranslucentBackground);
     setAttribute(Qt::WA_DeleteOnClose);
 
-    // 初始化布局
+    // 2. 提示内容与布局由窗口拥有，统一保持既有显示样式。
     QHBoxLayout *layout = new QHBoxLayout(this);
     // 留出边距给阴影显示，防止阴影被切掉
     layout->setContentsMargins(10, 10, 10, 10);
@@ -37,7 +38,7 @@ TipWidget::TipWidget(QWidget *parent) : QWidget(parent)
         "}"
         );
 
-    // 添加阴影效果 (让气泡更立体)
+    // 3. 阴影跟随标签释放，不参与输入或画布交互。
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(this);
     shadow->setBlurRadius(10);              // 阴影模糊半径
     shadow->setColor(QColor(0, 0, 0, 100)); // 阴影颜色 (半透明黑)
@@ -47,7 +48,7 @@ TipWidget::TipWidget(QWidget *parent) : QWidget(parent)
     // 将标签加入布局
     layout->addWidget(m_label);
 
-    // 设置定时器：2秒后自动关闭窗口
+    // 4. 两秒后自动关闭，避免提示窗口残留遮挡操作区域。
     QTimer::singleShot(2000, this, &TipWidget::close);
 }
 

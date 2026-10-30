@@ -496,6 +496,10 @@ message ItemEditState {
     uint32 color = 14; // 文字 ARGB 颜色。
     bool bold = 15; // 全文统一加粗。
 }
+enum ItemEditOperationType {
+    ITEM_EDIT_UPDATE = 0; // 默认更新，兼容既有请求。
+    ITEM_EDIT_DELETE = 1; // 条件删除，不携带状态或预览。
+}
 message ItemEditOperation {
     int32 uid = 1; // 必须与已登录会话一致。
     string room_id = 2; // 必须与当前房间一致。
@@ -507,6 +511,7 @@ message ItemEditOperation {
     uint64 revision = 8; // 服务端赋值的已确认版本。
     bool preview = 9; // 拖动预览不推进版本、不写历史、不等待确认；缺省为最终提交。
     bool cancel_preview = 10; // 仅与 preview 同用，撤销同一 operation_id 的临时预览。
+    ItemEditOperationType operation_type = 11; // 更新或删除，删除成功时不返回 current_state。
 }
 message ItemEditOperationRsp {
     int32 error = 1; // 公共错误码。

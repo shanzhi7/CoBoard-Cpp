@@ -4,6 +4,8 @@
 #include "paintscene.h"
 
 #include <QCursor>
+#include <QContextMenuEvent>
+#include <QApplication>
 #include <QDragEnterEvent>
 #include <QDragMoveEvent>
 #include <QDropEvent>
@@ -96,13 +98,85 @@ CanvasInteractionMode CanvasGraphicsView::InteractionMode() const
     return _interaction_mode;
 }
 
+bool CanvasGraphicsView::IsTextEditing() const
+{
+    // 1. 文字编辑器优先接收文本快捷键与原生菜单，包括附属文字。
+    const auto* paint_scene = qobject_cast<PaintScene*>(scene());
+    return (paint_scene && paint_scene->IsTextEditing()) ||
+        (scene() && dynamic_cast<QGraphicsTextItem*>(scene()->focusItem()));
+}
+
+void CanvasGraphicsView::RestoreToolCursor()
+{
+    // 1. 弹出菜单可能消费右键释放，关闭时同时结束视图保存的右键序列。
+    _right_press_consumed = false;
+    _context_menu_allowed = true;
+
+    // 2. 菜单不拥有工具状态，按当前模式恢复光标。
+    const Qt::CursorShape cursor = _interaction_mode == CanvasInteractionMode::Pan ? Qt::OpenHandCursor :
+        (_interaction_mode == CanvasInteractionMode::Select ? Qt::ArrowCursor : Qt::CrossCursor);
+    setCursor(cursor);
+    viewport()->setCursor(cursor);
+}
+
+void CanvasGraphicsView::mousePressEvent(QMouseEvent* event)
+{
+    // 1. 普通右键序列在视图终止，不能触发 Qt 默认选择、手形或绘图状态。
+    if (event->button() == Qt::RightButton && !IsTextEditing())
+    {
+        const auto* paint_scene = qobject_cast<PaintScene*>(scene());
+        _right_press_consumed = true;
+        _context_menu_allowed = !event->buttons().testFlag(Qt::LeftButton) &&
+            (!paint_scene || !paint_scene->HasPointerInteraction());
+        setFocus(Qt::MouseFocusReason);
+        event->accept();
+        return;
+    }
+    // 2. 左键与活动文字继续遵循 Qt 及场景现有事件流程。
+    QGraphicsView::mousePressEvent(event);
+}
+
+void CanvasGraphicsView::mouseReleaseEvent(QMouseEvent* event)
+{
+    // 1. 被接管的右键释放不能交给底层启动或结束图元交互。
+    if (event->button() == Qt::RightButton && _right_press_consumed)
+    {
+        _right_press_consumed = false;
+        event->accept();
+        return;
+    }
+    QGraphicsView::mouseReleaseEvent(event);
+}
+
+void CanvasGraphicsView::contextMenuEvent(QContextMenuEvent* event)
+{
+    // 1. 活动文字保留原有纯文本菜单，不混入图元命令。
+    if (IsTextEditing())
+    {
+        QGraphicsView::contextMenuEvent(event);
+        return;
+    }
+    // 2. 只记录打开时坐标，不伪造左键，不改变当前交互模式。
+    if (_context_menu_allowed && !QApplication::mouseButtons().testFlag(Qt::LeftButton))
+    {
+        emit SigEditMenuRequested(mapToScene(event->pos()), event->globalPos());
+    }
+    event->accept();
+}
+
 void CanvasGraphicsView::mouseMoveEvent(QMouseEvent* event)
 {
-    // 1. Qt 先完成两条滚动条的更新，保证状态栏使用平移后的坐标映射。
+    // 1. 右键移动不进入场景或手形流程，仍在左键手势中时保留原左键移动。
+    if (_right_press_consumed && !event->buttons().testFlag(Qt::LeftButton))
+    {
+        event->accept();
+        return;
+    }
+    // 2. Qt 先完成两条滚动条的更新，保证状态栏使用平移后的坐标映射。
     QGraphicsView::mouseMoveEvent(event);
     if (_interaction_mode == CanvasInteractionMode::Pan)
     {
-        // 2. 手形模式不向场景分发鼠标事件，因此单独转发坐标而不创建绘画消息。
+        // 手形模式不向场景分发鼠标事件，因此单独转发坐标而不创建绘画消息。
         emit SigCursorScenePositionChanged(mapToScene(event->position().toPoint()));
     }
 }
@@ -150,10 +224,7 @@ void CanvasGraphicsView::wheelEvent(QWheelEvent* event)
 void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
 {
     // 1. 独立和绑定文字共用场景编辑状态，字符、输入法及文字快捷键优先交给编辑器。
-    const auto* paint_scene = qobject_cast<PaintScene*>(scene());
-    const bool is_text_editing = (paint_scene && paint_scene->IsTextEditing()) ||
-        (scene() && dynamic_cast<QGraphicsTextItem*>(scene()->focusItem()));
-    if (is_text_editing)
+    if (IsTextEditing())
     {
         QGraphicsView::keyPressEvent(event);
         return;
@@ -193,7 +264,16 @@ void CanvasGraphicsView::keyPressEvent(QKeyEvent* event)
         return;
     }
 
-    // 4. 保留画布撤销、图片缩放和旋转等已有组合键。
+    // 4. 删除以选中集合为目标，在绘图与手形模式也不依赖图元键盘焦点。
+    if (event && (hasFocus() || viewport()->hasFocus()) &&
+        (event->key() == Qt::Key_Delete || event->key() == Qt::Key_Backspace))
+    {
+        emit SigDeleteItemsRequested();
+        event->accept();
+        return;
+    }
+
+    // 5. 保留画布撤销、图片缩放和旋转等已有组合键。
     QGraphicsView::keyPressEvent(event);
 }
 

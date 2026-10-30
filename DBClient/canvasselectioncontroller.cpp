@@ -157,8 +157,15 @@ public:
         painter->save();
         painter->resetTransform();
         painter->setRenderHint(QPainter::Antialiasing);
-        painter->setPen(QPen(QColor(105, 95, 255), 1.0));
+
+        // 2. 多选使用加粗蓝色虚线，单选保留原来的细实线和控制柄样式。
+        const bool is_multi_selection = _items.size() > 1;
+        const QPen selection_pen(is_multi_selection ? QColor(0, 120, 215) : QColor(105, 95, 255),
+                                 is_multi_selection ? 2.0 : 1.0,
+                                 is_multi_selection ? Qt::DashLine : Qt::SolidLine);
         painter->setBrush(Qt::NoBrush);
+
+        // 3. 多选框先铺白色衬边，与图元轮廓及图片背景分离，保持固定像素宽度。
         for (const QPointer<CanvasItem>& item : _items)
         {
             if (!item || !item->isSelected())
@@ -166,6 +173,12 @@ public:
                 continue;
             }
             const SelectionFrame frame = BuildFrame(item, scene_to_view);
+            if (is_multi_selection)
+            {
+                painter->setPen(QPen(Qt::white, 4.0));
+                painter->drawPolygon(frame._corners);
+            }
+            painter->setPen(selection_pen);
             painter->drawPolygon(frame._corners);
             if (_items.size() != 1 || _scene->IsTextEditing())
             {
@@ -248,6 +261,33 @@ CanvasItem* CanvasSelectionController::HitItem(const QPointF& scene_pos, bool in
         tolerance.setWidth(12.0);
         if (path.contains(point) || tolerance.createStroke(path).contains(point) ||
             (include_closed_interior && CanvasItemEdit::Interior(item).contains(item->mapFromScene(scene_pos))))
+        {
+            return item;
+        }
+    }
+    return nullptr;
+}
+
+CanvasItem* CanvasSelectionController::ContextItemAt(const QPointF& scene_pos, QWidget* widget) const
+{
+    // 1. 已选控制柄属于当前对象，右键只能改变菜单目标，不能进入变换手势。
+    const auto selected = SelectedItems();
+    QGraphicsView* view = ViewForWidget(widget);
+    const QTransform transform = view ? view->viewportTransform() : QTransform();
+    if (selected.size() == 1 && HitHandle(selected.first(), BuildFrame(selected.first(), transform), transform.map(scene_pos)) >= 0)
+    {
+        return selected.first();
+    }
+
+    // 2. 顶层轮廓优先，未命中时只允许已选对象使用内部移动区域。
+    if (CanvasItem* hit = HitItem(scene_pos, false, widget))
+    {
+        return hit;
+    }
+    for (QGraphicsItem* graphics_item : _scene->items(Qt::DescendingOrder))
+    {
+        auto* item = dynamic_cast<CanvasItem*>(graphics_item);
+        if (selected.contains(item) && CanvasItemEdit::Bounds(item).contains(item->mapFromScene(scene_pos)))
         {
             return item;
         }

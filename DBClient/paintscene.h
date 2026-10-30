@@ -1,6 +1,6 @@
 /***********************************************************************************
 * @file         paintscene.h
-* @brief        画布绘图、图片选择及本地和远端图元生命周期管理
+* @brief        画布绘图、统一选择及本地和远端图元生命周期管理
 * @author       shanzhi
 * @date         2026/10/07
 * @history
@@ -46,6 +46,8 @@ public:
         ItemEdit // 图元变换或附属文字的完整状态操作。
     };
     CanvasItem* FindCanvasItem(const QString& item_id) const; // 按稳定 ID 查找本地、远端或导入的顶层图元。
+    CanvasItem* ContextItemAt(const QPointF& scene_pos, QWidget* widget = nullptr) const; // 复用选择控制器命中规则确定右键目标。
+    bool HasPointerInteraction() const; // 返回是否正在绘制或变换，菜单不能打断左键手势。
     QVector<CanvasItem*> SelectedCanvasItems() const; // 返回当前可复制的顶层选中图元。
     CanvasItemEditState CaptureItemEditState(const QString& item_id) const; // 读取图元完整编辑快照。
     bool ApplyItemEditState(const CanvasItemEditState& state); // 恢复完整状态并刷新本地选择框。
@@ -116,6 +118,8 @@ public:
                               qreal rotation); // 应用调用方已经校验过的远端图片变换。
 
 signals:
+    void SigEditAvailabilityChanged(); // 权限或待确认状态变化后刷新共用编辑命令。
+    void SigDeleteItemsRequested(); // 将场景删除按键委托给统一命令。
     void SigItemEditChanged(CanvasItemEditState before, CanvasItemEditState after, QString gesture_id, bool finished); // 通知实时预览或完整编辑结束。
     void SigLocalCreationFinished(QString item_id); // 图元创建完成后请求上层切换鼠标工具。
     void SigTextEditingChanged(); // 活动文字编辑器切换后同步样式控件。
@@ -146,9 +150,10 @@ protected:
     void mouseMoveEvent(QGraphicsSceneMouseEvent* event) override; // 更新图片拖动或绘图 MOVE。
     void mouseReleaseEvent(QGraphicsSceneMouseEvent* event) override; // 提交图片最终状态或绘图 END。
     void mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event) override; // 仅鼠标模式向图片分发双击事件。
-    void keyPressEvent(QKeyEvent* event) override; // 按模式和权限处理图片编辑快捷键。
+    void keyPressEvent(QKeyEvent* event) override; // 优先文字编辑，转发统一删除与撤销并保留图片变换快捷键。
 
 private:
+    void PruneCreationUndo(const QString& item_id); // 删除创建记录中的目标，保留批次内其余对象。
     void ConnectTextItem(TextItem* item); // 重建文字索引和编辑信号。
     void ConfigureCanvasItem(CanvasItem* item); // 统一配置内容的选择权限，拖动交给控制器。
     bool BeginBoundTextEditing(CanvasItem* item); // 在封闭图元内部创建或继续编辑附属文字。

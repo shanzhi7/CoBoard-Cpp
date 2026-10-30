@@ -1,6 +1,6 @@
 /***********************************************************************************
 * @file         canvasgraphicsview.h
-* @brief        画布视口平移、缩放及图片拖放入口
+* @brief        画布视口平移、缩放、编辑输入隔离及图片拖放入口
 * @author       shanzhi
 * @date         2026/10/07
 * @history
@@ -13,6 +13,7 @@
 
 #include "canvasinteractionmode.h"
 
+class QContextMenuEvent;
 class QDragEnterEvent;
 class QDragMoveEvent;
 class QDropEvent;
@@ -33,6 +34,7 @@ public:
     explicit CanvasGraphicsView(QWidget* parent = nullptr); // 初始化画布视图和缩放行为
     ~CanvasGraphicsView() override; // 释放视图 UI 资源
 
+    void RestoreToolCursor(); // 菜单关闭后恢复当前工具光标，不切换模式或变换。
     qreal zoomFactor() const; // 返回当前实际缩放比例
     void resetZoom(); // 将视图缩放比例恢复为 100%
     void SetInteractionMode(CanvasInteractionMode mode); // 切换视口事件模式，保留缩放和滚动位置。
@@ -43,22 +45,31 @@ signals:
     void sigImageFilesDropped(QStringList file_paths, QPointF scene_pos); // 本地图片文件拖入画布时通知上层处理资源导入
     void sigPasteImageRequested(QPointF scene_pos); // 粘贴时传递鼠标的场景坐标，作为图元中心落点。
     void sigCopyItemsRequested(); // 用户在画布视图中触发复制快捷键时通知上层写入内部剪贴板。
+    void SigEditMenuRequested(QPointF scene_pos, QPoint screen_pos); // 右键只请求共用菜单，不分发图元手势。
+    void SigDeleteItemsRequested(); // 画布焦点内的 Backspace/Delete 交给统一编辑命令。
     void SigCursorScenePositionChanged(QPointF scene_pos); // 手形模式下向状态栏转发滚动后的场景坐标。
     void SigToolShortcutRequested(int tool_id); // 画布焦点中的字母按键请求切换已注册工具。
 
 protected:
     void wheelEvent(QWheelEvent* event) override; // 处理 Ctrl 加滚轮缩放
     void keyPressEvent(QKeyEvent* event) override; // 优先保留文本编辑，再处理工具字母键和图元复制粘贴。
+    void mousePressEvent(QMouseEvent* event) override; // 隔离右键按下，保留文字编辑与左键手势。
+    void mouseReleaseEvent(QMouseEvent* event) override; // 消费被接管的右键释放，防止遗留拖动状态。
+    void contextMenuEvent(QContextMenuEvent* event) override; // 在所有工具模式请求非阻塞图元菜单。
     void mouseMoveEvent(QMouseEvent* event) override; // 保留 Qt 视口拖动并更新手形模式下的坐标显示。
     void dragEnterEvent(QDragEnterEvent* event) override; // 接受包含本地文件 URL 的拖放进入事件
     void dragMoveEvent(QDragMoveEvent* event) override; // 拖放移动期间持续确认本地文件格式
     void dropEvent(QDropEvent* event) override; // 将本地文件路径和场景坐标交给 Canvas
 
 private:
+    bool IsTextEditing() const; // 场景和原生文字焦点共用输入隔离判断。
+
     static constexpr qreal MIN_ZOOM_FACTOR = 0.10; // 允许的最小缩放比例
     static constexpr qreal MAX_ZOOM_FACTOR = 4.00; // 允许的最大缩放比例
     static constexpr qreal ZOOM_STEP = 1.15; // 每个滚轮单位的缩放基准
 
+    bool _right_press_consumed = false; // 当前右键序列由视图接管。
+    bool _context_menu_allowed = true; // 左键手势中的右键不得在释放后补开菜单。
     Ui::CanvasGraphicsView* _ui = nullptr; // 视图 UI 配置对象
     CanvasInteractionMode _interaction_mode = CanvasInteractionMode::Draw; // 视口当前使用的事件模式。
 };

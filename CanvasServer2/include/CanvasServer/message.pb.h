@@ -491,6 +491,39 @@ inline bool ItemKind_Parse(absl::string_view name, ItemKind* value) {
   return ::google::protobuf::internal::ParseNamedEnum<ItemKind>(
       ItemKind_descriptor(), name, value);
 }
+enum ItemEditOperationType : int {
+  ITEM_EDIT_UPDATE = 0,
+  ITEM_EDIT_DELETE = 1,
+  ItemEditOperationType_INT_MIN_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::min(),
+  ItemEditOperationType_INT_MAX_SENTINEL_DO_NOT_USE_ =
+      std::numeric_limits<::int32_t>::max(),
+};
+
+bool ItemEditOperationType_IsValid(int value);
+extern const uint32_t ItemEditOperationType_internal_data_[];
+constexpr ItemEditOperationType ItemEditOperationType_MIN = static_cast<ItemEditOperationType>(0);
+constexpr ItemEditOperationType ItemEditOperationType_MAX = static_cast<ItemEditOperationType>(1);
+constexpr int ItemEditOperationType_ARRAYSIZE = 1 + 1;
+const ::google::protobuf::EnumDescriptor*
+ItemEditOperationType_descriptor();
+template <typename T>
+const std::string& ItemEditOperationType_Name(T value) {
+  static_assert(std::is_same<T, ItemEditOperationType>::value ||
+                    std::is_integral<T>::value,
+                "Incorrect type passed to ItemEditOperationType_Name().");
+  return ItemEditOperationType_Name(static_cast<ItemEditOperationType>(value));
+}
+template <>
+inline const std::string& ItemEditOperationType_Name(ItemEditOperationType value) {
+  return ::google::protobuf::internal::NameOfDenseEnum<ItemEditOperationType_descriptor,
+                                                 0, 1>(
+      static_cast<int>(value));
+}
+inline bool ItemEditOperationType_Parse(absl::string_view name, ItemEditOperationType* value) {
+  return ::google::protobuf::internal::ParseNamedEnum<ItemEditOperationType>(
+      ItemEditOperationType_descriptor(), name, value);
+}
 
 // ===================================================================
 
@@ -9410,6 +9443,7 @@ class ItemEditOperation final : public ::google::protobuf::Message
     kRevisionFieldNumber = 8,
     kPreviewFieldNumber = 9,
     kCancelPreviewFieldNumber = 10,
+    kOperationTypeFieldNumber = 11,
   };
   // string room_id = 2;
   void clear_room_id() ;
@@ -9534,12 +9568,22 @@ class ItemEditOperation final : public ::google::protobuf::Message
   void _internal_set_cancel_preview(bool value);
 
   public:
+  // .message.ItemEditOperationType operation_type = 11;
+  void clear_operation_type() ;
+  ::message::ItemEditOperationType operation_type() const;
+  void set_operation_type(::message::ItemEditOperationType value);
+
+  private:
+  ::message::ItemEditOperationType _internal_operation_type() const;
+  void _internal_set_operation_type(::message::ItemEditOperationType value);
+
+  public:
   // @@protoc_insertion_point(class_scope:message.ItemEditOperation)
  private:
   class _Internal;
   friend class ::google::protobuf::internal::TcParser;
   static const ::google::protobuf::internal::TcParseTable<
-      4, 10, 1,
+      4, 11, 1,
       75, 2>
       _table_;
 
@@ -9569,6 +9613,7 @@ class ItemEditOperation final : public ::google::protobuf::Message
     ::uint64_t revision_;
     bool preview_;
     bool cancel_preview_;
+    int operation_type_;
     PROTOBUF_TSAN_DECLARE_MEMBER
   };
   union { Impl_ _impl_; };
@@ -18339,6 +18384,28 @@ inline void ItemEditOperation::_internal_set_cancel_preview(bool value) {
   _impl_.cancel_preview_ = value;
 }
 
+// .message.ItemEditOperationType operation_type = 11;
+inline void ItemEditOperation::clear_operation_type() {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_type_ = 0;
+}
+inline ::message::ItemEditOperationType ItemEditOperation::operation_type() const {
+  // @@protoc_insertion_point(field_get:message.ItemEditOperation.operation_type)
+  return _internal_operation_type();
+}
+inline void ItemEditOperation::set_operation_type(::message::ItemEditOperationType value) {
+  _internal_set_operation_type(value);
+  // @@protoc_insertion_point(field_set:message.ItemEditOperation.operation_type)
+}
+inline ::message::ItemEditOperationType ItemEditOperation::_internal_operation_type() const {
+  ::google::protobuf::internal::TSanRead(&_impl_);
+  return static_cast<::message::ItemEditOperationType>(_impl_.operation_type_);
+}
+inline void ItemEditOperation::_internal_set_operation_type(::message::ItemEditOperationType value) {
+  ::google::protobuf::internal::TSanWrite(&_impl_);
+  _impl_.operation_type_ = value;
+}
+
 // -------------------------------------------------------------------
 
 // ItemEditOperationRsp
@@ -19282,6 +19349,12 @@ struct is_proto_enum<::message::ItemKind> : std::true_type {};
 template <>
 inline const EnumDescriptor* GetEnumDescriptor<::message::ItemKind>() {
   return ::message::ItemKind_descriptor();
+}
+template <>
+struct is_proto_enum<::message::ItemEditOperationType> : std::true_type {};
+template <>
+inline const EnumDescriptor* GetEnumDescriptor<::message::ItemEditOperationType>() {
+  return ::message::ItemEditOperationType_descriptor();
 }
 
 }  // namespace protobuf

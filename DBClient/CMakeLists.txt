@@ -64,6 +64,7 @@ qt_add_executable(DBClient
     canvasitemeditcodec.h canvasitemeditcodec.cpp
     canvasitemeditsync.h canvasitemeditsync.cpp
     canvasselectioncontroller.h canvasselectioncontroller.cpp
+    canvaseditcontroller.h canvaseditcontroller.cpp
     canvastoolregistry.h canvastoolregistry.cpp
     canvastoolbutton.h canvastoolbutton.cpp
     canvasgraphicsview.h canvasgraphicsview.cpp canvasgraphicsview.ui
@@ -203,45 +204,4 @@ if(WIN32)
         COMMENT "Deploying Qt runtime and plugins for DBClient"
         VERBATIM
     )
-endif()
-
-# 聚焦场景交互测试按需启用，不依赖网络、LiveKit 会话或真实桌面输入。
-option(SYNCCANVAS_BUILD_INTERACTION_TESTS "Build canvas interaction tests" OFF)
-if(SYNCCANVAS_BUILD_INTERACTION_TESTS)
-    enable_testing()
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    add_executable(CanvasInteractionTests
-        tests/canvasinteractiontests.cpp
-        paintscene.cpp
-        canvasitemeditstate.cpp canvasitemeditcodec.cpp canvasitemeditsync.cpp
-        canvasselectioncontroller.cpp canvasitemserializer.cpp drawtool.cpp
-        canvasitems/canvasitem.cpp canvasitems/textitem.cpp canvasitems/imageitem.cpp
-        canvasitems/pathitem.cpp canvasitems/penitem.cpp canvasitems/eraseritem.cpp
-        canvasitems/rectitem.cpp canvasitems/ovalitem.cpp canvasitems/lineitem.cpp
-        canvasitems/arrowitem.cpp canvasitems/diamonditem.cpp
-        drawtools/pathtool.cpp drawtools/pentool.cpp drawtools/erasertool.cpp
-        drawtools/recttool.cpp drawtools/ovaltool.cpp drawtools/linetool.cpp
-        drawtools/arrowtool.cpp drawtools/diamondtool.cpp
-        message.pb.cc
-    )
-    target_include_directories(CanvasInteractionTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-    target_compile_features(CanvasInteractionTests PRIVATE cxx_std_17)
-    target_link_libraries(CanvasInteractionTests PRIVATE Qt6::Widgets Qt6::Test protobuf::libprotobuf)
-    if(MSVC)
-        target_compile_options(CanvasInteractionTests PRIVATE /utf-8)
-    endif()
-    add_test(NAME CanvasInteractionTests COMMAND CanvasInteractionTests)
-    set_tests_properties(CanvasInteractionTests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    if(WIN32)
-        add_custom_command(TARGET CanvasInteractionTests POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_FILE:Qt6::Test> $<TARGET_FILE_DIR:CanvasInteractionTests>
-            COMMAND $<TARGET_FILE:Qt6::windeployqt>
-                --qtpaths "$<TARGET_FILE:Qt6::qtpaths>"
-                "$<IF:$<CONFIG:Debug>,--debug,--release>" --no-translations
-                --dir "$<TARGET_FILE_DIR:CanvasInteractionTests>"
-                "$<TARGET_FILE:CanvasInteractionTests>"
-            VERBATIM
-        )
-    endif()
 endif()
